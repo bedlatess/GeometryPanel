@@ -10,7 +10,7 @@ export const cars = [
 export interface Call { path: string; method: string; body: any; authorization: string }
 type CommandStage = 'prepare' | 'normal' | 'high' | 'unlock' | 'seat';
 export interface Mocks {
-  calls: Call[]; external: string[]; listFailures: number; empty: boolean;
+  calls: Call[]; external: string[]; maps: string[]; listFailures: number; empty: boolean;
   expired: boolean; readFailure: boolean; batteryFailure: boolean;
   commandResults: Partial<Record<CommandStage, 'network' | 'false' | 'rejected' | 'expired'>>;
   holdList?: Promise<void>; holdCommand?: { stage: CommandStage; wait: Promise<void> };
@@ -19,7 +19,7 @@ export interface Mocks {
 }
 export const test = base.extend<{ mocks: Mocks }>({
   mocks: [async ({ context }, use) => {
-    const state: Mocks = { calls: [], external: [], listFailures: 0, empty: false, expired: false, readFailure: false, batteryFailure: false, commandResults: {} };
+    const state: Mocks = { calls: [], external: [], maps: [], listFailures: 0, empty: false, expired: false, readFailure: false, batteryFailure: false, commandResults: {} };
     const errors: string[] = [];
     context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
     // A fetch replacement runs before the application and before service-worker dispatch.
@@ -84,6 +84,12 @@ export const test = base.extend<{ mocks: Mocks }>({
       const request = route.request();
       const url = new URL(request.url());
       if (url.origin === 'http://127.0.0.1:4174') { await route.continue(); return; }
+      if (url.origin === 'https://uri.amap.com' && url.pathname === '/marker') {
+        state.maps.push(url.href);
+        await route.fulfill({ status: 200, contentType: 'text/html;charset=utf-8', headers: { 'Content-Security-Policy': "default-src 'none'" },
+          body: '<!doctype html><html lang="zh"><meta name="viewport" content="width=device-width"><body><p>模拟地图 · 合成停车点</p></body></html>' });
+        return;
+      }
       // Defense in depth. Any actual external browser request fails the test.
       state.external.push(url.origin);
       await route.abort();

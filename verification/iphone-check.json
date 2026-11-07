@@ -1,0 +1,46 @@
+{
+  "version": "0.3.0",
+  "checkedAt": "2026-11-07T07:41:38.441498+00:00",
+  "command": "npm run verify",
+  "unitTests": {
+    "passed": 73,
+    "failed": 0
+  },
+  "productionBuild": "passed",
+  "browserTests": {
+    "passed": 100,
+    "failed": 0,
+    "skipped": 0,
+    "projects": [
+      "chromium-mobile",
+      "webkit-mobile"
+    ],
+    "durationMs": 170767
+  },
+  "realAccountReadsSmsOrVehicleCommands": 0,
+  "browserData": "synthetic accounts, vehicles and map response; fetch-before-service-worker mocks plus local CSP",
+  "publicMapObservation": {
+    "provider": "AMap HTTPS marker URI",
+    "coordinates": "public sample 116.397,39.908",
+    "sandboxed": true,
+    "mapCanvasAndMarkerObserved": true,
+    "phoneGeolocationRequestedByPanel": false,
+    "realIPhone": false
+  },
+  "previouslyAccepted": [
+    "login",
+    "SOC",
+    "voltage",
+    "normal horn",
+    "daily vehicle and charging",
+    "seat",
+    "high horn"
+  ],
+  "pendingRealAcceptance": [
+    "range fix",
+    "vehicle map location",
+    "iPhone home-screen and preferences",
+    "power on/off at user convenience"
+  ],
+  "overallVisualDesign": "after all functional acceptance"
+}

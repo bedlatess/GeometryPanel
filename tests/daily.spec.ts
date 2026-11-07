@@ -24,14 +24,14 @@ test('daily page shows recovered units, charging and separate report ages withou
   }
   await expect(page.getByText(/位置上报.*位置较早/)).toBeVisible();
   await expect(page.getByText(/电池上报.*时间异常/)).toBeVisible();
-  const map = new URL((await page.getByRole('link', { name: '查看地图', exact: true }).getAttribute('href'))!);
+  const map = new URL((await page.getByRole('link', { name: '在新窗口打开地图', exact: true }).getAttribute('href'))!);
   expect(map.origin).toBe('https://uri.amap.com');
   expect(map.searchParams.get('position')).toBe('116.397000,39.908000');
   expect(map.searchParams.get('coordinate')).toBe('gaode');
-  const walk = new URL((await page.getByRole('link', { name: '步行导航到车辆' }).getAttribute('href'))!);
+  const walk = new URL((await page.getByRole('link', { name: '带我去找车' }).getAttribute('href'))!);
   expect(walk.searchParams.get('mode')).toBe('walk');
   expect(walk.searchParams.get('to')).toBe('116.397000,39.908000,车辆位置');
-  await expect(page.getByRole('link', { name: '查看地图', exact: true })).toHaveAttribute('rel', 'noopener noreferrer');
+  await expect(page.getByRole('link', { name: '在新窗口打开地图', exact: true })).toHaveAttribute('rel', 'noopener noreferrer');
   expect(commands(mocks.calls)).toHaveLength(0);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   await page.screenshot({ path: 'test-results/daily-synthetic-mobile.png', fullPage: true });
@@ -71,11 +71,11 @@ for (const crs of ['wgs84', 'unknown']) {
   test(`navigation handles explicitly reported ${crs} without assuming route coordinates`, async ({ page, mocks }) => {
     mocks.home = { location: { longitude: 116.397, latitude: 39.908, coordinateSystem: crs } };
     await open(page); await login(page); await daily(page);
-    expect(await page.getByRole('link', { name: '步行导航到车辆' }).count()).toBe(0);
+    expect(await page.getByRole('link', { name: '带我去找车' }).count()).toBe(0);
     if (crs === 'wgs84') {
-      const link = new URL((await page.getByRole('link', { name: '查看地图', exact: true }).getAttribute('href'))!);
+      const link = new URL((await page.getByRole('link', { name: '在新窗口打开地图', exact: true }).getAttribute('href'))!);
       expect(link.searchParams.get('coordinate')).toBe('wgs84');
-    } else expect(await page.getByRole('link', { name: '查看地图', exact: true }).count()).toBe(0);
+    } else expect(await page.getByRole('link', { name: '在新窗口打开地图', exact: true }).count()).toBe(0);
   });
 }
 

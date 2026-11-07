@@ -34,7 +34,8 @@ export function vehicleList(value: unknown): VehicleList {
 }
 export function snapshot(home: Record<string, unknown>, battery: Record<string, unknown> | null): Snapshot {
   const numeric = (value: unknown): number | null => {
-    if (value === null || value === undefined || typeof value === 'string' && !value.trim() || typeof value === 'boolean') return null;
+    if (typeof value !== 'number' && typeof value !== 'string') return null;
+    if (typeof value === 'string' && !/^[+-]?(?:\d+(?:\.\d*)?|\.\d+)(?:e[+-]?\d+)?$/i.test(value.trim())) return null;
     const result = Number(value);
     return Number.isFinite(result) && result >= 0 ? result : null;
   };
@@ -45,7 +46,9 @@ export function snapshot(home: Record<string, unknown>, battery: Record<string, 
   const state = String(battery?.chargeState ?? home.chargeState ?? '');
   const online = String(home.onlineStatus ?? '').toLowerCase();
   return {
-    soc: soc(battery) ?? soc(home), range: numeric(battery?.hmiRidableMile) ?? numeric(home.hmiRidableMile),
+    // The recovered homepage owns remaining range; battery_info has no range
+    // contract. An incidental battery field must not overwrite the vehicle report.
+    soc: soc(battery) ?? soc(home), range: numeric(home.hmiRidableMile),
     voltage: numeric(battery?.voltage) ?? numeric(battery?.bmsVoltage) ?? numeric(home.voltage) ?? numeric(home.bmsVoltage),
     online: ['online', '1', 'true'].includes(online) ? true : ['offline', '0', 'false'].includes(online) ? false : null,
     charging: String(battery?.chargeStateStr ?? '').includes('充满') ? '已充满' : state === '1' ? '充电中' : state === '0' ? '未充电' : '充电状态未知',

@@ -44,7 +44,7 @@ export function renderDaily(options: { car?: Vehicle; data: Snapshot | null; dem
     <section class="settings-card daily-card" aria-label="车辆位置"><h2>车辆位置与导航</h2>
       <p class="location-address">${escape(location?.address || (location ? '车辆最近上报位置' : '暂未取得有效车辆位置'))}</p>
       ${location ? `<p class="coordinate">${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}</p><p class="fine-print">位置上报 ${date(location.reportedAt)}${location.reportState === 'stale' ? ' · 位置较早' : location.reportState === 'future' ? ' · 时间异常' : ''}，请以现场为准。</p>` : ''}
-      ${links ? `<div class="map-actions"><a class="primary" href="${escape(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">查看地图</a>${links.walk ? `<a class="secondary-link" href="${escape(links.walk)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">步行导航到车辆</a>` : ''}</div><p class="fine-print">打开高德地图网页，可在那里发起导航。</p>`
+      ${links ? `<button class="primary block" data-action="map">显示车辆地图</button><div class="map-actions"><a class="secondary-link" href="${escape(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在新窗口打开地图</a>${links.walk ? `<a class="secondary-link" href="${escape(links.walk)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">带我去找车</a>` : ''}</div><p class="fine-print">“带我去找车”会在高德规划从你所在位置走到停车处的路线。</p>`
         : `<p class="fine-print">${demo ? '演示模式不打开真实导航。' : !online ? '联网后可打开地图。' : location?.coordinateSystem === 'unknown' ? '位置的坐标类型未标明，暂不生成导航。' : '取得有效位置后可打开地图与导航。'}</p>`}
     </section>
     <section class="settings-card daily-card"><h2>云端车控</h2><p>每项操作都会先确认目标车辆，再发送请求。</p>

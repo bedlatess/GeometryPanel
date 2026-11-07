@@ -46,17 +46,39 @@ test('waiting updates require an explicit idle action and preserve login', async
   await open(page); await login(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await page.getByLabel('首页快捷操作', { exact: true }).selectOption('seat');
+  await page.getByRole('button', { name: '车辆', exact: true }).click();
   await page.evaluate(async () => { await caches.open('another-app-cache'); });
   await request.post('http://127.0.0.1:4174/__test/update');
   await page.evaluate(async () => { const registration = await navigator.serviceWorker.getRegistration(); await registration?.update(); });
   const update = page.getByRole('button', { name: '更新并重新打开' });
   await expect(update).toBeVisible();
-  await page.getByRole('button', { name: '鸣笛寻车' }).click();
+  await page.getByRole('button', { name: '打开座桶', exact: true }).click();
   await expect(update).toBeDisabled();
   await page.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(update).toBeEnabled();
   await Promise.all([page.waitForEvent('load'), update.click()]);
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
   await expect(page.locator('.battery-number')).toHaveText('82%');
+  await expect(page.getByRole('button', { name: '打开座桶', exact: true })).toBeEnabled();
   expect(await page.evaluate(() => caches.has('another-app-cache'))).toBe(true);
+});
+
+test('manual update check reports status and prepares an explicit update without reloading during use', async ({ page, request }) => {
+  // A separate scope keeps the other update test's SW revision independent.
+  await page.goto('http://127.0.0.1:4174/other/');
+  await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
+  await login(page);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await expect(page.getByText('离线页面已准备好；车辆数据和控制需要联网。')).toBeVisible();
+  await page.getByRole('button', { name: '检查新版本', exact: true }).click();
+  await expect(page.locator('.notice')).toHaveText('已检查，目前没有新版本。');
+  await request.post('http://127.0.0.1:4174/__test/update?scope=other');
+  await page.getByRole('button', { name: '检查新版本', exact: true }).click();
+  await expect(page.locator('.notice')).toContainText('新版本已准备好');
+  await expect(page.getByRole('button', { name: '更新并重新打开' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '退出本机登录' })).toBeVisible();
 });

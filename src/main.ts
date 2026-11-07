@@ -10,6 +10,10 @@ import { storagePrefix } from './core/scope';
 import { installUpdates } from './core/updates';
 import { commandNames, commandSummary, type CommandMode, type CommandReport, type CommandStep } from './core/command-report';
 import { renderDaily } from './ui/daily';
+import { defaultPreferences, readPreferences, writePreferences, exportPreferences, importPreferences } from './core/preferences';
+import { currentInstallContext } from './core/pwa';
+import { navigationLinks } from './core/navigation';
+import { renderUsagePreferences } from './ui/preferences';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '<div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
@@ -30,20 +34,14 @@ let lastCommandReport: CommandReport | null = null;
 let commandTarget: Session | null = null;
 let commandIntent: 'horn' | VehicleAction | null = null;
 let phone = '';
+let cacheReady = Boolean(navigator.serviceWorker?.controller), checkingUpdate = false, lastUpdateCheck = 0;
 const cooldowns = new Map<string, number>();
 class UserMessage extends Error { }
-type Preferences = { theme: 'system' | 'light' | 'dark'; accent: 'green' | 'blue' | 'orange'; voltage: boolean };
-let preferences: Preferences = { theme: 'system', accent: 'green', voltage: true };
-try {
-  const saved = JSON.parse(localStorage.getItem(`${storagePrefix}preferences`) || '{}');
-  if (['system', 'light', 'dark'].includes(saved.theme)) preferences.theme = saved.theme;
-  if (['green', 'blue', 'orange'].includes(saved.accent)) preferences.accent = saved.accent;
-  if (typeof saved.voltage === 'boolean') preferences.voltage = saved.voltage;
-} catch { /* Nonessential preferences may be unavailable in private browsing. */ }
-function applyPreferences() {
+let preferences = readPreferences(`${storagePrefix}preferences`);
+function applyPreferences(save = true) {
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.dataset.accent = preferences.accent;
-  try { localStorage.setItem(`${storagePrefix}preferences`, JSON.stringify(preferences)); } catch { }
+  if (save && !writePreferences(preferences, `${storagePrefix}preferences`)) notice = '配置已在当前页面生效，但本机保存未完成，重开后可能恢复原配置。';
 }
 const escape = (value: unknown) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const display = (value: number | null | undefined, unit = '') => value == null ? '—' : `${Number.isInteger(value) ? value : value.toFixed(1)}${unit}`;
@@ -56,6 +54,8 @@ function render() {
   const data = preview ? demoSnapshot : reading;
   const locked = busy || booting || updating;
   const enabled = session && !locked && !expired && navigator.onLine;
+  const shortcut = preferences.shortcut;
+  const shortcutEnabled = shortcut === 'daily' ? !locked : enabled && (shortcut !== 'seat' || data?.daily.capabilities.seatOpen !== false);
   let body = '';
   if (tab === 'vehicle') body = `
     <div class="page-heading"><div><span class="eyebrow">我的车库</span><h1>${escape(car?.name ?? '几何面板')}</h1></div>
@@ -67,10 +67,10 @@ function render() {
       <div class="battery-bars" aria-hidden="true">${Array.from({ length: 20 }, (_, index) => `<i class="${data?.soc != null && index < Math.ceil(data.soc / 5) ? 'filled' : ''}"></i>`).join('')}</div>
       <div class="battery-bottom"><span>${escape(data?.charging ?? '等待首次读取')}</span><span>READY FOR YOUR NEXT RIDE</span></div>
     </section>
-    <div class="metrics"><section class="metric"><span>预计续航</span><strong>${display(data?.range)}<small>km</small></strong></section>
+    <div class="metrics">${preferences.range ? `<section class="metric"><span>预计续航</span><strong>${display(data?.range)}<small>km</small></strong></section>` : ''}
       ${preferences.voltage ? `<section class="metric"><span>电池电压</span><strong>${display(data?.voltage)}<small>V</small></strong></section>` : ''}</div>
     <section class="section"><div class="section-heading"><h2>快捷操作</h2><span>随时掌握</span></div>
-      <button class="action-card" data-action="horn" ${enabled ? '' : 'disabled'}><span class="action-symbol" aria-hidden="true">)))</span><span><strong>鸣笛寻车</strong><small>让爱车回应你</small></span><span class="arrow" aria-hidden="true">→</span></button>
+      <button class="action-card" aria-label="${shortcut === 'horn' ? '鸣笛寻车' : shortcut === 'seat' ? '打开座桶' : '日常用车'}" data-action="${shortcut === 'horn' ? 'horn' : shortcut === 'seat' ? 'vehicle-action' : 'tab'}" ${shortcut === 'seat' ? 'data-value="seat"' : shortcut === 'daily' ? 'data-value="daily"' : ''} ${shortcutEnabled ? '' : 'disabled'}><span class="action-symbol" aria-hidden="true">${shortcut === 'horn' ? ')))' : '→'}</span><span><strong>${shortcut === 'horn' ? '鸣笛寻车' : shortcut === 'seat' ? '打开座桶' : '日常用车'}</strong><small>${shortcut === 'horn' ? '让爱车回应你' : shortcut === 'seat' ? '确认后发送开启请求' : '查看车况、位置与车控'}</small></span><span class="arrow" aria-hidden="true">→</span></button>
       <button class="text-button block" data-action="tab" data-value="daily">查看日常用车、位置与更多车控 →</button>
     </section>
     <div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>
@@ -91,7 +91,8 @@ function render() {
     <section class="settings-card"><h2>车辆连接</h2><p>${session ? `${escape(session.vehicle.name)} · 尾号 ${escape(session.vehicle.vin.slice(-6))}` : '尚未连接车辆'}</p>
       <button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>${session ? '重新登录' : '登录并连接'}</button>
       ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
-    <section class="settings-card"><button class="setting-row" data-action="install"><span>添加到 iPhone 主屏幕</span><span aria-hidden="true">→</span></button></section>
+    <section class="settings-card"><h2>iPhone 与离线使用</h2><p>${currentInstallContext() === 'installed' ? '当前从主屏幕图标独立运行' : '当前在浏览器中运行'}</p><p>${cacheReady ? '离线页面已准备好；车辆数据和控制需要联网。' : '联网后准备离线页面；车辆数据和控制需要联网。'}</p><button class="setting-row" data-action="install"><span>${currentInstallContext() === 'installed' ? '查看主屏幕使用说明' : '添加到 iPhone 主屏幕'}</span><span aria-hidden="true">→</span></button><button class="text-button" data-action="check-update" ${locked || checkingUpdate || !navigator.onLine ? 'disabled' : ''}>${checkingUpdate ? '正在检查更新…' : '检查新版本'}</button></section>
+    ${renderUsagePreferences(preferences)}
     <section class="settings-card"><h2>几何面板</h2><p>网页版 · ${escape(version)} 验收版</p><p class="muted">车况、充电、位置与日常车控，集中在“用车”页。</p></section>
     ${lastCommandReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看操作结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
     <div class="notice" role="status">${escape(notice)}</div>`;
@@ -117,7 +118,7 @@ function close() {
     if (activeControl) notice = '请求结果尚未确认，请先观察车辆，避免重复发送。';
     activeControl = false;
   }
-  pending = null; commandTarget = null; commandIntent = null; modal.close(); render();
+  pending = null; commandTarget = null; commandIntent = null; modal.close(); modal.replaceChildren(); render();
 }
 async function run(task: (signal: AbortSignal, current: () => boolean) => Promise<void>, options: { bound?: Session; control?: boolean } = {}) {
   if (busy || booting || updating) return;
@@ -234,7 +235,7 @@ async function selectVehicle(index: number) {
     catch { throw new UserMessage('本机未能保存连接，本次切换未完成。请重试，或检查浏览器的存储设置。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; lastCommandReport = null; preview = expired = false; pending = null; tab = 'vehicle';
+    session = candidate; reading = null; lastCommandReport = null; preview = expired = false; pending = null; tab = preferences.startPage;
     notice = '车辆已连接，正在读取车况…';
     modal.close();
     render();
@@ -285,10 +286,28 @@ content.addEventListener('click', event => {
     pending = { token: bound.token, uid: bound.uid, vehicles: [] };
     void run(retrieveCars, { bound });
   }
-  if (action === 'theme') { preferences.theme = button.dataset.value as Preferences['theme']; applyPreferences(); render(); }
-  if (action === 'accent') { preferences.accent = button.dataset.value as Preferences['accent']; applyPreferences(); render(); }
+  if (action === 'theme' && ['system', 'light', 'dark'].includes(button.dataset.value ?? '')) { preferences.theme = button.dataset.value as typeof preferences.theme; applyPreferences(); render(); }
+  if (action === 'accent' && ['green', 'blue', 'orange'].includes(button.dataset.value ?? '')) { preferences.accent = button.dataset.value as typeof preferences.accent; applyPreferences(); render(); }
   if (action === 'voltage') { preferences.voltage = !preferences.voltage; applyPreferences(); render(); }
-  if (action === 'install') show('添加到主屏幕', '<p>在 iPhone 的 Safari 中打开正式网址，点击分享按钮，选择“添加到主屏幕”，再点“添加”。</p><p class="muted">以后即可从桌面图标打开几何面板。</p><button class="primary block" data-action="close">知道了</button>');
+  if (action === 'range') { preferences.range = !preferences.range; applyPreferences(); render(); }
+  if (action === 'foreground-refresh') { preferences.foregroundRefresh = !preferences.foregroundRefresh; applyPreferences(); render(); }
+  if (action === 'install') show('主屏幕使用说明', currentInstallContext() === 'installed'
+    ? '<p>你已经从主屏幕图标独立运行几何面板。重新打开会恢复此入口保存的登录与配置，联网后读取车况。</p><p>离线仍可打开页面和设置，车况不会更新，车控不可用。新版本准备好后点“更新并重新打开”。</p>'
+    : '<p>在 iPhone 的 Safari 中打开正式网址，点分享按钮 → 添加到主屏幕 → 添加。以后从桌面图标打开。</p><p>首次从桌面图标打开时，如果没有恢复浏览器里的登录，请在桌面版连接一次。iPhone 可能分别保存这两个入口的登录。</p><p>离线能打开页面，但读取车况和控制车辆需要联网。配置可在“备份我的配置”中复制带走。</p>');
+  if (action === 'map' && !preview && !busy && navigator.onLine) {
+    const links = navigationLinks(reading?.daily.location ?? null);
+    if (links) show('车辆地图', `<iframe class="vehicle-map" title="车辆停车位置地图" src="${escape(links.map)}" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" allow="geolocation 'none'"></iframe><p>地图标记是车辆最近上报的停车位置，可能有延迟。</p><a class="secondary-link" href="${escape(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">地图未显示？在高德中打开</a>${links.walk ? `<p><a class="secondary-link" href="${escape(links.walk)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">带我去找车</a>：规划从你所在位置步行到车辆的路线。</p>` : ''}`);
+  }
+  if (action === 'export-preferences') show('备份我的配置', `<p>复制下面的配置，之后可粘贴导入；不包含登录信息。</p><textarea id="preferences-backup" aria-label="配置备份" readonly>${escape(exportPreferences(preferences))}</textarea><button class="primary block" data-action="copy-preferences">复制配置</button>`);
+  if (action === 'import-preferences') show('导入配置', '<form id="preferences-form"><label>粘贴配置<textarea id="preferences-import" maxlength="4096" required></textarea></label><button class="primary block" type="submit">确认导入</button></form><p>只替换使用偏好，不改变本机登录和车辆。</p>');
+  if (action === 'reset-preferences') show('恢复默认配置', '<p>恢复使用偏好，不退出登录，不改变车辆。</p><button class="primary block" data-action="confirm-reset-preferences">确认恢复默认配置</button>');
+  if (action === 'check-update' && !busy && !modal.open && !checkingUpdate && navigator.onLine) {
+    checkingUpdate = true; render();
+    void (updates?.check() ?? Promise.resolve('unavailable')).then(result => {
+      notice = result === 'ready' || updateReady ? '新版本已准备好，请点击“更新并重新打开”。'
+        : result === 'current' ? '已检查，目前没有新版本。' : result === 'failed' ? '更新检查未完成，请联网后重试。' : '当前入口暂不支持离线更新，请在 Safari 中重新打开正式网址。';
+    }).finally(() => { checkingUpdate = false; render(); });
+  }
   if (action === 'refresh') void refresh();
   if (action === 'update' && !busy && !modal.open && navigator.onLine) { updating = true; render(); updates?.activate(); }
   if (action === 'horn' && session && !expired && !busy && navigator.onLine) {
@@ -306,12 +325,26 @@ content.addEventListener('click', event => {
   if (action === 'command-report' && lastCommandReport && !busy) show(isHorn(lastCommandReport.mode) ? '寻车结果' : '车控结果', `<pre class="diagnostic-summary" tabindex="0">${escape(commandSummary(lastCommandReport, version))}</pre><button class="primary block" data-action="copy-command-report">复制排查摘要</button>`);
   if (action === 'logout' && !busy) show('退出本机登录', '<p>此设备保存的登录信息将被移除。</p><button class="primary block" data-action="confirm-logout">确认退出</button>');
 });
+content.addEventListener('change', event => {
+  const select = event.target as HTMLSelectElement;
+  if (select.dataset.preference === 'startPage' && ['vehicle', 'daily'].includes(select.value)) preferences.startPage = select.value as typeof preferences.startPage;
+  else if (select.dataset.preference === 'shortcut' && ['horn', 'seat', 'daily'].includes(select.value)) preferences.shortcut = select.value as typeof preferences.shortcut;
+  else return;
+  applyPreferences(); render();
+});
 modal.addEventListener('cancel', event => { event.preventDefault(); close(); });
 modal.addEventListener('click', event => {
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   if (button.dataset.action === 'close') close();
   if (busy) return;
+  if (button.dataset.action === 'confirm-reset-preferences') { preferences = { ...defaultPreferences }; notice = '已恢复默认配置，车辆连接保持。'; applyPreferences(); close(); }
+  if (button.dataset.action === 'copy-preferences') {
+    const text = exportPreferences(preferences);
+    void (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => {
+      const message = modal.querySelector('#modal-message'); if (message) message.textContent = '配置已复制。';
+    }).catch(() => { (modal.querySelector('#preferences-backup') as HTMLTextAreaElement)?.select(); const message = modal.querySelector('#modal-message'); if (message) message.textContent = '请长按已选中的配置并复制。'; });
+  }
   if (button.dataset.action === 'new-captcha') void fetchCaptcha();
   if (button.dataset.action === 'resend' && !secondsRemaining()) void fetchCaptcha();
   if (button.dataset.action === 'code') showCode(false);
@@ -347,6 +380,11 @@ modal.addEventListener('submit', event => {
   event.preventDefault();
   const form = event.target as HTMLFormElement;
   if (!form.reportValidity()) return;
+  if (form.id === 'preferences-form') {
+    try { preferences = importPreferences(modal.querySelector<HTMLTextAreaElement>('#preferences-import')!.value); notice = '配置已导入，登录与车辆保持。'; applyPreferences(); close(); }
+    catch { const message = modal.querySelector('#modal-message'); if (message) message.textContent = '配置格式不正确或版本不支持，请粘贴本应用导出的完整配置。'; }
+    return;
+  }
   if (form.id === 'phone-form') { phone = modal.querySelector<HTMLInputElement>('#phone')!.value.trim(); void fetchCaptcha(); }
   if (form.id === 'code-form') {
     const code = modal.querySelector<HTMLInputElement>('#code')!.value.trim();
@@ -359,9 +397,10 @@ modal.addEventListener('submit', event => {
   }
 });
 
-applyPreferences(); render();
+applyPreferences(false); render();
 void loadSession().then(saved => {
   session = saved;
+  if (saved) tab = preferences.startPage;
   if (saved) notice = navigator.onLine ? '已恢复本机连接，正在读取车况…' : '已恢复本机连接，联网后可读取车况。';
 }).catch(() => { notice = '本机连接未能恢复，请重新登录。'; }).finally(() => {
   booting = false; render();
@@ -370,14 +409,16 @@ void loadSession().then(saved => {
 setInterval(updateCooldown, 1000);
 function foreground() {
   if (document.visibilityState !== 'visible') return;
-  void updates?.check();
-  if (!busy && !booting && !modal.open && navigator.onLine && Date.now() - lastReadAttempt > 60000) void refresh();
+  if (navigator.onLine && Date.now() - lastUpdateCheck > 60000) { lastUpdateCheck = Date.now(); void updates?.check(); }
+  if (preferences.foregroundRefresh && !busy && !booting && !modal.open && navigator.onLine && Date.now() - lastReadAttempt > 60000) void refresh();
 }
 window.addEventListener('offline', render);
 window.addEventListener('online', () => { render(); foreground(); });
 document.addEventListener('visibilitychange', foreground);
+window.addEventListener('pageshow', event => { if (event.persisted) foreground(); });
 if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
   updates = installUpdates(() => { updateReady = true; render(); }, () => {
     updating = false; notice = '本次更新未完成，请联网后重新打开页面。'; render();
   });
+  void navigator.serviceWorker.ready.then(() => { cacheReady = true; render(); });
 }

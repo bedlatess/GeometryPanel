@@ -113,3 +113,6 @@ input { display:block; width:100%; background:var(--bg); color:var(--text); bord
 .control-button strong,.control-button small { display:block; }
 .control-button strong { font-size:14px; }
 .control-button small { color:var(--muted); font-size:11px; margin-top:8px; }
+select,textarea { display:block; width:100%; font:inherit; color:var(--text); background:var(--bg); border:1px solid var(--border); border-radius:10px; padding:12px; margin:10px 0 18px; font-size:16px; }
+textarea { min-height:180px; resize:vertical; overflow-wrap:anywhere; }
+.vehicle-map { display:block; width:100%; height:min(440px,58dvh); min-height:300px; border:1px solid var(--border); border-radius:10px; background:var(--bg); }
