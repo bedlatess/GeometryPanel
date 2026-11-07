@@ -1,7 +1,8 @@
 import './styles.css';
 import { ApiError, messageFor } from './api/client';
 import { ZeehoApi } from './api/zeeho';
-import { demoSnapshot, demoVehicle, type Session, type Snapshot, type Vehicle } from './core/model';
+import { demoSnapshot, demoVehicle, type Session, type Snapshot, type Vehicle, type VehicleList } from './core/model';
+import { version } from '../package.json';
 import { forgetSession, loadSession, saveSession } from './core/vault';
 import { mountCaptcha } from './ui/captcha';
 import { storagePrefix } from './core/scope';
@@ -77,7 +78,7 @@ function render() {
       <button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>${session ? '重新登录' : '登录并连接'}</button>
       ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
     <section class="settings-card"><button class="setting-row" data-action="install"><span>添加到 iPhone 主屏幕</span><span aria-hidden="true">→</span></button></section>
-    <section class="settings-card"><h2>几何面板</h2><p>网页版 · 0.1.0 验收版</p><p class="muted">先把日常车况与寻车做好，再慢慢长成你的样子。</p></section>
+    <section class="settings-card"><h2>几何面板</h2><p>网页版 · ${escape(version)} 验收版</p><p class="muted">先把日常车况与寻车做好，再慢慢长成你的样子。</p></section>
     <div class="notice" role="status">${escape(notice)}</div>`;
   content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">Z.</span><span>几何面板<small>YOUR RIDE. YOUR WAY.</small></span><span class="platform-label">WEB</span></header>
     ${booting ? '<p class="connection-banner" role="status">正在恢复本机连接…</p>' : ''}
@@ -174,18 +175,23 @@ async function fetchCaptcha() {
     });
   });
 }
-function listBody(cars: Vehicle[], loading = false) {
-  return (loading ? '<p>正在读取车辆列表…</p>' : cars.length ? `<div class="vehicle-list">${cars.map((car, index) => `<button class="vehicle-choice" data-action="select" data-value="${index}"><strong>${escape(car.name)}</strong><small>尾号 ${escape(car.vin.slice(-6))}${session?.vehicle.vin === car.vin ? ' · 当前车辆' : ''}</small></button>`).join('')}</div>` : '<p>该账号暂未返回可连接的车辆。请确认官方应用中已绑定车辆，再重新读取。</p>') + '<button class="text-button" data-action="retry-list">重新读取车辆列表</button><button class="text-button" data-action="phone">更换账号</button>';
+function listBody(result: VehicleList | null) {
+  const cars = result?.vehicles ?? [];
+  const status = !result ? '<p>正在读取车辆列表…</p>' : cars.length
+    ? `<p class="muted">已读取 ${cars.length} 辆车。${result.unrecognizedCount ? `另有 ${result.unrecognizedCount} 条车辆记录暂未识别。` : ''}</p><div class="vehicle-list">${cars.map((car, index) => `<button class="vehicle-choice" data-action="select" data-value="${index}"><strong>${escape(car.name)}</strong><small>尾号 ${escape(car.vin.slice(-6))}${session?.vehicle.vin === car.vin ? ' · 当前车辆' : ''}</small></button>`).join('')}</div>`
+    : result.receivedCount ? `<p>已返回 ${result.receivedCount} 条车辆记录，但车辆编号暂未识别。车辆没有被解绑，请稍后重新读取。</p>`
+    : '<p>极核车辆接口本次返回 0 辆车。这不代表车辆已解绑；若官方应用中已有车辆，请先重新读取，无需重复获取短信。</p>';
+  return status + '<button class="text-button" data-action="retry-list">重新读取车辆列表</button><button class="text-button" data-action="phone">更换账号</button>';
 }
 async function retrieveCars(signal: AbortSignal, current: () => boolean) {
   const account = pending;
   if (!account) return;
-  show('选择你的车辆', listBody([], true));
+  show('选择你的车辆', listBody(null));
   try {
-    const cars = await api.list(account.token, signal);
+    const result = await api.list(account.token, signal);
     if (!current() || pending !== account) return;
-    pending.vehicles = cars;
-    show('选择你的车辆', listBody(cars));
+    pending.vehicles = result.vehicles;
+    show('选择你的车辆', listBody(result));
   } catch (error) {
     if (current()) show('选择你的车辆', '<p>车辆列表读取未完成，账号已验证，可以直接重试。</p><button class="primary block" data-action="retry-list">重新读取车辆列表</button><button class="text-button" data-action="phone">更换账号</button>');
     throw error;

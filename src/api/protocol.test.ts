@@ -47,7 +47,27 @@ test('vehicle list is loaded with the newly supplied account token', async () =>
     assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer new-account');
     return reply([{ vinNo: fixture.vehicle.vin, vehicleName: '车 A', licensePlate: '测试' }]);
   }));
-  assert.equal((await api.list('new-account'))[0].vin, fixture.vehicle.vin);
+  const result = await api.list('new-account');
+  assert.equal(result.vehicles[0].vin, fixture.vehicle.vin);
+  assert.equal(result.receivedCount, 1);
+});
+
+test('a cloud supplied 15 character frame number remains bound for reads and horn', async () => {
+  const bound: Session = { ...fixture, vehicle: { ...fixture.vehicle, vin: '123456789012345' } };
+  const paths: string[] = [];
+  const api = new ZeehoApi(new CloudClient(async (url, init) => {
+    paths.push(new URL(String(url)).pathname);
+    assert.equal((init?.headers as Record<string, string>).Authorization, 'Bearer synthetic-token');
+    if (String(url).endsWith('/dbpoint/send')) assert.equal(JSON.parse(JSON.parse(String(init?.body)).param).vinNo, bound.vehicle.vin);
+    return reply({ bmssoc: 75 });
+  }));
+  assert.equal((await api.read(bound)).soc, 75);
+  await api.horn(bound);
+  assert.deepEqual(paths, [
+    '/v1.0/app/cfmotoserverapp/vehicleHomePageV2/123456789012345',
+    '/v1.0/app/cfmotoserverapp/batteryInfo/123456789012345',
+    '/v1.0/app/cfmotoserverapp/dbpoint/send',
+  ]);
 });
 test('horn uses the selected binding and recovered command envelope once', async () => {
   let calls = 0;

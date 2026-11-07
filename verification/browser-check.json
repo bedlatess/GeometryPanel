@@ -1,16 +1,16 @@
 {
   "date": "2026-11-07",
-  "unitTests": 16,
+  "version": "0.1.1",
+  "unitTests": 20,
   "browsers": [
     "Chrome 156.0.8078.80 mobile viewport",
     "Playwright WebKit 27.2 mobile viewport on Windows"
   ],
   "basePath": "/panel/",
-  "serviceWorkerSha256": "70fe1da664e5a644a2d209d6df1beb26e5ccfd8988d57bcbe85cec2b11deb469",
   "stats": {
-    "startTime": "2026-11-07T05:54:03.714Z",
-    "duration": 92596.542,
-    "expected": 28,
+    "startTime": "2026-11-07T06:17:44.871Z",
+    "duration": 116862.366,
+    "expected": 32,
     "skipped": 0,
     "unexpected": 0,
     "flaky": 0
@@ -20,183 +20,206 @@
       "title": "demo is labelled, does not call upstream, and fits small screens",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 481
+      "durationMs": 552
     },
     {
       "title": "demo is labelled, does not call upstream, and fits small screens",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 26514
+      "durationMs": 9796
     },
     {
       "title": "login, encrypted restore, vehicle switch, confirmed horn, and logout",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 864
+      "durationMs": 903
     },
     {
       "title": "login, encrypted restore, vehicle switch, confirmed horn, and logout",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 36079
+      "durationMs": 13205
     },
     {
       "title": "SMS countdown and recovery without requesting another message",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 1199
+      "durationMs": 1221
     },
     {
       "title": "SMS countdown and recovery without requesting another message",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 6230
+      "durationMs": 6219
     },
     {
       "title": "a failed vehicle list retries the verified account without consuming SMS again",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 428
+      "durationMs": 403
     },
     {
       "title": "a failed vehicle list retries the verified account without consuming SMS again",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 5431
+      "durationMs": 3165
     },
     {
       "title": "empty vehicle lists provide retry and account change",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 356
+      "durationMs": 407
     },
     {
       "title": "empty vehicle lists provide retry and account change",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 501
+      "durationMs": 5443
     },
     {
       "title": "initial read failure retains selected account and allows refresh",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 487
+      "durationMs": 482
     },
     {
       "title": "initial read failure retains selected account and allows refresh",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 550
+      "durationMs": 23761
+    },
+    {
+      "title": "15 character frame numbers can be selected, restored, and used for confirmed control",
+      "browser": "chromium-mobile",
+      "status": "expected",
+      "durationMs": 507
+    },
+    {
+      "title": "15 character frame numbers can be selected, restored, and used for confirmed control",
+      "browser": "webkit-mobile",
+      "status": "expected",
+      "durationMs": 23781
+    },
+    {
+      "title": "returned but unrecognized vehicles do not produce an empty-account message",
+      "browser": "chromium-mobile",
+      "status": "expected",
+      "durationMs": 436
+    },
+    {
+      "title": "returned but unrecognized vehicles do not produce an empty-account message",
+      "browser": "webkit-mobile",
+      "status": "expected",
+      "durationMs": 5131
     },
     {
       "title": "battery outage preserves home data; expired sessions disable control",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 404
+      "durationMs": 442
     },
     {
       "title": "battery outage preserves home data; expired sessions disable control",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 642
+      "durationMs": 5461
     },
     {
       "title": "uncertain horn results do not retry or fall back",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 463
+      "durationMs": 474
     },
     {
       "title": "uncertain horn results do not retry or fall back",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 731
+      "durationMs": 5432
     },
     {
       "title": "closing an in-flight command preserves uncertainty and prevents late success",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 580
+      "durationMs": 557
     },
     {
       "title": "closing an in-flight command preserves uncertainty and prevents late success",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 612
+      "durationMs": 5563
     },
     {
       "title": "a failed local save keeps the previous vehicle and persisted account",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 500
+      "durationMs": 523
     },
     {
       "title": "a failed local save keeps the previous vehicle and persisted account",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 5414
+      "durationMs": 13188
     },
     {
       "title": "closing a pending login list discards a late response",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 380
+      "durationMs": 418
     },
     {
       "title": "closing a pending login list discards a late response",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 4380
+      "durationMs": 9534
     },
     {
       "title": "offline shell loads at a repository subpath and never caches API data",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 485
+      "durationMs": 476
     },
     {
       "title": "offline shell loads at a repository subpath and never caches API data",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 27833
+      "durationMs": 34056
     },
     {
       "title": "separate project paths do not share sessions or preferences",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 522
+      "durationMs": 506
     },
     {
       "title": "separate project paths do not share sessions or preferences",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 42360
+      "durationMs": 37710
     },
     {
       "title": "waiting updates require an explicit idle action and preserve login",
       "browser": "chromium-mobile",
       "status": "expected",
-      "durationMs": 3304
+      "durationMs": 3309
     },
     {
       "title": "waiting updates require an explicit idle action and preserve login",
       "browser": "webkit-mobile",
       "status": "expected",
-      "durationMs": 13186
+      "durationMs": 11030
     }
   ],
-  "finalRunUsesFetchMocks": true,
+  "mocksBeforeServiceWorker": true,
+  "testHostCsp": "connect-src 'self'",
   "realSafariOrVehicleAcceptance": false,
-  "earlierIsolationIncident": "network-isolation-incident.json",
-  "hardenedPwaRecheck": {
-    "startTime": "2026-11-07T05:56:26.135Z",
-    "duration": 58188.081,
+  "vehicleDiscoveryNotes": "vehicle-discovery-fix.md",
+  "pwaRecheckAfterCacheUpdate": {
+    "startTime": "2026-11-07T06:20:19.519Z",
+    "duration": 48249.703,
     "expected": 6,
     "skipped": 0,
     "unexpected": 0,
-    "flaky": 0,
-    "testHostCsp": "connect-src 'self'",
-    "networkMocksBeforeServiceWorker": true
+    "flaky": 0
   },
-  "dependencyAuditVulnerabilities": 0
+  "serviceWorkerSha256": "d98a636a4dd60b99783dec8cc9c3e71cc7789940871daa47ec69e33fcf420f3c"
 }

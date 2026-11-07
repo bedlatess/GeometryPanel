@@ -19,7 +19,7 @@ await writeFile('dist/sw.js', `
 const PREFIX = 'zeeho-shell:' + self.registration.scope + ':';
 const CACHE = PREFIX + ${JSON.stringify(cache)};
 const FILES = ${JSON.stringify(files)}.map(path => new URL(path, self.registration.scope).href);
-self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES))));
+self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(url => new Request(url, { cache: 'reload' }))))));
 self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
 self.addEventListener('activate', event => event.waitUntil((async () => {
   await Promise.all((await caches.keys()).filter(key => key.startsWith(PREFIX) && key !== CACHE).map(key => caches.delete(key)));

@@ -1,4 +1,4 @@
-import { object, validVin, type Session } from './model';
+import { object, validVehicleId, type Session } from './model';
 import { storagePrefix } from './scope';
 
 const STORE = 'local';
@@ -48,7 +48,7 @@ export async function loadSession(): Promise<Session | null> {
   const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: saved.iv }, saved.key, saved.ciphertext);
   const data = object(JSON.parse(new TextDecoder().decode(plain)));
   const vehicle = object(data.vehicle);
-  if (typeof data.token !== 'string' || /\s/.test(data.token) || !data.token || !validVin(String(vehicle.vin))) throw new Error('storage');
+  if (typeof data.token !== 'string' || /\s/.test(data.token) || !data.token || typeof vehicle.vin !== 'string' || !validVehicleId(vehicle.vin)) throw new Error('storage');
   return { token: data.token, uid: String(data.uid ?? ''), vehicle: {
     vin: String(vehicle.vin), name: String(vehicle.name || '我的极核'), type: String(vehicle.type || ''), plate: String(vehicle.plate || ''),
   } };

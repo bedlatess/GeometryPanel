@@ -1,5 +1,5 @@
 import { ApiError, CloudClient } from './client';
-import { object, snapshot, validVin, vehicles, type Session } from '../core/model';
+import { object, snapshot, validVehicleId, vehicleList, type Session } from '../core/model';
 
 const APP = '/v1.0/app/cfmotoserverapp';
 const MINE = '/v1.0/mine/cfmotoservermine';
@@ -39,7 +39,7 @@ export class ZeehoApi {
     return { token, uid: String(data.id ?? '') };
   }
   async list(token: string, signal?: AbortSignal) {
-    return vehicles(await this.cloud.request(`${APP}/vehicle/list`, { token, signal }));
+    return vehicleList(await this.cloud.request(`${APP}/vehicle/list`, { token, signal }));
   }
   async read(session: Session, signal?: AbortSignal) {
     this.binding(session);
@@ -61,5 +61,5 @@ export class ZeehoApi {
     } });
   }
   private phone(phone: string) { if (!/^1\d{10}$/.test(phone)) throw new ApiError('format'); }
-  private binding(session: Session) { if (!validVin(session.vehicle.vin) || !session.token) throw new ApiError('format'); }
+  private binding(session: Session) { if (!validVehicleId(session.vehicle.vin) || !session.token) throw new ApiError('format'); }
 }

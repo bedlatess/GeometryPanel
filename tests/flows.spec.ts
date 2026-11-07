@@ -90,7 +90,7 @@ test('a failed vehicle list retries the verified account without consuming SMS a
 test('empty vehicle lists provide retry and account change', async ({ page, mocks }) => {
   mocks.empty = true;
   await open(page); await loginToList(page);
-  await expect(page.getByText(/该账号暂未返回可连接的车辆/)).toBeVisible();
+  await expect(page.getByText(/极核车辆接口本次返回 0 辆车/)).toBeVisible();
   mocks.empty = false;
   await page.getByRole('button', { name: '重新读取车辆列表' }).click();
   await expect(page.getByRole('button', { name: '测试极核 A' })).toBeEnabled();
@@ -107,6 +107,35 @@ test('initial read failure retains selected account and allows refresh', async (
   await expect(page.locator('.battery-number')).toHaveText('82%');
   await page.reload();
   await expect(page.locator('.battery-number')).toHaveText('82%');
+});
+
+test('15 character frame numbers can be selected, restored, and used for confirmed control', async ({ page, mocks }) => {
+  const id = '123456789012345';
+  mocks.vehicleRows = [{ vinNo: ` ${id} `, vehicleName: '测试极核 A' }];
+  await open(page); await login(page);
+  await expect(page.locator('.battery-number')).toHaveText('82%');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
+  await expect(page.getByRole('button', { name: '鸣笛寻车' })).toBeEnabled();
+  await page.getByRole('button', { name: '鸣笛寻车' }).click();
+  await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
+  await expect(page.getByText('服务器已受理，请确认车辆是否鸣响。')).toBeVisible();
+  const horn = mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'));
+  expect(horn).toHaveLength(1); expect(JSON.parse(horn[0].body.param).vinNo).toBe(id);
+  expect(mocks.calls.some(call => call.path.endsWith(`/vehicleHomePageV2/${id}`))).toBe(true);
+});
+
+test('returned but unrecognized vehicles do not produce an empty-account message', async ({ page, mocks }) => {
+  mocks.vehicleRows = [{ vinNo: '' }];
+  await open(page); await loginToList(page);
+  await expect(page.getByText(/已返回 1 条车辆记录，但车辆编号暂未识别/)).toBeVisible();
+  await expect(page.locator('#modal')).not.toContainText('本次返回 0 辆车');
+  mocks.vehicleRows = [{ vinNo: '123456789012345', vehicleName: '测试极核 A' }];
+  await page.getByRole('button', { name: '重新读取车辆列表' }).click();
+  await page.getByRole('button', { name: '测试极核 A' }).click();
+  await expect(page.locator('.battery-number')).toHaveText('82%');
+  expect(mocks.calls.filter(call => call.path.endsWith('/loginByPhone'))).toHaveLength(1);
+  expect(mocks.calls.filter(call => call.path.endsWith('/authCode/V2'))).toHaveLength(1);
 });
 
 test('battery outage preserves home data; expired sessions disable control', async ({ page, mocks }) => {

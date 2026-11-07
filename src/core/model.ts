@@ -2,21 +2,33 @@ import { ApiError } from '../api/client';
 
 export interface Vehicle { vin: string; name: string; type: string; plate: string }
 export interface Session { token: string; uid: string; vehicle: Vehicle }
+export interface VehicleList {
+  vehicles: Vehicle[]; receivedCount: number; unrecognizedCount: number;
+}
 export interface Snapshot {
   soc: number | null; range: number | null; voltage: number | null;
   online: boolean | null; charging: string; receivedAt: number; partial: boolean;
 }
-export const validVin = (value: string) => /^[A-HJ-NPR-Z0-9]{17}$/.test(value);
+// vinNo is a cloud vehicle identifier, also used for frame numbers. An ISO VIN
+// length/character check here silently hid vehicles that the account API returned.
+// Restrict it to a bounded, single URL segment without guessing or changing its case.
+export const validVehicleId = (value: string) => /^[A-Za-z0-9_-]{1,64}$/.test(value);
 export function object(value: unknown): Record<string, unknown> {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new ApiError('format');
   return value as Record<string, unknown>;
 }
-export function vehicles(value: unknown): Vehicle[] {
+export function vehicleList(value: unknown): VehicleList {
   if (!Array.isArray(value)) throw new ApiError('format');
-  return value.map(object).filter(row => validVin(String(row.vinNo ?? ''))).map(row => ({
-    vin: String(row.vinNo), name: String(row.vehicleName || '我的极核'),
-    type: String(row.vehicleType || ''), plate: String(row.licensePlate || ''),
-  }));
+  const vehicles: Vehicle[] = [];
+  let unrecognizedCount = 0;
+  for (const row of value) {
+    if (!row || typeof row !== 'object' || Array.isArray(row)) { unrecognizedCount++; continue; }
+    const vin = typeof row.vinNo === 'string' ? row.vinNo.trim() : '';
+    if (!validVehicleId(vin)) { unrecognizedCount++; continue; }
+    vehicles.push({ vin, name: String(row.vehicleName || '我的极核'),
+      type: String(row.vehicleType || ''), plate: String(row.licensePlate || '') });
+  }
+  return { vehicles, receivedCount: value.length, unrecognizedCount };
 }
 export function snapshot(home: Record<string, unknown>, battery: Record<string, unknown> | null): Snapshot {
   const numeric = (value: unknown): number | null => {

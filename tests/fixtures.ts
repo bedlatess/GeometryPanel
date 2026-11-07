@@ -12,6 +12,7 @@ export interface Mocks {
   calls: Call[]; external: string[]; listFailures: number; empty: boolean;
   expired: boolean; readFailure: boolean; batteryFailure: boolean; hornFailure: boolean;
   holdList?: Promise<void>; holdHorn?: Promise<void>;
+  vehicleRows?: unknown[];
 }
 export const test = base.extend<{ mocks: Mocks }>({
   mocks: [async ({ context }, use) => {
@@ -29,7 +30,7 @@ export const test = base.extend<{ mocks: Mocks }>({
       if (call.path.endsWith('/vehicle/list')) {
         if (state.holdList) await state.holdList;
         if (state.listFailures-- > 0) return reply(null, 503, 50000);
-        return reply(state.empty ? [] : cars);
+        return reply(state.empty ? [] : state.vehicleRows ?? cars);
       }
       if (call.path.includes('/vehicleHomePageV2/')) {
         if (state.expired) return reply(null, 401, 401);
