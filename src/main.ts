@@ -31,7 +31,10 @@ import { connectNative } from './core/native';
 import { mountNative, widgetSnapshot } from './ui/native';
 import { mountExtensions } from './ui/extensions';
 import { componentsPage } from './ui/kit/components-page';
-import { PageHeader } from './ui/kit';
+import { PageHeader, Sheet, ListRow, ActionSheet } from './ui/kit';
+import { mountLever, type LeverPhase } from './ui/kit/lever';
+import { mountVehicleArt, rememberVehicleArt } from './ui/vehicle-art';
+import { commandSheet, dataSheet, hornSheet, loginVehicleList, vehiclePicker } from './ui/pages/home-sheets';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '<a class="skip-link" href="#main-content">跳到主要内容</a><div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
@@ -51,7 +54,13 @@ let preview = false, busy = false, booting = true, committing = false, activeCon
 let updateReady = false, updating = false, lastReadAttempt = 0;
 let updates: ReturnType<typeof installUpdates> | undefined;
 let tab: 'vehicle' | 'daily' | 'appearance' | 'settings' = 'vehicle';
-let notice = '连接你的极核，开启自己的面板。';
+let notice = '';
+let noticeTimer: ReturnType<typeof setTimeout> | undefined;
+let shownNotice = '';
+let realPreferences: typeof preferences | null = null;
+let leverPhase: LeverPhase = 'idle', leverTarget: 'powerOn' | 'powerOff' = 'powerOn';
+let leverTimer: ReturnType<typeof setTimeout> | undefined;
+let leverStarted = 0;
 let aborter: AbortController | null = null;
 let pending: { token: string; uid: string; vehicles: Vehicle[] } | null = null;
 let lastCommandReport: CommandReport | null = null;
@@ -67,7 +76,7 @@ function applyPreferences(save = true) {
   document.documentElement.dataset.accent = preferences.accent;
   const dark = preferences.theme === 'dark' || preferences.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0B0D10' : '#FBFCFD');
-  if (save && !writePreferences(preferences, `${storagePrefix}preferences`)) notice = '配置已在当前页面生效，但本机保存未完成，重开后可能恢复原配置。';
+  if (save && !preview && !writePreferences(preferences, `${storagePrefix}preferences`)) notice = '保存失败，请重试';
 }
 const escape = (value: unknown) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const vehicle = () => preview ? demoVehicle : session?.vehicle;
@@ -82,15 +91,12 @@ function render() {
   const locked = busy || booting || updating;
   const enabled = !preview && session && !locked && !expired && navigator.onLine;
   let body = '';
-  if (tab === 'vehicle') body = renderHome({ car, data, preferences, enabled: Boolean(enabled), locked, busy, control: activeControl, expired, online: navigator.onLine, demo: preview, message: notice })
-    + reportButton()
-    + (expired ? '<button class="primary block" data-action="connect">重新登录</button>' : '')
-    + (!session ? `<div class="welcome-actions">${preview ? '<button class="primary" data-action="connect">连接我的极核</button>' : ''}<button class="text-button" data-action="preview" ${locked ? 'disabled' : ''}>${preview ? '退出演示' : '先体验面板'}</button></div>` : '')
-    + (preview ? '<details class="preview-tools"><summary>设计预览与状态模拟</summary><p class="fine-print">独立演示环境，可切换平台形态、主题与异常状态。</p><button class="control-button" data-action="design-lab">打开状态模拟器</button></details>' : '');
+  if (tab === 'vehicle') body = renderHome({ car, data, preferences, enabled: Boolean(enabled), locked, busy, control: activeControl, expired, online: navigator.onLine, demo: preview, message: notice, phase: leverPhase === 'idle' ? undefined : leverPhase, target: leverTarget, multi: accountBook.accounts.reduce((n, a) => n + a.vehicles.length, 0) > 1 })
+    + (preview ? '<button class="text-button" data-action="preview">退出演示</button><button class="text-button" data-action="design-lab">状态模拟器</button>' : '');
   if (tab === 'daily') body = renderDaily({ car, data, demo: preview, enabled: Boolean(enabled), locked, online: navigator.onLine })
     + `<section class="settings-card"><h2>更多用车功能</h2><div class="module-links"><button class="control-button" data-action="extensions" ${locked ? 'disabled' : ''}>骑行记录、胎压与车辆设置</button><button class="control-button" data-action="native" ${locked ? 'disabled' : ''}>蓝牙、提醒与仪表工具</button><button class="control-button" data-action="background" ${locked ? 'disabled' : ''}>后台监控、充电记录与桌面控制</button><button class="control-button" data-action="tasks" ${locked ? 'disabled' : ''}>签到、积分与自动任务</button></div></section>`
-    + `<div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>${reportButton()}`
-    + (expired ? '<button class="primary block" data-action="connect">重新登录</button>' : '');
+    + reportButton()
+    ;
   if (tab === 'appearance') body = `
     <div class="page-heading"><div><span class="eyebrow">按你的喜好</span><h1>我的风格</h1></div></div><p class="subheading">每一点改变，都保留在这台设备。</p>
     <section class="settings-card"><h2>外观模式</h2><div class="segmented">${(['system', 'light', 'dark'] as const).map((mode, i) => `<button data-action="theme" data-value="${mode}" aria-pressed="${preferences.theme === mode}">${['跟随系统', '浅色', '深色'][i]}</button>`).join('')}</div></section>
@@ -108,14 +114,15 @@ function render() {
     ${renderUsagePreferences(preferences)}
     <section class="settings-card"><h2>几何面板</h2><p>${native.available ? '原生容器' : '网页版'} · ${escape(version)} 验收版</p><p class="muted">车况、骑行、车辆设置与原生工具，集中在“用车”页。</p><button class="text-button" data-action="native" ${locked ? 'disabled' : ''}>查看系统能力与安装包</button></section>
     ${lastCommandReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看操作结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
-    <div class="notice" role="status">${escape(notice)}</div>`;
-  content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">${icon('vehicle')}</span><span>几何面板<small>GEOMETRY / ZEEHO</small></span><span class="platform-label">${native.available ? 'APP' : currentInstallContext() === 'installed' ? 'PWA' : 'WEB'}</span></header>
-    ${booting ? '<p class="connection-banner" role="status">正在恢复本机连接…</p>' : ''}
-    ${!navigator.onLine ? '<p class="connection-banner" role="status">网络已断开，显示内容不会更新。联网后可重新读取。</p>' : ''}
-    ${nativeSyncPending ? '<p class="connection-banner" role="status">网页账号已保存，原生后台资料尚未同步。请在后台监控中重新保存配置。</p>' : ''}
-    ${updateReady ? `<div class="connection-banner" role="status"><span>新版本已准备好</span><button class="text-button" data-action="update" ${locked || modal.open || !navigator.onLine ? 'disabled' : ''}>${updating ? '正在更新…' : '更新并重新打开'}</button></div>` : ''}
+    `;
+  content.innerHTML = `<div class="shell ${tab === 'vehicle' ? 'home-shell' : ''}"><header class="brand" ${tab === 'vehicle' ? 'hidden' : ''}><span class="brand-mark" aria-hidden="true">${icon('vehicle')}</span><span>几何面板<small>GEOMETRY / ZEEHO</small></span><span class="platform-label">${native.available ? 'APP' : currentInstallContext() === 'installed' ? 'PWA' : 'WEB'}</span></header>
+    ${expired ? '<div class="global-banner error" role="status">登录已过期<button class="text-button" data-action="connect">重新登录</button></div>' : !navigator.onLine ? '<div class="global-banner" role="status">网络不可用</div>' : nativeSyncPending ? '<div class="global-banner" role="status">后台提醒需重新保存<button class="text-button" data-action="background">去设置</button></div>' : ''}
+    ${updateReady ? `<div class="update-bar" role="status"><span>新版本已就绪</span><button class="text-button" data-action="update" ${locked || modal.open || !navigator.onLine ? 'disabled' : ''}>更新</button></div>` : ''}
+    ${notice ? `<div class="result-toast notice" role="status">${escape(notice)}</div>` : ''}
     <main id="main-content" tabindex="-1">${body}</main>
     <nav class="bottom-nav" aria-label="主导航">${(['vehicle', 'daily', 'appearance', 'settings'] as const).map((page, i) => `<button data-action="tab" data-value="${page}" ${tab === page ? 'aria-current="page"' : ''}>${icon((['vehicle','grid','palette','settings'] as Icon[])[i])}<span>${['车辆', '用车', '外观', '设置'][i]}</span></button>`).join('')}</nav></div>`;
+  mountVehicleArt(content);
+  if (notice && notice !== shownNotice) { shownNotice = notice; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { notice = ''; shownNotice = ''; content.querySelector('.result-toast')?.remove(); }, 4000); }
   if (!modal.open && focused?.action) Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(button => button.dataset.action === focused.action && button.dataset.value === focused.value && !button.disabled)?.focus({ preventScroll: true });
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyPreferences(false));
@@ -127,7 +134,8 @@ function show(title: string, body: string) {
   }
   disposePanel?.(); disposePanel = undefined;
   commandTarget = null; commandIntent = null;
-  modal.innerHTML = `<div class="modal-heading"><h2 id="modal-title">${escape(title)}</h2><button class="text-button" data-action="close" aria-label="关闭">关闭</button></div>${body}<p id="modal-message" class="form-message" role="status" aria-live="polite"></p>`;
+  modal.innerHTML = Sheet(title, body);
+  mountVehicleArt(modal);
   if (!modal.open) modal.showModal();
   if (busy) modal.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button:not([data-action="close"]),input').forEach(element => element.disabled = true);
   render();
@@ -137,7 +145,7 @@ function close() {
   disposePanel?.(); disposePanel = undefined;
   if (busy) {
     aborter?.abort(); generation++; busy = false;
-    if (activeControl) notice = '请求结果尚未确认，请先观察车辆，避免重复发送。';
+    if (activeControl) { notice = '未收到车辆响应'; if (leverPhase === 'sending') leverPhase = 'error'; }
     activeControl = false;
   }
   pending = null; commandTarget = null; commandIntent = null; modal.close(); modal.replaceChildren(); render();
@@ -151,15 +159,15 @@ function close() {
 }
 async function run(task: (signal: AbortSignal, current: () => boolean) => Promise<void>, options: { bound?: Session; control?: boolean } = {}) {
   if (busy || booting || updating) return;
-  if (!navigator.onLine && !options.control && options.bound) { notice = '当前离线，请联网后重新读取。'; render(); return; }
+  if (!navigator.onLine && !options.control && options.bound) { notice = '网络不可用'; render(); return; }
   busy = true; const epoch = ++generation; aborter = new AbortController();
   activeControl = Boolean(options.control);
-  if (activeControl) notice = '正在发送车辆操作请求…';
+  if (activeControl) notice = '正在发送';
   const signal = aborter.signal;
   render();
   modal.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button:not([data-action="close"]),input').forEach(element => element.disabled = true);
   const progress = modal.querySelector('#modal-message');
-  if (progress) progress.textContent = '正在连接，请稍候…';
+  if (progress) progress.textContent = '正在加载';
   try { await task(signal, () => epoch === generation && !signal.aborted); }
   catch (error) {
     if (epoch !== generation || signal.aborted) return;
@@ -168,8 +176,8 @@ async function run(task: (signal: AbortSignal, current: () => boolean) => Promis
       void disableExpiredAccount(options.bound);
       if (native.available) void native.call('forgetVehicle').catch(() => {});
     }
-    notice = (error instanceof UserMessage ? error.message : messageFor(error)) + (options.control && !(error instanceof ApiError && error.kind === 'expired')
-      ? ' 执行结果尚未确认，请先观察车辆，避免重复发送。' : '');
+    notice = error instanceof ApiError && error.kind === 'expired' ? '登录已过期' : options.control ? '未收到车辆响应' : error instanceof UserMessage ? error.message : '加载失败';
+    if (options.control && leverPhase === 'sending') leverPhase = 'error';
     if (error instanceof ApiError && error.kind === 'expired' && pending) { pending = null; showPhone(); }
     const message = modal.open ? modal.querySelector('#modal-message') : null;
     if (message) message.textContent = notice;
@@ -185,7 +193,7 @@ async function run(task: (signal: AbortSignal, current: () => boolean) => Promis
 
 function showPhone() {
   pending = null;
-  show('连接我的极核', `<p class="muted">使用你的极核账号手机号登录。</p><form id="phone-form"><label>手机号<input id="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="11" placeholder="请输入手机号" required pattern="1[0-9]{10}" value="${escape(phone)}"></label><button class="primary block" type="submit">下一步</button></form><p class="fine-print">登录信息保存在本机，不经过我们自己的账号服务器。</p>`);
+  show('手机号', `<form id="phone-form"><label>手机号<input id="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="11" required pattern="1[0-9]{10}" value="${escape(phone)}"></label><button class="primary block" type="submit">获取验证码</button></form>`);
 }
 function secondsRemaining() {
   let deadline = cooldowns.get(phone) ?? 0;
@@ -202,19 +210,19 @@ function updateCooldown() {
   if (!button) return;
   const seconds = secondsRemaining();
   button.disabled = busy || seconds > 0;
-  button.textContent = seconds ? `${seconds} 秒后可重新获取` : '重新获取验证码';
+  button.textContent = seconds ? `${seconds} 秒后重新获取` : '重新获取验证码';
 }
-function showCode(sent = true) {
-  show('输入短信验证码', `<p class="muted">${sent ? '验证码已发送至' : '如已收到短信，请直接输入'} ${escape(phone.slice(0, 3))}****${escape(phone.slice(-4))}</p><form id="code-form"><label>短信验证码<input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" required placeholder="请输入验证码"></label><button class="primary block" type="submit">登录并选择车辆</button></form><button class="text-button" data-action="resend">重新获取验证码</button><button class="text-button" data-action="phone">更换手机号</button>`);
+function showCode(_sent = true) {
+  show('短信验证码', `<form id="code-form"><label>短信验证码<input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" required></label><button class="primary block" type="submit">登录</button></form><button class="text-button" data-action="resend">重新获取验证码</button><button class="text-button" data-action="phone">更换手机号</button>`);
   updateCooldown();
 }
 async function fetchCaptcha() {
   if (secondsRemaining()) { showCode(false); return; }
-  show('完成图形验证', '<p class="muted">正在获取验证图片…</p><button class="text-button" data-action="new-captcha">重新加载图片</button><button class="text-button" data-action="code">已有短信验证码</button><button class="text-button" data-action="phone">更换手机号</button>');
+  show('图形验证码', '<p class="muted">正在加载</p><button class="text-button" data-action="new-captcha">重新加载图片</button><button class="text-button" data-action="code">已有短信验证码</button><button class="text-button" data-action="phone">更换手机号</button>');
   await run(async (signal, current) => {
     const captcha = await api.captcha(phone, signal);
     if (!current()) return;
-    show('完成图形验证', '<p class="muted">拖动图片，将拼图移到缺口后松手。</p><canvas class="captcha" width="720" height="360" role="slider" tabindex="0" aria-label="拖动拼图完成验证" aria-valuemin="0" aria-valuenow="0"></canvas><p class="fine-print">也可使用左右方向键移动，按回车提交。</p><button class="text-button" data-action="new-captcha">换一张</button><button class="text-button" data-action="code">已有短信验证码</button><button class="text-button" data-action="phone">更换手机号</button>');
+    show('图形验证码', '<canvas class="captcha" width="720" height="360" role="slider" tabindex="0" aria-label="拖动拼图完成验证" aria-valuemin="0" aria-valuenow="0"></canvas><button class="text-button" data-action="new-captcha">换一张</button><button class="text-button" data-action="code">已有短信验证码</button><button class="text-button" data-action="phone">更换手机号</button>');
     await mountCaptcha(modal.querySelector('canvas')!, captcha, track => {
       void run(async (codeSignal, isCurrent) => {
         startCooldown();
@@ -226,35 +234,29 @@ async function fetchCaptcha() {
     });
   });
 }
-function listBody(result: VehicleList | null) {
-  const cars = result?.vehicles ?? [];
-  const status = !result ? '<p>正在读取车辆列表…</p>' : cars.length
-    ? `<p class="muted">已读取 ${cars.length} 辆车。${result.unrecognizedCount ? `另有 ${result.unrecognizedCount} 条车辆记录暂未识别。` : ''}</p><div class="vehicle-list">${cars.map((car, index) => `<button class="vehicle-choice" data-action="select" data-value="${index}"><strong>${escape(car.name)}</strong><small>尾号 ${escape(car.vin.slice(-6))}${session?.vehicle.vin === car.vin ? ' · 当前车辆' : ''}</small></button>`).join('')}</div>`
-    : result.receivedCount ? `<p>已返回 ${result.receivedCount} 条车辆记录，但车辆编号暂未识别。这不代表车辆已解绑，请稍后重新读取。</p>`
-    : '<p>极核车辆接口本次返回 0 辆车。这不代表车辆已解绑；若官方应用中已有车辆，请先重新读取，无需重复获取短信。</p>';
-  return status + '<button class="text-button" data-action="retry-list">重新读取车辆列表</button><button class="text-button" data-action="phone">更换账号</button>';
-}
+function listBody(result: VehicleList | null) { return loginVehicleList(result, session?.vehicle.vin); }
 async function retrieveCars(signal: AbortSignal, current: () => boolean) {
   const account = pending;
   if (!account) return;
-  show('选择你的车辆', listBody(null));
+  show('选择车辆', listBody(null));
   try {
     const result = await api.list(account.token, signal);
     if (!current() || pending !== account) return;
-    pending.vehicles = result.vehicles;
-    show('选择你的车辆', listBody(result));
+    pending.vehicles = result.vehicles; rememberVehicleArt(result.vehicles);
+    show('选择车辆', listBody(result));
   } catch (error) {
-    if (current()) show('选择你的车辆', '<p>车辆列表读取未完成，账号已验证，可以直接重试。</p><button class="primary block" data-action="retry-list">重新读取车辆列表</button><button class="text-button" data-action="phone">更换账号</button>');
+    if (current()) show('选择车辆', '<p>加载失败</p><button class="primary block" data-action="retry-list">重新读取</button><button class="text-button" data-action="phone">更换账号</button>');
     throw error;
   }
 }
 async function refresh() {
+  if (preview) { notice = '已更新'; render(); return; }
   if (!session || expired) return;
   const bound = session;
   lastReadAttempt = Date.now();
   await run(async (signal, current) => {
     const data = await api.read(bound, signal);
-    if (current() && session === bound) { reading = data; notice = data.partial ? '已读取车况，电池详情暂未取得。' : '车况已读取。'; syncWidget(bound, data); }
+    if (current() && session === bound) { reading = data; notice = '已更新'; confirmLever(data); syncWidget(bound, data); }
   }, { bound });
 }
 async function selectVehicle(index: number) {
@@ -269,14 +271,14 @@ async function selectVehicle(index: number) {
     catch { throw new UserMessage('本机未能保存连接，本次切换未完成。请重试，或检查浏览器的存储设置。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; lastCommandReport = null; preview = expired = false; pending = null; tab = preferences.startPage;
+    session = candidate; reading = null; lastCommandReport = null; resetLever(); preview = expired = false; pending = null; tab = preferences.startPage;
     await synchronizeAccounts();
-    notice = '车辆已连接，正在读取车况…';
+    notice = '正在加载';
     modal.close();
     render();
     lastReadAttempt = Date.now();
     const data = await api.read(candidate, signal);
-    if (current()) { reading = data; notice = data.partial ? '车辆已连接，电池详情暂未取得。' : '车辆已连接，出发前看一眼。'; syncWidget(candidate, data); }
+    if (current()) { reading = data; notice = '已更新'; syncWidget(candidate, data); }
   }, { bound: candidate });
 }
 function syncWidget(bound: Session, data: Snapshot) {
@@ -297,11 +299,11 @@ async function activateSavedVehicle(vehicleId: string) {
     }); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; lastCommandReport = null; preview = expired = false; pending = null; tab = preferences.startPage;
+    session = candidate; reading = null; lastCommandReport = null; resetLever(); preview = expired = false; pending = null; tab = preferences.startPage;
     await synchronizeAccounts();
     disposePanel?.(); disposePanel = undefined; modal.close(); render();
     lastReadAttempt = Date.now(); const data = await api.read(candidate, signal);
-    if (current() && session === candidate) { reading = data; notice = '已切换账号和车辆。'; syncWidget(candidate, data); }
+    if (current() && session === candidate) { reading = data; notice = '已更新'; syncWidget(candidate, data); }
   }, { bound: candidate });
   if (accountBook.selectedVehicleId !== vehicleId) throw new Error('storage');
 }
@@ -317,7 +319,7 @@ async function forgetSavedAccount(accountId: string) {
       await clearTaskConfig(accountId);
     } finally { committing = false; }
     if (!current()) return;
-    session = accountSession(accountBook); reading = null; lastCommandReport = null; expired = preview = false;
+    session = accountSession(accountBook); reading = null; lastCommandReport = null; resetLever(); expired = preview = false;
     await synchronizeAccounts(); notice = '已移除本机账号及其后台绑定。'; render();
   });
   if (accountBook.accounts.some(item => item.id === accountId)) throw new Error('storage');
@@ -366,32 +368,54 @@ function beginCommand(mode: CommandMode) {
     || mode === 'seat' && capability?.seatOpen === false) return;
   const report: CommandReport = { mode, startedAt: Date.now(), steps: [] };
   lastCommandReport = report;
+  if (mode === 'powerOn' || mode === 'powerOff') { clearTimeout(leverTimer); leverTarget = mode; leverStarted = Date.now(); leverPhase = 'sending'; }
   void run(async (signal, current) => {
     const progress = (step: CommandStep) => {
       const index = report.steps.findIndex(value => value.stage === step.stage);
       if (index < 0) report.steps.push(step); else report.steps[index] = step;
       if (current()) {
         const message = modal.querySelector('#modal-message');
-        if (message) message.textContent = step.stage === 'prepare' ? '正在准备车辆操作…' : '正在提交车辆操作…';
+        if (message) message.textContent = '正在发送';
       }
     };
     if (mode === 'normal' || mode === 'high') await api.horn(bound, signal, { mode, onProgress: progress });
     else await controls.execute(bound, mode, signal, progress);
     if (current()) {
-      notice = mode === 'normal' ? '普通寻车完整流程已提交，请确认车辆是否鸣响。'
-        : mode === 'high' ? '高声寻车已提交，请确认车辆是否鸣响。' : `${commandNames[mode]}请求已提交，请刷新车况并确认车辆实际状态。`;
+      notice = isHorn(mode) ? '已发送鸣笛寻车' : '等待车辆响应';
+      if (mode === 'powerOn' || mode === 'powerOff') { leverPhase = 'pending'; leverTimer = setTimeout(() => { leverPhase = 'error'; notice = '未收到车辆响应'; render(); }, 15000); }
       commandTarget = null; commandIntent = null; modal.close();
     }
   }, { bound, control: true });
 }
 
-content.addEventListener('click', event => {
+function presentControl(mode: VehicleAction, drag = false) {
+  if (busy || expired || !navigator.onLine || (!session && !preview)) return;
+  const label = mode === 'powerOn' ? '上电开锁' : mode === 'powerOff' ? '关机锁车' : '打开座桶';
+  if (preview) { leverTarget = mode === 'powerOff' ? 'powerOff' : 'powerOn'; show(label, commandSheet(demoVehicle, label, mode).replace('send-control', 'demo-control')); return; }
+  const bound = session!;
+  show(label, commandSheet(bound.vehicle, label, mode)); commandTarget = bound; commandIntent = mode;
+  if (drag) beginCommand(mode);
+}
+function confirmLever(data: Snapshot) {
+  if ((leverPhase === 'pending' || leverPhase === 'error') && data.daily.reportState === 'fresh' && (data.daily.reportedAt ?? 0) > leverStarted && data.daily.vehicleLocked === (leverTarget === 'powerOff')) {
+    clearTimeout(leverTimer); leverPhase = 'success'; leverTimer = setTimeout(() => { leverPhase = 'idle'; render(); }, 2000);
+  }
+}
+function resetLever() { clearTimeout(leverTimer); leverPhase = 'idle'; leverStarted = 0; }
+mountLever(content, presentControl);
+window.addEventListener('scroll', () => { const photo = content.querySelector('.studio-photo'); content.querySelector('.home-page')?.classList.toggle('folded', Boolean(photo && photo.getBoundingClientRect().bottom < 100)); }, { passive: true });
+function handleAction(event: MouseEvent) {
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   if (booting || updating) return;
   if (action === 'tab') { tab = button.dataset.value as typeof tab; render(); window.scrollTo(0, 0); }
-  if (action === 'preview') { preview = !preview; notice = preview ? '当前为演示数据，所有车辆控制均已停用。' : '连接你的极核，开启自己的面板。'; render(); }
+  if (action === 'preview') { if (!preview) { realPreferences = preferences; preferences = structuredClone(defaultPreferences); preview = true; } else { preview = false; if (realPreferences) preferences = realPreferences; realPreferences = null; } notice = ''; resetLever(); applyPreferences(false); render(); }
+  if (action === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (action === 'data-status') show('数据状态', dataSheet(preview ? demoSnapshot : reading));
+  if (action === 'vehicle-picker' && !busy) { if (preview) show('切换车辆', '<div class="list-row">演示车辆</div>'); else show('切换车辆', vehiclePicker(accountBook)); }
+  if (action === 'more') show('更多', ActionSheet([['分享车况图片', 'grid', 'status-export'], ['查看上次车控结果', 'info', 'command-report'], ['首页按键设置', 'settings', 'route', '/me/home']]));
+  if (action === 'walk' && !preview) { const links = navigationLinks(reading?.daily.location ?? null); if (links?.walk) window.open(links.walk, '_blank', 'noopener,noreferrer'); }
   if (action === 'design-lab' && !busy) {
     show('界面与状态演示', '<div id="design-lab"></div>');
     modal.classList.add('design-lab-modal');
@@ -460,21 +484,15 @@ content.addEventListener('click', event => {
   }
   if (action === 'refresh') void refresh();
   if (action === 'update' && !busy && !modal.open && navigator.onLine) { updating = true; render(); updates?.activate(); }
-  if (action === 'horn' && session && !expired && !busy && navigator.onLine) {
-    show('鸣笛寻车', `<p>向 <strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）发送寻车请求。</p><button class="primary block" data-action="send-horn">发送鸣笛</button><button class="text-button block" data-action="send-horn-high">高声寻车</button><p class="muted">高声寻车可能更响；每次只执行你选择的一种。</p>`);
-    commandTarget = session; commandIntent = 'horn';
+  if (action === 'horn' && !busy && navigator.onLine && !expired) {
+    if (preview) { show('寻车', hornSheet(demoVehicle)); return; }
+    if (session) { show('寻车', hornSheet(session.vehicle)); commandTarget = session; commandIntent = 'horn'; }
   }
-  if (action === 'vehicle-action' && session && !expired && !busy && navigator.onLine) {
-    const mode = button.dataset.value as VehicleAction;
-    if (['powerOn', 'powerOff', 'seat'].includes(mode)) {
-      const description = mode === 'powerOn' ? '将开机并解锁车辆。' : mode === 'powerOff' ? '将关机并锁车，请在停车后操作。' : '将发送座桶开启请求，请在车旁确认开启结果。';
-      show(commandNames[mode], `<p>目标：<strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）</p><p>${description}</p><button class="primary block" data-action="send-control" data-value="${mode}">确认${commandNames[mode]}</button>`);
-      commandTarget = session; commandIntent = mode;
-    }
-  }
+  if (action === 'vehicle-action' && !busy && navigator.onLine && !expired && ['powerOn','powerOff','seat'].includes(button.dataset.value ?? '')) presentControl(button.dataset.value as VehicleAction);
   if (action === 'command-report' && lastCommandReport && !busy) show(isHorn(lastCommandReport.mode) ? '寻车结果' : '车控结果', `<pre class="diagnostic-summary" tabindex="0">${escape(commandSummary(lastCommandReport, version))}</pre><button class="primary block" data-action="copy-command-report">复制排查摘要</button>`);
   if (action === 'logout' && !busy) show('退出本机登录', '<p>此设备保存的全部账号登录将被移除，原生后台任务及桌面控制绑定也会清除。不会解绑官方账号中的车辆。</p><button class="primary block" data-action="confirm-logout">确认退出</button>');
-});
+}
+content.addEventListener('click', handleAction);
 content.addEventListener('change', event => {
   const select = event.target as HTMLSelectElement;
   if (select.dataset.preference === 'startPage' && ['vehicle', 'daily'].includes(select.value)) preferences.startPage = select.value as typeof preferences.startPage;
@@ -492,10 +510,32 @@ modal.addEventListener('keydown', event => {
   else if (!event.shiftKey && document.activeElement === last || !modal.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
 });
 modal.addEventListener('cancel', event => { event.preventDefault(); close(); });
+let sheetPointer: { id: number; y: number } | null = null;
+modal.addEventListener('pointerdown', event => {
+  if (!(event.target as Element).closest('.sheet-handle')) return;
+  sheetPointer = { id: event.pointerId, y: event.clientY }; modal.setPointerCapture(event.pointerId);
+});
+modal.addEventListener('pointermove', event => {
+  if (!sheetPointer || sheetPointer.id !== event.pointerId) return;
+  modal.style.transform = `translateY(${Math.max(0, event.clientY - sheetPointer.y)}px)`;
+});
+modal.addEventListener('pointerup', event => {
+  if (!sheetPointer || sheetPointer.id !== event.pointerId) return;
+  const distance = event.clientY - sheetPointer.y; sheetPointer = null; modal.style.removeProperty('transform'); if (distance > 80) close();
+});
+modal.addEventListener('pointercancel', () => { sheetPointer = null; modal.style.removeProperty('transform'); });
 modal.addEventListener('click', event => {
+  if (event.target === modal) { const rect = modal.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) { close(); return; } }
+  const mode = (event.target as Element).closest<HTMLButtonElement>('button[data-horn-mode]');
+  if (mode) { const bound = commandTarget; show('寻车', hornSheet(preview ? demoVehicle : bound!.vehicle, mode.dataset.hornMode)); commandTarget = bound; commandIntent = 'horn'; return; }
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   if (button.dataset.action === 'close') close();
+  if (['status-export','command-report'].includes(button.dataset.action ?? '')) handleAction(event);
+  if (button.dataset.action === 'saved-vehicle') void activateSavedVehicle(button.dataset.value!);
+  if (button.dataset.action === 'send-horn-choice') { if (preview) { notice = '已发送鸣笛寻车'; close(); } else beginCommand(button.dataset.value === 'high' ? 'high' : 'normal'); }
+  if (button.dataset.action === 'demo-control') { close(); leverPhase = 'sending'; render(); clearTimeout(leverTimer); leverTimer = setTimeout(() => { leverPhase = 'pending'; render(); leverTimer = setTimeout(() => { leverPhase = 'error'; render(); }, 15000); }, 700); }
+
   if (button.dataset.action === 'open-accounts' && !busy) {
     show('本机账号管理', '<div id="accounts-panel"></div>');
     disposePanel = mountAccounts(modal.querySelector<HTMLElement>('#accounts-panel')!, { book: structuredClone(accountBook), onSelect: activateSavedVehicle, onRemove: forgetSavedAccount, onChange: changeSavedAccounts, onAdd: showPhone });
@@ -537,7 +577,7 @@ modal.addEventListener('click', event => {
     catch { throw new UserMessage('本机登录信息未能清除，请重试。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = null; reading = null; pending = null; lastCommandReport = null; expired = preview = false; notice = '已退出本机登录。'; modal.close();
+    session = null; reading = null; pending = null; lastCommandReport = null; resetLever(); expired = preview = false; notice = '已退出本机登录。'; modal.close();
   });
 });
 modal.addEventListener('submit', event => {
@@ -562,6 +602,9 @@ modal.addEventListener('submit', event => {
 });
 
 applyPreferences(false); render();
+const updateTextSize = () => { document.documentElement.dataset.largeText = String(parseFloat(getComputedStyle(document.documentElement).fontSize) >= 24); };
+new MutationObserver(updateTextSize).observe(document.documentElement, { attributes: true, attributeFilter: ['style'] });
+window.addEventListener('resize', updateTextSize); updateTextSize();
 void loadAccounts().then(async book => {
   accountBook = book; const saved = accountSession(book); session = saved;
   await synchronizeAccounts();
@@ -606,7 +649,7 @@ async function continueNativeShortcut() {
   if (busy || expired || !session || accountBook.selectedVehicleId !== target.vehicleId) return;
   if (target.action === 'refresh') return;
   const mode = target.action === 'unlock' ? 'powerOn' : target.action === 'lock' ? 'powerOff' : target.action;
-  if (mode === 'horn') { show('鸣笛寻车', '<p>确认向已核对的当前车辆发送寻车请求。</p><button class="primary block" data-action="send-horn">发送鸣笛</button>'); commandTarget = session; commandIntent = 'horn'; }
+  if (mode === 'horn') { show('鸣笛寻车', '<p>确认向已核对的当前车辆发送寻车请求。</p><button class="primary block" data-action="send-horn">发送</button>'); commandTarget = session; commandIntent = 'horn'; }
   else { show(commandNames[mode], `<p>目标：${escape(session.vehicle.name)} · 尾号 ${escape(session.vehicle.vin.slice(-6))}</p><button class="primary block" data-action="send-control" data-value="${mode}">确认${commandNames[mode]}</button>`); commandTarget = session; commandIntent = mode; }
 }
 if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {

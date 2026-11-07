@@ -20,9 +20,9 @@ test('offline shell loads at a repository subpath and never caches API data', as
   const response = await page.request.get('./');
   expect(response.headers()['content-security-policy']).toBe("connect-src 'self'");
   await open(page); await login(page);
-  await page.getByRole('button', { name: '鸣笛寻车' }).click();
-  await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
-  await expect(page.locator('.notice')).toContainText('普通寻车完整流程已提交');
+  await page.getByRole('button', { name: '寻车' }).click();
+  await page.getByRole('button', { name: '发送', exact: true }).click();
+  await expect(page.locator('.notice')).toContainText('已发送鸣笛寻车');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   const cached = await page.evaluate(async () => {
@@ -38,9 +38,9 @@ test('offline shell loads at a repository subpath and never caches API data', as
   expect(cached.some(url => /tapi|captcha|vehicle|token/.test(url))).toBe(false);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.getByText('网络已断开，显示内容不会更新。联网后可重新读取。')).toBeVisible();
+  await expect(page.locator('.global-banner')).toBeVisible();
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '鸣笛寻车' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '寻车' })).toBeDisabled();
   await context.setOffline(false);
   await expect(page.locator('.battery-number')).toHaveText('82%');
 });
@@ -50,7 +50,7 @@ test('separate project paths do not share sessions or preferences', async ({ pag
   await page.getByRole('button', { name: '外观', exact: true }).click();
   await page.getByRole('button', { name: '浅色', exact: true }).click();
   await page.goto('http://127.0.0.1:4174/other/');
-  await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeEnabled();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.goto('./');
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
@@ -83,7 +83,7 @@ test('cache management keeps the active shell, other projects and encrypted logi
 test('waiting updates require an explicit idle action and preserve login', async ({ page, request }, testInfo) => {
   const scope = `/isolated/waiting-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now().toString(36)}/`;
   await page.goto(`http://127.0.0.1:4174${scope}`);
-  await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeEnabled();
   await login(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
@@ -93,16 +93,16 @@ test('waiting updates require an explicit idle action and preserve login', async
   await page.evaluate(async () => { await caches.open('another-app-cache'); });
   await request.post(`http://127.0.0.1:4174/__test/update?scope=${encodeURIComponent(scope)}`);
   await page.evaluate(async () => { const registration = await navigator.serviceWorker.getRegistration(); await registration?.update(); });
-  const update = page.getByRole('button', { name: '更新并重新打开' });
+  const update = page.getByRole('button', { name: '更新', exact: true });
   await expect(update).toBeVisible();
-  await page.getByRole('button', { name: '打开座桶', exact: true }).click();
+  await page.getByRole('button', { name: '座桶', exact: true }).click();
   await expect(update).toBeDisabled();
   await page.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(update).toBeEnabled();
   await Promise.all([page.waitForEvent('load'), update.click()]);
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
   await expect(page.locator('.battery-number')).toHaveText('82%');
-  await expect(page.getByRole('button', { name: '打开座桶', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '座桶', exact: true })).toBeEnabled();
   expect(await page.evaluate(() => caches.has('another-app-cache'))).toBe(true);
 });
 
@@ -111,7 +111,7 @@ test('manual update check reports status and prepares an explicit update without
   // /other/ can expose another case's installed worker/revision under WebKit.
   const scope = `/isolated/manual-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now().toString(36)}/`;
   await page.goto(`http://127.0.0.1:4174${scope}`);
-  await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeEnabled();
   await login(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
@@ -122,6 +122,6 @@ test('manual update check reports status and prepares an explicit update without
   await request.post(`http://127.0.0.1:4174/__test/update?scope=${encodeURIComponent(scope)}`);
   await page.getByRole('button', { name: '检查新版本', exact: true }).click();
   await expect(page.locator('.notice')).toContainText('新版本已准备好');
-  await expect(page.getByRole('button', { name: '更新并重新打开' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '更新', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: '退出本机登录' })).toBeVisible();
 });

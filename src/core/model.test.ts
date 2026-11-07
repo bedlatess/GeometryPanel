@@ -2,6 +2,15 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { snapshot, vehicleList, validVehicleId } from './model';
 
+test('vehicle pictures retain the three supplied sources without changing identity or accepting malformed shapes', () => {
+  const source = { vinNo: 'LAAAAAAAAAAAAAAA1', vehicleName: '车 A', vehiclePicUrl: 'https://example.invalid/a.png', vehiclePic3dUrl: 'https://example.invalid/a.glb', vehicleScalePicUrl: 'https://example.invalid/a-small.png' };
+  const car = vehicleList([source]).vehicles[0];
+  assert.equal(car.vin, source.vinNo);
+  for (const key of ['vehiclePicUrl', 'vehiclePic3dUrl', 'vehicleScalePicUrl'] as const) assert.equal(car[key], source[key]);
+  const invalid = vehicleList([{ ...source, vehiclePicUrl: {}, vehiclePic3dUrl: null, vehicleScalePicUrl: 'x'.repeat(4097) }]).vehicles[0];
+  assert.equal(invalid.vehiclePicUrl, undefined); assert.equal(invalid.vehiclePic3dUrl, undefined); assert.equal(invalid.vehicleScalePicUrl, undefined);
+});
+
 test('missing fields and blank numeric strings remain unknown', () => {
   const data = snapshot({ bmssoc: ' ', onlineStatus: 'unrecognized' }, null);
   assert.equal(data.soc, null); assert.equal(data.range, null); assert.equal(data.online, null);

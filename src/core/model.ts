@@ -1,7 +1,7 @@
 import { ApiError } from '../api/client';
 import { dailySnapshot, type DailyDetails } from './daily-model';
 
-export interface Vehicle { vin: string; name: string; type: string; plate: string }
+export interface Vehicle { vin: string; name: string; type: string; plate: string; vehiclePicUrl?: string; vehiclePic3dUrl?: string; vehicleScalePicUrl?: string }
 export interface Session { token: string; uid: string; vehicle: Vehicle }
 export interface VehicleList {
   vehicles: Vehicle[]; receivedCount: number; unrecognizedCount: number;
@@ -28,7 +28,8 @@ export function vehicleList(value: unknown): VehicleList {
     const vin = typeof row.vinNo === 'string' ? row.vinNo.trim() : '';
     if (!validVehicleId(vin)) { unrecognizedCount++; continue; }
     vehicles.push({ vin, name: String(row.vehicleName || '我的极核'),
-      type: String(row.vehicleType || ''), plate: String(row.licensePlate || '') });
+      type: String(row.vehicleType || ''), plate: String(row.licensePlate || ''),
+      ...Object.fromEntries(['vehiclePicUrl', 'vehiclePic3dUrl', 'vehicleScalePicUrl'].flatMap(key => typeof row[key] === 'string' && row[key].length <= 4096 ? [[key, row[key]]] : [])) });
   }
   return { vehicles, receivedCount: value.length, unrecognizedCount };
 }

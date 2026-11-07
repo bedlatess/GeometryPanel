@@ -67,7 +67,7 @@
 .sheet-handle { width:36px; height:5px; border-radius:var(--round); background:var(--line); margin:0 auto var(--space-5); touch-action:none; }
 .lever-control { position:relative; width:var(--lever-width); max-width:100%; }
 .lever { display:block; position:relative; width:100%; height:var(--lever-height); border-radius:var(--round); background:var(--fill); padding:var(--lever-inset); font-weight:600; font-size:var(--sub); touch-action:pan-y; user-select:none; -webkit-user-select:none; }
-.lever-knob { position:absolute; top:var(--lever-inset); left:var(--lever-inset); width:var(--knob-size); height:var(--knob-size); display:grid; place-items:center; border-radius:var(--round); background:var(--knob); color:var(--ink); box-shadow:var(--knob-shadow); transform:translateX(var(--drag-x,0px)); transition:transform var(--motion-lever) var(--ease); }
+.lever-knob { position:absolute; top:var(--lever-inset); left:var(--lever-inset); width:var(--knob-size); height:var(--knob-size); display:grid; place-items:center; border-radius:var(--round); background:var(--knob); color:var(--knob-t); box-shadow:var(--knob-shadow); transform:translateX(var(--drag-x,0px)); transition:transform var(--motion-lever) var(--ease); }
 .lever.right .lever-knob { --drag-x:var(--lever-travel); }
 .lever.center .lever-knob { --drag-x:calc(var(--lever-travel) / 2); }
 .lever-label { position:absolute; inset:0; display:flex; align-items:center; justify-content:flex-end; padding-inline:var(--space-4); opacity:var(--label-opacity,1); }

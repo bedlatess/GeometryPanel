@@ -13,7 +13,7 @@ test('range uses the homepage even when a battery placeholder says zero, and pre
   await expect(page.locator('.metric').filter({ hasText: '预计续航' }).locator('strong')).toHaveText('0km');
   mocks.home.hmiRidableMile = [];
   await page.getByRole('button', { name: '刷新车况' }).click();
-  await expect(page.locator('.metric').filter({ hasText: '预计续航' }).locator('strong')).toHaveText('—km');
+  await expect(page.locator('.metric').filter({ hasText: '预计续航' }).locator('strong')).toHaveText('—');
 });
 
 test('map opens inside the panel only after a click, with a safe external fallback and clear find-car wording', async ({ page, mocks }) => {
@@ -52,8 +52,8 @@ test('configuration controls survive reopen, backup never contains account data,
   await expect(page.getByRole('button', { name: '刷新车况' })).toBeEnabled();
   await page.getByRole('button', { name: '车辆', exact: true }).click();
   expect(await page.locator('.metric').filter({ hasText: '预计续航' }).count()).toBe(0);
-  await page.getByRole('button', { name: '打开座桶', exact: true }).click();
-  await expect(page.getByRole('dialog')).toContainText('目标：测试极核 A');
+  await page.getByRole('button', { name: '座桶', exact: true }).click();
+  await expect(page.getByRole('dialog')).toContainText('测试极核 A');
   expect(commands(mocks.calls)).toHaveLength(0);
   await page.getByRole('button', { name: '关闭', exact: true }).click(); await settings(page);
   await page.getByRole('button', { name: '恢复默认配置', exact: true }).click();
@@ -92,7 +92,7 @@ test('back-forward restore refreshes once when old enough; disabled auto-read an
   await expect(page.getByRole('button', { name: '刷新车况' })).toBeEnabled();
   await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
   expect(reads(mocks.calls)).toBe(initial + 1);
-  await page.getByRole('button', { name: '鸣笛寻车' }).click();
+  await page.getByRole('button', { name: '寻车' }).click();
   await page.clock.fastForward(61000);
   await page.evaluate(() => dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true })));
   expect(reads(mocks.calls)).toBe(initial + 1);
@@ -122,7 +122,7 @@ test('unavailable preference storage leaves the session intact and tells the use
   });
   await open(page); await login(page); await settings(page);
   await page.getByLabel('打开后的首页', { exact: true }).selectOption('daily');
-  await expect(page.locator('.notice')).toContainText('本机保存未完成');
+  await expect(page.locator('.notice')).toContainText('保存失败，请重试');
   await expect(page.getByRole('button', { name: '退出本机登录', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('heading', { name: '测试极核 A', exact: true })).toBeVisible();

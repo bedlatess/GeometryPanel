@@ -137,7 +137,7 @@ test('uncertain setting failure never retries and closing aborts a pending read'
 });
 
 test('demo extensions stay synthetic and cannot write even after a forged form submission', async ({ page, mocks }) => {
-  await open(page); await page.getByRole('button', { name: '先体验面板', exact: true }).click(); await show(page);
+  await open(page); await page.getByRole('button', { name: '体验演示', exact: true }).click(); await show(page);
   await expect(panel(page).getByText(/以下全部为合成数据/)).toBeVisible();
   for (const name of ['历史轨迹', '胎压', '车辆告警', '车辆设置']) await panel(page).getByRole('button', { name, exact: true }).click();
   await expect(panel(page).getByRole('button', { name: '修改精准续航', exact: true })).toBeDisabled();
@@ -184,6 +184,6 @@ test('closing an in-flight setting keeps an uncertain-result warning and never r
   await page.getByRole('button', { name: '关闭', exact: true }).click();
   release();
   await expect(panel(page)).toHaveCount(0);
-  await expect(page.locator('main').getByRole('status')).toContainText('结果尚未确认');
+  await expect(page.locator('.notice')).toContainText('结果尚未确认');
   expect(writes(mocks.calls)).toHaveLength(1);
 });

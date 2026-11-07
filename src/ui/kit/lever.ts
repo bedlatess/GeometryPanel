@@ -5,13 +5,15 @@ export function Lever(locked: boolean | null, phase: LeverPhase = 'idle', disabl
   const center = locked === null || phase === 'error', right = phase === 'sending' || phase === 'pending' || phase === 'success' ? target === 'powerOn' : locked === false;
   const text = phase === 'sending' ? '正在发送' : phase === 'pending' ? '等待车辆响应' : phase === 'success' ? target === 'powerOn' ? '已开锁' : '已锁车' : center ? '锁车 ｜ 开锁' : locked ? '上电开锁' : '关机锁车';
   const glyph = phase === 'sending' ? 'refresh' : phase === 'pending' ? 'clock' : phase === 'success' ? 'check' : phase === 'error' ? 'info' : locked === false ? 'unlock' : 'lock';
-  return `<div class="lever-control"><button type="button" class="lever ${center ? 'center' : right ? 'right' : 'left'} phase-${phase}" data-action="lever" data-value="${locked === false ? 'powerOff' : 'powerOn'}" data-lock="${locked === null ? 'unknown' : locked ? 'locked' : 'unlocked'}" aria-label="${html(center ? '锁车 ｜ 开锁' : text)}" ${disabled || ['sending', 'pending'].includes(phase) ? 'disabled' : ''}><span class="lever-label">${center ? '<span>‹‹ 锁车</span><span>开锁 ››</span>' : right && phase === 'idle' ? `‹‹ ${text}` : `${text}${phase === 'idle' ? ' ››' : ''}`}</span><span class="lever-knob ${phase === 'sending' ? 'spinning' : ''}">${icon(glyph)}</span></button>${reason ? `<span class="lever-reason">${html(reason)}</span>` : ''}</div>`;
+  const arrows = (left = false) => `<span class="lever-arrows" aria-hidden="true">${[1,2,3].map(() => `<i>${left ? '‹' : '›'}</i>`).join('')}</span>`;
+  return `<div class="lever-control"><button type="button" class="lever ${center ? 'center' : right ? 'right' : 'left'} phase-${phase}" data-action="lever" data-value="${locked === false ? 'powerOff' : 'powerOn'}" data-lock="${locked === null ? 'unknown' : locked ? 'locked' : 'unlocked'}" aria-label="${html(center ? '锁车 ｜ 开锁' : text)}" aria-description="需要确认" ${disabled || ['sending', 'pending'].includes(phase) ? 'disabled' : ''}><span class="lever-label">${center ? '<span>‹‹ 锁车</span><span>开锁 ››</span>' : right && phase === 'idle' ? `${arrows(true)}${text}` : `${text}${phase === 'idle' ? arrows() : ''}`}</span><span class="lever-knob ${phase === 'sending' ? 'spinning' : ''}">${icon(glyph)}</span></button>${reason ? `<span class="lever-reason">${html(reason)}</span>` : ''}</div>`;
 }
 
 /** All input paths share one explicit gesture; this module never sends commands. */
 export function mountLever(host: HTMLElement, confirm: (action: 'powerOn' | 'powerOff', drag: boolean) => void) {
   let start: { x: number; y: number; knob: number; max: number; element: HTMLButtonElement } | null = null;
   let moved = false, keyboard: 'powerOn' | 'powerOff' | null = null, suppressClick = false;
+  let clickTimer: ReturnType<typeof setTimeout> | undefined;
   const element = (event: Event) => (event.target as Element).closest<HTMLButtonElement>('.lever:not(:disabled)');
   function down(event: PointerEvent) {
     const button = element(event); if (!button || event.button !== 0) return;
@@ -36,7 +38,7 @@ export function mountLever(host: HTMLElement, confirm: (action: 'powerOn' | 'pow
     const current = start, dx = event.clientX - current.x;
     const available = dx > 0 ? current.max - current.knob : current.knob;
     const accepted = moved && available > 0 && Math.abs(dx) / available >= .7;
-    suppressClick = moved; cancel();
+    suppressClick = moved; clearTimeout(clickTimer); clickTimer = setTimeout(() => { suppressClick = false; }, 0); cancel();
     if (accepted) confirm(dx > 0 ? 'powerOn' : 'powerOff', true);
   }
   function click(event: Event) {
@@ -50,5 +52,5 @@ export function mountLever(host: HTMLElement, confirm: (action: 'powerOn' | 'pow
     if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') { event.preventDefault(); keyboard = event.key === 'ArrowLeft' ? 'powerOff' : 'powerOn'; button.setAttribute('aria-label', keyboard === 'powerOn' ? '上电开锁' : '关机锁车'); }
   }
   host.addEventListener('pointerdown', down); host.addEventListener('pointermove', move); host.addEventListener('pointerup', up); host.addEventListener('pointercancel', cancel); host.addEventListener('click', click); host.addEventListener('keydown', key);
-  return () => { cancel(); host.removeEventListener('pointerdown', down); host.removeEventListener('pointermove', move); host.removeEventListener('pointerup', up); host.removeEventListener('pointercancel', cancel); host.removeEventListener('click', click); host.removeEventListener('keydown', key); };
+  return () => { cancel(); clearTimeout(clickTimer); host.removeEventListener('pointerdown', down); host.removeEventListener('pointermove', move); host.removeEventListener('pointerup', up); host.removeEventListener('pointercancel', cancel); host.removeEventListener('click', click); host.removeEventListener('keydown', key); };
 }

@@ -20,9 +20,9 @@ const calls = (page: Page) => page.evaluate(() => (window as any).__parityCalls 
 async function secondLogin(page: Page, car = '测试极核 B') {
   await settings(page); await page.getByRole('button', { name: '管理本机账号', exact: true }).click();
   await page.getByRole('button', { name: '添加账号', exact: true }).click();
-  await page.getByLabel('手机号', { exact: true }).fill('13900000000'); await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByRole('textbox', { name: '手机号', exact: true }).fill('13900000000'); await page.getByRole('button', { name: '获取验证码' }).click();
   await page.getByRole('slider').focus(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-  await page.getByLabel('短信验证码', { exact: true }).fill('123456'); await page.getByRole('button', { name: '登录并选择车辆' }).click();
+  await page.getByRole('textbox', { name: '短信验证码', exact: true }).fill('123456'); await page.getByRole('button', { name: '登录', exact: true }).click();
   await page.getByRole('button', { name: car }).click();
   await expect(page.getByRole('heading', { name: car, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
@@ -117,7 +117,7 @@ test('official native login hands off once locally then uses normal verified veh
   await nativeMock(page, true); await open(page); await background(page);
   await page.getByRole('button', { name: '系统工具', exact: true }).click();
   await page.getByRole('button', { name: '查看官方登录连接结果', exact: true }).click();
-  await expect(page.getByRole('heading', { name: '选择你的车辆', exact: true })).toBeVisible();
+  await expect(page.getByRole('heading', { name: '选择车辆', exact: true })).toBeVisible();
   expect(mocks.calls.filter(call => call.path.endsWith('/vehicle/list')).at(-1)!.authorization).toBe('Bearer imported-token');
   await page.getByRole('button', { name: '测试极核 A' }).click();
   await expect(page.getByRole('heading', { name: '测试极核 A', exact: true })).toBeVisible();
@@ -135,7 +135,7 @@ test('system shortcut rejects unknown vehicles and requires visible confirmation
   await expect(page.getByRole('heading', { name: '系统快捷指令', exact: true })).toBeVisible();
   expect(mocks.calls.some(call => call.path.endsWith('/dbpoint/send'))).toBe(false);
   await page.getByRole('button', { name: '继续核对车辆', exact: true }).click();
-  await expect(page.getByRole('button', { name: '发送鸣笛', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '发送', exact: true })).toBeVisible();
   expect(mocks.calls.some(call => call.path.endsWith('/dbpoint/send'))).toBe(false);
 });
 

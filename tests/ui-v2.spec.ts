@@ -1,0 +1,56 @@
+import { test, expect, open, login } from './fixtures';
+test('lever keeps short drags inert, accepts the threshold once and waits for vehicle confirmation', async ({ page, mocks }) => {
+  await page.clock.install();
+  mocks.home = { refreshTime: Date.now(), iotProperties: [{ identify: 'VehicleLock_S', value: 1 }] };
+  await open(page); await login(page);
+  const lever = page.locator('main .lever');
+  await expect(lever).toBeEnabled();
+  await expect.poll(() => lever.boundingBox()).not.toBeNull();
+  const box = (await lever.boundingBox())!;
+  const start = { x: box.x + 32, y: box.y + 32 };
+  await page.mouse.move(start.x, start.y); await page.mouse.down(); await page.mouse.move(start.x + 40, start.y, { steps: 5 }); await page.mouse.up();
+  expect(mocks.calls.filter(c => /network\/unlock|dbpoint\/send/.test(c.path))).toHaveLength(0);
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.mouse.move(start.x, start.y); await page.mouse.down(); await page.mouse.move(start.x + 120, start.y, { steps: 8 }); await page.mouse.up();
+  await expect(lever).toHaveClass(/phase-pending/);
+  await expect(lever).toHaveText(/等待车辆响应/);
+  expect(mocks.calls.filter(c => c.path.endsWith('/vehicleSet/network/unlock'))).toHaveLength(1);
+  const before = mocks.calls.length;
+  await expect.poll(() => page.evaluate(async () => {
+    const db = await new Promise<IDBDatabase>((resolve, reject) => { const request = indexedDB.open('zeeho-panel:/panel/:vault-v2'); request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const count = await new Promise<number>(resolve => { const request = db.transaction('local').objectStore('local').count(); request.onsuccess = () => resolve(request.result); });
+    db.close(); return count;
+  })).toBeGreaterThan(1);
+  await page.clock.fastForward(16000);
+  await expect(lever).toHaveClass(/phase-error/);
+  expect(mocks.calls.length).toBe(before);
+  await expect(page.locator('.lever-reason')).toHaveText('未收到车辆响应');
+  mocks.home = { refreshTime: Date.now() + 1000, iotProperties: [{ identify: 'VehicleLock_S', value: 0 }] };
+  await page.getByRole('button', { name: '刷新车况' }).click();
+  await expect(lever).toHaveClass(/phase-success/);
+  await expect(lever).toContainText('已开锁');
+});
+test('login sheets close from the backdrop and from a downward handle gesture without sending', async ({ page, mocks }) => {
+  await open(page);
+  const connect = page.getByRole('button', { name: '登录极核账号', exact: true });
+  await connect.click(); await expect(page.getByRole('dialog')).toBeVisible();
+  await page.mouse.click(4, 4); await expect(page.getByRole('dialog')).not.toBeVisible();
+  await connect.click();
+  const handle = (await page.locator('.sheet-handle').boundingBox())!;
+  const x = handle.x + handle.width / 2, y = handle.y + handle.height / 2;
+  await page.mouse.move(x,y); await page.mouse.down(); await page.mouse.move(x,y + 110, { steps: 8 }); await page.mouse.up();
+  await expect(page.getByRole('dialog')).not.toBeVisible();
+  expect(mocks.calls).toEqual([]);
+});
+test('unknown lock supports both keyboard directions and target selection clears the previous readings', async ({ page, mocks }) => {
+  await open(page); await login(page);
+  const lever = page.locator('main .lever');
+  await lever.focus(); await page.keyboard.press('ArrowLeft'); await page.keyboard.press('Enter');
+  await expect(page.getByRole('dialog')).toContainText('关机锁车');
+  expect(mocks.calls.filter(c => /network\/unlock|dbpoint\/send/.test(c.path))).toHaveLength(0);
+  await page.keyboard.press('Escape'); await expect(lever).toBeFocused();
+  await page.getByRole('button', { name: '切换车辆', exact: true }).click();
+  await page.locator('dialog').getByRole('button', { name: /测试极核 B/ }).click();
+  await expect(page.locator('.battery-number')).toHaveText('45%');
+  await expect(page.getByRole('heading', { name: '测试极核 B', exact: true })).toBeVisible();
+});

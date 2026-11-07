@@ -27,7 +27,10 @@ async function transaction<T>(mode: IDBTransactionMode, operation: (store: IDBOb
   try {
     return await new Promise<T>((resolve, reject) => {
       const tx = db.transaction(STORE, mode);
-      const timer = setTimeout(() => { tx.abort(); reject(new Error('storage')); }, TIMEOUT);
+      const timer = setTimeout(() => {
+        try { tx.abort(); } catch { /* The transaction may already have finished. */ }
+        reject(new Error('storage'));
+      }, TIMEOUT);
       tx.oncomplete = () => { clearTimeout(timer); resolve(request.result); };
       tx.onerror = tx.onabort = () => { clearTimeout(timer); reject(new Error('storage')); };
       let request: IDBRequest<T>;

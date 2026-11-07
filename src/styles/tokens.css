@@ -1,11 +1,13 @@
 @font-face { font-family:"GP Num"; src:url('/fonts/gp-num-barlow-semibold.woff2') format('woff2'); font-style:normal; font-weight:600; font-display:swap; }
 :root {
+  --knob-t:#0F1215; --compact-photo:164px; --handle-width:36px; --handle-line:5px;
   --font-body:-apple-system,"PingFang SC","HarmonyOS Sans SC","MiSans","Microsoft YaHei","Noto Sans CJK SC",sans-serif;
   --font-number:"GP Num","DIN Alternate","Bahnschrift",var(--font-body);
   --hero:4.625rem; --num-l:1.875rem; --title-l:1.875rem; --title:1.375rem; --car:1.1875rem; --head:1.0625rem; --body:.9375rem; --sub:.8125rem; --cap:.75rem; --input:1rem;
   --space-1:4px; --space-2:8px; --space-3:12px; --space-4:16px; --space-5:20px; --space-6:24px; --space-8:32px; --space-10:40px;
   --radius-sm:9px; --radius-md:20px; --radius-lg:24px; --radius-control:14px; --radius-sheet:28px; --round:999px;
   --tap:44px; --page-max:640px; --wide-max:1040px; --nav-room:104px; --nav-height:84px; --button-height:52px; --row-height:54px;
+  --home-top:52px; --photo-height:270px; --photo-width:340px; --folded-height:122px; --meter-width:182px; --meter-height:4px; --photo-floor:70%; --thumbnail:72px; --stroke:.5px; --focus-width:2px; --focus-offset:3px; --brand-size:92px;
   --circle:60px; --circle-small:54px; --lever-width:206px; --lever-height:64px; --knob-size:56px; --lever-travel:142px; --lever-inset:4px;
   --icon:24px; --icon-small:16px; --row-icon:30px; --switch-width:50px; --switch-height:30px; --switch-knob:24px;
   --motion-press:120ms; --motion-state:180ms; --motion-sheet:280ms; --motion-lever:240ms; --motion-photo:600ms; --motion-charge:3s; --ease:cubic-bezier(.2,.8,.2,1);

@@ -188,20 +188,20 @@ export { expect };
 
 export async function open(page: Page) {
   await page.goto('./');
-  await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeEnabled();
 }
 export async function loginToList(page: Page) {
-  await page.getByRole('button', { name: '连接我的极核', exact: true }).click();
-  await page.getByLabel('手机号', { exact: true }).fill('13800000000');
-  await page.getByRole('button', { name: '下一步' }).click();
+  await page.getByRole('button', { name: '登录极核账号', exact: true }).click();
+  await page.getByRole('textbox', { name: '手机号', exact: true }).fill('13800000000');
+  await page.getByRole('button', { name: '获取验证码' }).click();
   const slider = page.getByRole('slider');
   await expect(slider).toHaveAttribute('aria-valuemax', '719');
   await slider.focus();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
-  await expect(page.getByLabel('短信验证码', { exact: true })).toBeEnabled();
-  await page.getByLabel('短信验证码', { exact: true }).fill('123456');
-  await page.getByRole('button', { name: '登录并选择车辆' }).click();
+  await expect(page.getByRole('textbox', { name: '短信验证码', exact: true })).toBeEnabled();
+  await page.getByRole('textbox', { name: '短信验证码', exact: true }).fill('123456');
+  await page.getByRole('button', { name: '登录', exact: true }).click();
 }
 export async function login(page: Page) {
   await loginToList(page);

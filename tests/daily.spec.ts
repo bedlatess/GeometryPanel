@@ -101,7 +101,7 @@ for (const crs of [0, 1, 2, 'unknown']) {
 
 test('demo and offline daily views never enable commands or navigation', async ({ page, context, mocks }) => {
   await open(page);
-  await page.getByRole('button', { name: '先体验面板' }).click(); await daily(page);
+  await page.getByRole('button', { name: '体验演示' }).click(); await daily(page);
   await expect(page.getByText('演示数据 · 不会连接或控制车辆')).toBeVisible();
   for (const button of await page.locator('.control-grid button').all()) await expect(button).toBeDisabled();
   expect(await page.locator('a[href]:not([href^="#"])').count()).toBe(0);
@@ -122,10 +122,10 @@ for (const [action, title] of Object.entries({ powerOn: '云开锁（上电）',
     await page.locator(`[data-action="vehicle-action"][data-value="${action}"]`).click();
     await expect(page.getByRole('dialog')).toContainText('测试极核 A');
     await expect(page.getByRole('dialog')).toContainText(VIN_A.slice(-6));
-    if (action === 'powerOff') await expect(page.getByRole('dialog')).toContainText('请在停车后操作');
+    if (action === 'powerOff') await expect(page.getByRole('dialog')).toContainText('关机锁车');
     expect(commands(mocks.calls)).toHaveLength(0);
-    await page.getByRole('button', { name: `确认${title}`, exact: true }).click();
-    await expect(page.locator('.notice')).toContainText(`${title}请求已提交`);
+    await page.getByRole('button', { name: action === 'powerOn' ? '上电开锁' : action === 'powerOff' ? '关机锁车' : '打开座桶', exact: true }).click();
+    await expect(page.locator('.notice')).toContainText('等待车辆响应');
     expect(commands(mocks.calls).map(({ method, path, body }) => ({ method, path, body }))).toEqual(contract.actions[action]);
     expect(commands(mocks.calls).every(call => call.authorization === 'Bearer synthetic-token')).toBe(true);
     await expect(row(page, '车辆锁状态')).toHaveText('未知');
@@ -143,8 +143,8 @@ for (const stage of ['prepare', 'unlock'] as const) {
       mocks.commandResults[stage] = result;
       await open(page); await login(page); await daily(page);
       await page.locator('[data-action="vehicle-action"][data-value="powerOn"]').click();
-      await page.getByRole('button', { name: '确认云开锁（上电）', exact: true }).click();
-      await expect(page.locator('#modal-message')).toContainText(result === 'expired' ? '登录信息已失效' : '执行结果尚未确认');
+      await page.getByRole('button', { name: '上电开锁', exact: true }).click();
+      await expect(page.locator('#modal-message')).toContainText(result === 'expired' ? '登录已过期' : '未收到车辆响应');
       if (result === 'expired') await expect(page.locator('[data-action="send-control"]')).toBeDisabled();
       await page.getByRole('button', { name: '关闭', exact: true }).click();
       await expect(page.locator('.notice')).not.toContainText('请求已提交');
@@ -170,7 +170,7 @@ for (const stage of ['prepare', 'unlock', 'seat'] as const) {
     await expect(page.locator('[data-action="send-control"]')).toBeDisabled();
     await page.getByRole('button', { name: '关闭', exact: true }).click();
     release();
-    await expect(page.locator('.notice')).toContainText('请求结果尚未确认');
+    await expect(page.locator('.notice')).toContainText('未收到车辆响应');
     await page.getByRole('button', { name: '查看车控结果', exact: true }).click();
     await expect(page.locator('.diagnostic-summary')).toContainText('已停止等待');
     await page.getByRole('button', { name: '关闭', exact: true }).click();
@@ -198,7 +198,7 @@ test('switching vehicles binds new controls to the new selection and logout clea
   await page.locator('[data-action="vehicle-action"][data-value="seat"]').click();
   await expect(page.getByRole('dialog')).toContainText('测试极核 B');
   await page.locator('[data-action="send-control"]').click();
-  await expect(page.locator('.notice')).toContainText('打开座桶请求已提交');
+  await expect(page.locator('.notice')).toContainText('等待车辆响应');
   expect(commands(mocks.calls)).toEqual([expect.objectContaining({ body: expect.objectContaining({ vcu: VIN_B }) })]);
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await page.getByRole('button', { name: '退出本机登录', exact: true }).click();

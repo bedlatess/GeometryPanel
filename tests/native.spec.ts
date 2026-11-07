@@ -27,7 +27,7 @@ test('Safari explains installation without pretending native functions are avail
 });
 test('native demo remains read-only and never prepares cloud keys', async ({ page, mocks }) => {
   await syntheticNative(page); await open(page);
-  await page.getByRole('button', { name: '先体验面板' }).click();
+  await page.getByRole('button', { name: '体验演示' }).click();
   await page.getByRole('button', { name: '用车', exact: true }).click();
   await page.getByRole('button', { name: '蓝牙、提醒与仪表工具' }).click();
   await expect(page.getByRole('button', { name: '准备 / 刷新蓝牙资料' })).toBeDisabled();
