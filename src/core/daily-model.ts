@@ -116,16 +116,21 @@ function locationFrom(home: Record<string, unknown>, now: number): DailyLocation
   if (!raw) return null;
   const longitude = numeric(raw.longitude), latitude = numeric(raw.latitude);
   if (longitude === null || latitude === null || Math.abs(longitude) > 180 || Math.abs(latitude) > 90 || longitude === 0 && latitude === 0) return null;
-  const omittedCrs = raw.coordinateSystem === null || raw.coordinateSystem === undefined || typeof raw.coordinateSystem === 'string' && !raw.coordinateSystem.trim();
   const crs = text(raw.coordinateSystem);
-  const key = crs?.toLowerCase().replace(/[-_\s]/g, '');
-  // Every recovered map pipeline accepts GCJ-02 as its input contract. Keep that
-  // compatibility default only when the server omits CRS; never override a label.
-  const coordinateSystem: CoordinateSystem = omittedCrs || key === 'gcj02' ? 'gcj02' : key === 'wgs84' ? 'wgs84' : 'unknown';
+  const key = crs?.toLowerCase().replace(/[-_:\s]/g, '');
+  const gcj = ['gcj02', 'gaode', 'amap', '高德', '高德坐标', '火星坐标'].includes(key ?? '');
+  const wgs = ['wgs84', 'wgs1984', 'epsg4326', 'gps'].includes(key ?? '');
+  const unsupported = ['bd09', 'bd09ll', 'baidu', '百度', '百度坐标', 'epsg3857'].includes(key ?? '');
+  // This model consumes vehicleHomePageV2, whose recovered map pipeline always
+  // treats vehicle positions as GCJ-02, without interpreting coordinateSystem.
+  // Opaque/numeric vendor tags therefore follow that same input contract; they
+  // are NOT guessed enum mappings or evidence of a server-reported CRS.
+  // Recognizable WGS84 is honored; known incompatible systems stay unavailable.
+  const coordinateSystem: CoordinateSystem = wgs ? 'wgs84' : unsupported ? 'unknown' : 'gcj02';
   const reportedAt = reportedTime(raw.locationTime);
   return {
     longitude, latitude, altitudeM: numeric(raw.altitude), coordinateSystem,
-    coordinateSystemSource: omittedCrs ? 'legacy-default' : coordinateSystem === 'unknown' ? 'unknown' : 'reported',
+    coordinateSystemSource: unsupported ? 'unknown' : gcj || wgs ? 'reported' : 'legacy-default',
     reportedAt, reportState: reportState(reportedAt, now),
     address: text(home.address) ?? text(raw.address) ?? text(raw.addressName),
   };

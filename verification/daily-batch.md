@@ -5,7 +5,7 @@
 ## 实现与依据
 
 - `daily-model.ts` 整理首页与电池响应，`ui/daily.ts` 显示里程、锁状态、充电和电池详情。缺失值保留未知，有效零值和负电流不丢弃。上报时间独立于读取时间，分别提示过早和未来时间。字段、单位与未采用字段见 [数据协议](daily-data-protocol.md)。
-- `navigation.ts` 只生成固定 HTTPS 高德 URI。GCJ-02 支持标记和步行导航，WGS84 只生成带坐标类型的标记；明确未知类型不生成链接。缺失类型沿用旧版 GCJ-02 输入契约，未声称服务端明确报告。页面不加载地图 SDK 或请求手机位置，用户点击后才向地图传递位置。参考高德[标记文档](https://lbs.amap.com/api/uri-api/guide/mobile-web/point)和[导航文档](https://lbs.amap.com/api/uri-api/guide/travel/route)。
+- `navigation.ts` 只生成固定 HTTPS 高德 URI。GCJ-02 支持标记和步行导航，WGS84 只生成带坐标类型的标记；明确不兼容的类型不生成链接。0.3.1 扩充兼容：缺失、数字或不认识的厂商标签沿用旧版 GCJ-02 输入契约，未声称服务端明确报告；详见 [地图修复](map-fix.md)。页面不加载地图 SDK 或请求手机位置，用户点击后才向地图传递位置。参考高德[标记文档](https://lbs.amap.com/api/uri-api/guide/mobile-web/point)和[导航文档](https://lbs.amap.com/api/uri-api/guide/travel/route)。
 - `controls.ts` 处理开机解锁、关机锁车和座桶开启，`legacy-unlock.ts` 专门兼容旧云锁加密。逐请求契约来自恢复发布物的静态语法读取；加密结果另外对照独立 Python AES-ECB 向量。详见 [车控协议](controls-protocol.md) 和 [请求契约](recovered-controls-contract.json)。
 - 新旧车控统一确认目标账号和车辆，重复点击受限，失败、过期和取消停止后续步骤，无自动重试或后备命令。服务受理后不提前改变锁状态。排查摘要只含动作、步骤状态和协议错误码，不含请求体、账号、VIN 或登录凭据。
 - `loudlySearchCar` 是当前鸣笛设置，不用作寻车能力。云锁只按明确的 `supportNetworkUnlock=false` 禁用，未知能力保留可尝试；座桶开启能力和座桶锁当前状态分开。

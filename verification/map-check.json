@@ -1,0 +1,39 @@
+{
+  "version": "0.3.1",
+  "checkedAt": "2026-11-07T08:06:50.091729+00:00",
+  "unitTests": {
+    "passed": 73,
+    "failed": 0
+  },
+  "productionBuild": "passed",
+  "browserTests": {
+    "passed": 108,
+    "failed": 0,
+    "skipped": 0,
+    "durationMs": 197739.384,
+    "projects": [
+      "chromium-mobile",
+      "webkit-mobile"
+    ]
+  },
+  "initialBrowserRun": {
+    "passed": 107,
+    "failed": 1,
+    "case": "WebKit manual update check reported current instead of ready; isolated recheck and complete rerun passed without source changes"
+  },
+  "mapCases": "opaque numeric/vendor tags, supported aliases, known incompatible systems, click-only iframe, close cleanup, absent address does not invent a place name",
+  "realMapObservation": {
+    "provider": "AMap",
+    "publicSampleOnly": true,
+    "canvasAndRoadLabelsObserved": true,
+    "screenshot": "local .tools/map-embed-public-sample.png",
+    "realIPhone": false
+  },
+  "officialAppAddressImplementation": "not observed; no independent reverse geocoder added",
+  "realAccountReadsSmsOrVehicleCommands": 0,
+  "android": "android-check.json",
+  "remainingDeviceAcceptance": [
+    "iPhone parking point and nearby road/community labels",
+    "Android install/login/reopen/map/back/offline runtime"
+  ]
+}

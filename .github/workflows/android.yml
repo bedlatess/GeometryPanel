@@ -1,0 +1,58 @@
+name: Verify Android container
+
+on:
+  push:
+    paths: ['android/**', 'package.json', 'scripts/check-android.mjs', 'scripts/build-android.ps1', '.github/workflows/android.yml']
+  pull_request:
+    paths: ['android/**', 'package.json', 'scripts/check-android.mjs', 'scripts/build-android.ps1', '.github/workflows/android.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  android:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: node scripts/check-android.mjs
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: sdkmanager 'platforms;android-36' 'build-tools;36.0.0'
+      - name: Test, lint and compile the container
+        working-directory: android
+        run: bash ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleDebug --console=plain
+      - uses: actions/upload-artifact@v4
+        with:
+          name: GeometryPanel-Android-debug-CI-only
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+      - name: Build upgradeable release when signing secrets are configured
+        env:
+          GEOMETRY_KEYSTORE_BASE64: ${{ secrets.GEOMETRY_KEYSTORE_BASE64 }}
+          GEOMETRY_STORE_PASSWORD: ${{ secrets.GEOMETRY_STORE_PASSWORD }}
+          GEOMETRY_KEY_PASSWORD: ${{ secrets.GEOMETRY_KEY_PASSWORD }}
+          GEOMETRY_KEY_ALIAS: ${{ secrets.GEOMETRY_KEY_ALIAS }}
+        working-directory: android
+        run: |
+          if [ -z "$GEOMETRY_KEYSTORE_BASE64" ]; then
+            echo 'No release signing key configured. The debug artifact is for CI checks only; use the signed GitHub Release APK for device acceptance.'
+            exit 0
+          fi
+          export GEOMETRY_KEYSTORE="$RUNNER_TEMP/geometry-panel.jks"
+          trap 'rm -f "$GEOMETRY_KEYSTORE"' EXIT
+          printf '%s' "$GEOMETRY_KEYSTORE_BASE64" | base64 --decode > "$GEOMETRY_KEYSTORE"
+          bash ./gradlew :app:assembleRelease --console=plain
+          "$ANDROID_HOME/build-tools/36.0.0/apksigner" verify --verbose app/build/outputs/apk/release/app-release.apk
+      - uses: actions/upload-artifact@v4
+        if: hashFiles('android/app/build/outputs/apk/release/app-release.apk') != ''
+        with:
+          name: GeometryPanel-Android-signed-release
+          path: android/app/build/outputs/apk/release/app-release.apk
+          retention-days: 30

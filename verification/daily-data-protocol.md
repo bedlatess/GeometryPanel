@@ -54,7 +54,7 @@
 
 旧版首页只透传 `coordinateSystem`，地图没有读取这个值。`inline-18.decoded.js` 中 `_0x2e87b8`（字符偏移约 178495）把收到的位置直接当作 GCJ-02；仅当地图图源标记为 WGS84 时调用 `MODEL.gcj02ToWgs84`。轨迹地图约 182800 也使用同一输入契约。转换函数在 `inline-12` 约 2078–2174 行，导出在约 4501 行。`inline-28` 约 139292 则把浏览器地理定位的 WGS84 转成 GCJ-02 后参与旧地图。这些是旧客户端对输入坐标的明确约定，尚未经过本轮服务端实测。
 
-为兼容原项目，缺失、`null` 或空白 `coordinateSystem` 使用 `gcj02`，并标注 `coordinateSystemSource: 'legacy-default'`，不能声称是服务器明确报告。明确 `GCJ-02/gcj02` 或 `WGS-84/wgs84` 归一化，标注 `reported`；其他显式值（包括 BD-09）保留 `unknown`，调用方应禁用需要已知坐标系的导航。模型不做坐标转换，导航适配由调用方处理。
+0.3.1 为兼容原项目，这个车辆接口缺失、数字或无法识别的 `coordinateSystem` 按旧地图的 GCJ-02 输入契约处理，标注 `coordinateSystemSource: 'legacy-default'`，不能声称识别了厂商数字枚举或服务器明确报告。明确的 GCJ-02/高德与 WGS84/GPS 别名归一化，标注 `reported`；可识别但不兼容的 BD-09、EPSG:3857 保留 `unknown`。0.3.0 把全部陌生标签阻止显示地图的问题、地址来源及剩余边界见 [地图修复](map-fix.md)。模型不做坐标转换，导航适配由调用方处理。
 
 ## 时间与过期提示
 

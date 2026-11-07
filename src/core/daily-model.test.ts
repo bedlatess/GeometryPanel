@@ -152,16 +152,26 @@ test('location uses nested raw coordinates, report time and address priority', (
   assert.equal(dailySnapshot({ location: { longitude: 0, latitude: 31.2, coordinateSystem: 'WGS_84' } }, null, now).location?.coordinateSystem, 'wgs84');
 });
 
-test('missing CRS follows the recovered GCJ-02 contract; an explicit unsupported CRS stays unknown', () => {
-  for (const value of [undefined, null, '', ' ']) {
+test('opaque vehicle CRS tags follow the recovered GCJ-02 contract, without guessing vendor enum mappings', () => {
+  for (const value of [undefined, null, '', ' ', 0, 1, 2, '0', '1', '2', 'unknown', 'unsupported', '-', true, {}]) {
     const location = dailySnapshot({ location: { longitude: 121, latitude: 31, coordinateSystem: value } }, null, now).location;
     assert.equal(location?.coordinateSystem, 'gcj02');
     assert.equal(location?.coordinateSystemSource, 'legacy-default');
   }
-  for (const value of ['bd09', 'unsupported', '-', true, {}, 0]) {
+  for (const value of ['bd09', 'BD-09', 'BD09LL', '百度坐标', 'EPSG:3857']) {
     const location = dailySnapshot({ location: { longitude: 121, latitude: 31, coordinateSystem: value } }, null, now).location;
     assert.equal(location?.coordinateSystem, 'unknown');
     assert.equal(location?.coordinateSystemSource, 'unknown');
+  }
+  for (const value of ['GCJ-02', 'gcj02', 'gaode', 'AMap', '高德坐标']) {
+    const location = dailySnapshot({ location: { longitude: 121, latitude: 31, coordinateSystem: value } }, null, now).location;
+    assert.equal(location?.coordinateSystem, 'gcj02');
+    assert.equal(location?.coordinateSystemSource, 'reported');
+  }
+  for (const value of ['WGS-84', 'WGS_1984', 'EPSG:4326', 'GPS']) {
+    const location = dailySnapshot({ location: { longitude: 121, latitude: 31, coordinateSystem: value } }, null, now).location;
+    assert.equal(location?.coordinateSystem, 'wgs84');
+    assert.equal(location?.coordinateSystemSource, 'reported');
   }
 });
 

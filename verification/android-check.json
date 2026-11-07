@@ -1,0 +1,41 @@
+{
+  "version": "0.3.1",
+  "applicationId": "app.geometrypanel.mobile",
+  "versionCode": 3001,
+  "minSdk": 26,
+  "targetSdk": 36,
+  "mode": "fixed-https-webview",
+  "panelUrl": "https://bedlatess.github.io/GeometryPanel/",
+  "build": {
+    "jdk": 21,
+    "gradle": "8.13",
+    "androidGradlePlugin": "8.13.2",
+    "releaseAssembled": true,
+    "debugAssembled": true,
+    "urlPolicyTestsPassed": 2,
+    "syntheticNativeBackScenariosPassed": 4,
+    "releaseLintErrors": 0,
+    "releaseLintWarnings": 0,
+    "apkV2SignatureVerified": true,
+    "zipAlignmentVerified": true,
+    "certificateSha256": "aa4fc92bf7812c06b0cb4785e1493fbb534693ff1d05da60d4b6dcb4ba325440",
+    "apkSha256": "0f6f057ee86c50d9ae680478a71252f0cc60726f579a9f9dc27236bf2bc160a5"
+  },
+  "compiledManifest": {
+    "permissions": ["android.permission.INTERNET"],
+    "allowBackup": false,
+    "cleartextTraffic": false,
+    "debuggable": false,
+    "deviceTransferExcluded": true
+  },
+  "boundaries": {
+    "realDeviceVerified": false,
+    "emulatorVerified": false,
+    "runtimeWebViewMapVerified": false,
+    "runtimeOfflineVerified": false,
+    "realLoginRequestsSent": false,
+    "vehicleCommandsSent": false,
+    "nativeAccountBridge": false,
+    "signingPrivateKeyCommitted": false
+  }
+}

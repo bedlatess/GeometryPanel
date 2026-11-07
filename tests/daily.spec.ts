@@ -67,7 +67,7 @@ test('only explicit matching capability flags disable controls; horn setting doe
   expect(commands(mocks.calls)).toHaveLength(0);
 });
 
-for (const crs of ['wgs84', 'unknown']) {
+for (const crs of ['wgs84', 'bd09']) {
   test(`navigation handles explicitly reported ${crs} without assuming route coordinates`, async ({ page, mocks }) => {
     mocks.home = { location: { longitude: 116.397, latitude: 39.908, coordinateSystem: crs } };
     await open(page); await login(page); await daily(page);
@@ -76,6 +76,26 @@ for (const crs of ['wgs84', 'unknown']) {
       const link = new URL((await page.getByRole('link', { name: '在新窗口打开地图', exact: true }).getAttribute('href'))!);
       expect(link.searchParams.get('coordinate')).toBe('wgs84');
     } else expect(await page.getByRole('link', { name: '在新窗口打开地图', exact: true }).count()).toBe(0);
+  });
+}
+
+for (const crs of [0, 1, 2, 'unknown']) {
+  test(`opaque vehicle coordinate tag ${crs} does not hide the map or invent an address`, async ({ page, mocks }) => {
+    mocks.home = { location: { longitude: 116.397, latitude: 39.908, coordinateSystem: crs } };
+    await open(page); await login(page); await daily(page);
+    await expect(page.getByText('已有停车坐标，打开地图查看道路、小区和停车点。')).toBeVisible();
+    await expect(page.getByText(/位置的坐标类型未标明/)).toHaveCount(0);
+    expect(mocks.maps).toHaveLength(0);
+    const link = new URL((await page.getByRole('link', { name: '在新窗口打开地图', exact: true }).getAttribute('href'))!);
+    expect(link.searchParams.get('coordinate')).toBe('gaode');
+    await page.getByText('查看坐标信息', { exact: true }).click();
+    await expect(page.getByText('按旧版车辆接口的高德坐标约定显示。')).toBeVisible();
+    await page.getByRole('button', { name: '显示车辆地图', exact: true }).click();
+    await expect(page.frameLocator('iframe.vehicle-map').getByText('模拟地图 · 合成停车点')).toBeVisible();
+    expect(mocks.maps).toHaveLength(1);
+    expect(commands(mocks.calls)).toHaveLength(0);
+    await page.getByRole('button', { name: '关闭', exact: true }).click();
+    await expect(page.locator('iframe.vehicle-map')).toHaveCount(0);
   });
 }
 

@@ -1,6 +1,6 @@
 {
   "name": "zeeho-panel-web",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -9,7 +9,8 @@
     "preview": "vite preview --host 127.0.0.1",
     "test": "tsx --test src/api/*.test.ts src/core/*.test.ts",
     "test:browser": "playwright test",
-    "verify": "npm test && npm run build && npm run test:browser"
+    "verify": "npm test && npm run build && npm run test:browser",
+    "android:build": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1"
   },
   "dependencies": {
     "@noble/hashes": "1.8.0"
