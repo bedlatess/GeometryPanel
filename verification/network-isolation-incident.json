@@ -1,0 +1,13 @@
+{
+  "date": "2026-11-07",
+  "scope": "initial WebKit PWA run before fetch-level mocking",
+  "observedRealCaptchaResponse": true,
+  "containsRealAccount": false,
+  "realSmsOrVehicleCommandSubmitted": false,
+  "observation": "PWA captcha dimensions differed from the synthetic image; the test stopped before submitting the gesture. Other failed-flow traces contained route-fulfilled synthetic login and command entries, not actual account traffic.",
+  "fix": [
+    "Mock window.fetch before service-worker dispatch.",
+    "Keep context route as a secondary guard.",
+    "Use connect-src self CSP on the loopback-only test host."
+  ]
+}
