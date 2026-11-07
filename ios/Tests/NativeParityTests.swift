@@ -47,6 +47,18 @@ final class NativeParityTests: XCTestCase {
         let future = NativeCloud.parse(home: [:], battery: ["refreshTime":now + 300001, "chargeState":1], tires: [:], inbox: [:], vin:"SYNTHETIC", partial:false, now:now)
         XCTAssertEqual(future.sample.reportState, "future"); XCTAssertNil(future.sample.charging)
     }
+    func testReportedTimeHandlesJSONNumbersWithoutFloatStringification() throws {
+        let expected = 1700000000000.0
+        for value in [Int64(1700000000000), expected, NSNumber(value: expected), Int64(1700000000), 1700000000.0, "1700000000000", "1700000000"] as [Any] {
+            XCTAssertEqual(NativeCloud.reportedTime(value), expected)
+        }
+        let raw = try XCTUnwrap(try JSONSerialization.jsonObject(with: Data(#"{"milliseconds":1700000000000.0,"seconds":1700000000.0}"#.utf8)) as? [String:Any])
+        XCTAssertEqual(NativeCloud.reportedTime(raw["milliseconds"]), expected)
+        XCTAssertEqual(NativeCloud.reportedTime(raw["seconds"]), expected)
+        for value in [true, false, Double.nan, Double.infinity, -expected, 1700000000000.25, 10000000000000.0, 946684799999.0, "1700000000000.0", "1.7e12", NSNull()] as [Any] {
+            XCTAssertNil(NativeCloud.reportedTime(value))
+        }
+    }
     func testPNGAndStoredZIPRejectCRCAndHiddenTail() throws {
         XCTAssertNoThrow(try WallpaperArchive.png(png))
         let zip = try MeterWire.wallpaperArchive(first: png, second: png); XCTAssertNoThrow(try WallpaperArchive.validate(zip))

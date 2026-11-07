@@ -11,8 +11,14 @@ final class ReportTime {
     private ReportTime() { }
     static long parse(Object value) {
         if (!(value instanceof String) && !(value instanceof Number)) return 0;
-        String text = String.valueOf(value).trim();
         try {
+            String text;
+            if (value instanceof Number) {
+                if (!Double.isFinite(((Number)value).doubleValue())) return 0;
+                long whole = new java.math.BigDecimal(value.toString()).longValueExact();
+                if (whole < 0 || whole > 9999999999999L) return 0;
+                text = Long.toString(whole);
+            } else text = ((String)value).trim();
             if (text.matches("(?:\\d{10}|\\d{12,13})")) { long at = Long.parseLong(text) * (text.length() == 10 ? 1000L : 1L); return at >= 946684800000L ? at : 0; }
             Matcher match = DATE.matcher(text); if (!match.matches()) return 0;
             int year = Integer.parseInt(match.group(1)); if (year < 2000) return 0;

@@ -12,7 +12,7 @@
     "androidGradlePlugin": "8.13.2",
     "releaseAssembled": true,
     "debugAssembled": true,
-    "jvmUnitTestsPassed": 43,
+    "jvmUnitTestsPassed": 44,
     "jvmUnitTestsFailed": 0,
     "syntheticNativeBackScenariosPassed": 4,
     "realNativeClientSyntheticRpcScenariosPassed": 34,
@@ -25,19 +25,33 @@
     "zipAlignment16KiBVerified": true,
     "certificateSha256": "aa4fc92bf7812c06b0cb4785e1493fbb534693ff1d05da60d4b6dcb4ba325440",
     "certificateUnchanged": true,
-    "apkSha256": "19993b9b9f9e2822bfbc6733629e073878591b2c0d4e2d9b609f2a63e55c4dee",
-    "apkBytes": 5580161,
+    "apkSha256": "beecee2112b0f7f4d5a2b68f5fc4ea2fac760f0c43969d2ad496e2bac5a6f602",
+    "apkBytes": 5580149,
     "rootModulePackagedFiles": 9,
     "rootModuleShellSyntaxFilesPassed": 6,
     "rootModuleScriptsExecuted": false
   },
   "compiledManifest": {
     "permissions": [
-      "INTERNET", "ACCESS_NETWORK_STATE", "BLUETOOTH (max 30)", "BLUETOOTH_ADMIN (max 30)",
-      "BLUETOOTH_CONNECT", "BLUETOOTH_SCAN (neverForLocation)", "ACCESS_COARSE_LOCATION (max 32)", "ACCESS_FINE_LOCATION (max 32)",
-      "ACCESS_WIFI_STATE", "CHANGE_WIFI_STATE", "NEARBY_WIFI_DEVICES (neverForLocation)", "POST_NOTIFICATIONS",
-      "FOREGROUND_SERVICE", "FOREGROUND_SERVICE_CONNECTED_DEVICE", "FOREGROUND_SERVICE_MEDIA_PROJECTION",
-      "FOREGROUND_SERVICE_DATA_SYNC", "FOREGROUND_SERVICE_SYSTEM_EXEMPTED", "RECEIVE_BOOT_COMPLETED", "REQUEST_INSTALL_PACKAGES",
+      "INTERNET",
+      "ACCESS_NETWORK_STATE",
+      "BLUETOOTH (max 30)",
+      "BLUETOOTH_ADMIN (max 30)",
+      "BLUETOOTH_CONNECT",
+      "BLUETOOTH_SCAN (neverForLocation)",
+      "ACCESS_COARSE_LOCATION (max 32)",
+      "ACCESS_FINE_LOCATION (max 32)",
+      "ACCESS_WIFI_STATE",
+      "CHANGE_WIFI_STATE",
+      "NEARBY_WIFI_DEVICES (neverForLocation)",
+      "POST_NOTIFICATIONS",
+      "FOREGROUND_SERVICE",
+      "FOREGROUND_SERVICE_CONNECTED_DEVICE",
+      "FOREGROUND_SERVICE_MEDIA_PROJECTION",
+      "FOREGROUND_SERVICE_DATA_SYNC",
+      "FOREGROUND_SERVICE_SYSTEM_EXEMPTED",
+      "RECEIVE_BOOT_COMPLETED",
+      "REQUEST_INSTALL_PACKAGES",
       "app.geometrypanel.mobile.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION (dependency signature permission)"
     ],
     "allowBackup": false,
@@ -52,9 +66,16 @@
       "androidx.profileinstaller.ProfileInstallReceiver protected by android.permission.DUMP"
     ],
     "privateComponents": [
-      "MeterActivity", "GeminiOtaActivity", "NativeToolActivity", "FileProvider",
-      "ProximityService connectedDevice", "CastProjectionService mediaProjection", "BackgroundService dataSync",
-      "OfficialCaptureService systemExempted protected by BIND_VPN_SERVICE", "BackgroundJob.Boot", "androidx.startup.InitializationProvider"
+      "MeterActivity",
+      "GeminiOtaActivity",
+      "NativeToolActivity",
+      "FileProvider",
+      "ProximityService connectedDevice",
+      "CastProjectionService mediaProjection",
+      "BackgroundService dataSync",
+      "OfficialCaptureService systemExempted protected by BIND_VPN_SERVICE",
+      "BackgroundJob.Boot",
+      "androidx.startup.InitializationProvider"
     ]
   },
   "contracts": {
@@ -86,13 +107,17 @@
     "Cross-vehicle widget isolation and same-vehicle freshness selection",
     "Prerelease update selection; draft/foreign asset rejection",
     "In-use snapshot retention through refresh/clear/final release",
-    "data:false write rejection; auth_expired stops two-step action (source checked)"
+    "data:false write rejection; auth_expired stops two-step action (source checked)",
+    "refreshTime finite integer Number/Double/JSON seconds and milliseconds; fractional/nonfinite/oversize/pre-2000 values rejected; String syntax unchanged"
   ],
   "evidence": [
     "analysis/zeehowebnext-1.8.12/BLE_KEYS.md (workspace only)",
     "analysis/zeehowebnext-1.8.12/METER_CAST.md (workspace only)",
     "analysis/zeehowebnext-1.8.12/VEHICLE_API.md (workspace only)",
-    "verification/daily-data-protocol.md", "verification/parity-bridge-v2.md", "verification/tasks-protocol.md", "android/README.md"
+    "verification/daily-data-protocol.md",
+    "verification/parity-bridge-v2.md",
+    "verification/tasks-protocol.md",
+    "android/README.md"
   ],
   "boundaries": {
     "realDeviceVerified": false,

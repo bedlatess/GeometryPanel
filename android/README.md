@@ -42,7 +42,7 @@ P2P核对组主MAC、私有IPv4、真实接口及子网，绑定实际网络/源
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1
 ```
 
-当前0.5.0：**43项JVM测试、34个真实NativeClient方法/请求ID、4个返回场景通过**，release lint 0错误，debug构建通过。TLS测试只在本机loopback使用合成CA和固定文字验证ClientHello回放/SSLEngine加解密；TCP/DNS、chunked/gzip、时间质量、组件跨车隔离、预发布更新、false写响应拒绝、快照使用保护都有合成回归。
+当前0.5.0：**44项JVM测试、34个真实NativeClient方法/请求ID、4个返回场景通过**，release lint 0错误，debug构建通过。TLS测试只在本机loopback使用合成CA和固定文字验证ClientHello回放/SSLEngine加解密；TCP/DNS、chunked/gzip、时间质量（含Double/JSON整数秒与毫秒）、组件跨车隔离、预发布更新、false写响应拒绝、快照使用保护都有合成回归。
 
 24项lint警告主要为中文工具文案、组件样式/字号、依赖更新提示及BouncyCastle未使用的EST helper；该helper不用于网络客户端。VPN的systemExempted仅使用单项lint说明：系统已配置VPN符合该类型，入口和服务都检查 `VpnService.prepare()==null`，不添加无关闹钟权限。完整公开记录见 `verification/android-check.json`。
 

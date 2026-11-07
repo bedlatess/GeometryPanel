@@ -81,8 +81,15 @@ final class NativeCloud {
     }
     static func reportedTime(_ value: Any?) -> Double? {
         guard let value, value is String || value is NSNumber else { return nil }
-        if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() { return nil }
-        let text = String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines)
+        let text: String
+        if let number = value as? NSNumber {
+            guard CFGetTypeID(number) != CFBooleanGetTypeID() else { return nil }
+            let numeric = number.doubleValue
+            guard numeric.isFinite, numeric >= 0, numeric <= 9_999_999_999_999, numeric.rounded(.towardZero) == numeric else { return nil }
+            // JSON numbers and Swift Doubles may stringify with .0 or an exponent.
+            // Match the integer timestamp value, with the same digit limits as text.
+            text = String(Int64(numeric))
+        } else { text = String(describing: value).trimmingCharacters(in: .whitespacesAndNewlines) }
         if text.range(of: "^(?:[0-9]{10}|[0-9]{12,13})$", options: .regularExpression) != nil, let number = Double(text) {
             let at = number * (text.count == 10 ? 1000 : 1); return at >= 946684800000 ? at : nil
         }
