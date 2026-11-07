@@ -1,54 +1,58 @@
 # Android 安装包
 
-这是当前网页主工程的薄容器，固定打开正式 HTTPS 网址 `https://bedlatess.github.io/GeometryPanel/`。登录、车况、地图、车控和配置继续使用 `src/` 的同一套实现，网页更新后 APK 也使用同一更新流程，无需为每次网页修复重打包。`panel-android/` 仍只是早期协议验证参考。
+Android 8.0 及以上安装 GitHub Release 中的 `GeometryPanel-版本.apk`。应用固定打开 `https://bedlatess.github.io/GeometryPanel/`，网页的登录、车况、地图、车控和设置与 iPhone 网页共用。网页业务更新走现有更新流程；蓝牙、仪表、通知等原生代码变化需要更新 APK。`panel-android/` 保留作前期参考。
 
-## 用户安装
+首次打开需联网，并在 APK 中连接一次账号；浏览器与 APK 各自保存登录。使用同一签名、版本号更高的 APK 可覆盖升级，保留本机数据。不要先卸载；卸载会清除登录和原生资料。
 
-在 Android 8.0 及以上、已更新 Android System WebView/Chrome 的手机上安装 GitHub Release 中的 `GeometryPanel-版本.apk`。系统询问时允许当前浏览器安装该 APK 即可。首次打开需要联网，并在 APK 中连接一次账号；浏览器和 APK 分别保存登录，不会搬运浏览器里的账号数据。
+## 0.4.0 原生功能
 
-以后安装使用同一签名、版本号更高的 APK，可覆盖升级并保留本机登录与配置。不要为了更新先卸载；卸载会删除 APK 的本机数据。网页内容版本仍可在面板设置中查看并更新。
+用车页“蓝牙、提醒与仪表工具”会识别 APK，再按需申请系统权限。没有相应硬件或权限时显示原因，不用模拟结果替代连接。
 
-用车页内的高德地图保持在隔离的网页弹窗中；“在高德中打开”和步行路线用系统浏览器打开。APK 不申请定位、蓝牙或存储权限。路线网页可能另行询问手机定位权限。配置继续在网页里复制、粘贴导入，无原生账号接口。
+- **蓝牙**：只扫描和连接当前已验证的本人车辆；恢复旧包 BLE1 的服务、认证、登记/查询、配对和车况订阅。准备资料需新读取的车主资料，有效期五分钟；换车、退出、取消和页面离开会断开相应连接。BLE 读数标明来自旧协议静态恢复，车型含义尚待实车核对，不用于触发低电量通知。
+- **靠近提醒**：用户主动开启后在通知栏运行短时连接服务；只根据绑定车辆信号提醒，提供停止入口。资料过期或换车后停止，不执行自动开锁。
+- **低电量通知与桌面组件**：使用最近一次在本机读取的云车况。组件显示更新时间，超过三十分钟标为旧数据；长按 Android 桌面添加“几何面板车况”。没有后台云端轮询。退出或忘记资料会清除摘要并关闭提醒。
+- **仪表壁纸**：使用实际车型模板和分辨率，系统文件选择器选择两张照片或合规 ZIP；照片在本机裁切为模板尺寸，ZIP 严格检查根目录 `1.png`、`2.png`、尺寸和 CRC。确认后才连接当前仪表并发送。等待连接或发送时离开页面会取消；请求已经发出时明确提示结果未知。
+- **仪表投屏**：通过本次系统屏幕采集授权和前台通知，恢复旧包三通道 H.264 拉流协议。仅向已核对的车辆 Wi-Fi Direct 对端发送；通知栏随时停止。兼容上限 1280 × 720、30 帧、4 Mbps，没有音频和反向触控。
 
-成功联网打开并完成网页静态缓存后，离线可以重开页面；读取车况和车控需要联网。首次打开没有缓存或网页加载失败时，会显示原生重试页。Android WebView 的实际缓存、键盘、地图跳转和登录恢复仍以真实手机集中验收为准。
+原 APK 的协议依据见工作区 `analysis/zeehowebnext-1.8.12/BLE_KEYS.md`、`METER_CAST.md` 和相关 Java 静态证据。静态恢复和自动检查不等同于实车成功。BLE2/3 钥匙配对、自动解锁、OTA 及其它没有充分证据的写入没有补猜指令。
 
-## 本机构建
+## 连接与资料边界
 
-需要 Node.js 24、JDK 21、Android SDK 平台 `android-36`、构建工具 `36.0.0`。建议设置 `JAVA_HOME` 和 `ANDROID_HOME`。
+原生桥采用 AndroidX WebKit `WebViewCompat.addWebMessageListener`，仅接受正式域名的顶层主页面，且当前页面必须位于 `/GeometryPanel/`；不使用 `addJavascriptInterface`。高德 iframe 不可调用桥。桥仅开放功能白名单，检查请求 ID、大小、并发、页面生命周期和车辆归属；不提供任意 URL/TCP/文件读取接口。
 
-Windows 从网页工程根目录运行：
+车辆钥匙、登记标识和仪表配对资料经 Android Keystore AES-GCM 加密后存入不参与备份的目录。状态和日志不返回钥匙、VIN、MAC 或账号响应。系统服务使用合规前台通知；不设置开机启动，不在进程重启后自动连接。忘记本机资料不会撤销系统蓝牙配对或车端钥匙。
+
+仪表连接先核对实际 P2P 组主 MAC、私有 IPv4、组接口及子网，再创建绑定该网络/源地址的 Socket。部分手机不通过 `ConnectivityManager` 暴露 P2P 网络，此时按旧包实现核对真实接口，拒绝 VPN 和竞争网络/路由后绑定源地址；不退成默认路由。连接只允许原协议端口，对入站连接检查实际组主 IP。
+
+应用按需申请蓝牙扫描/连接、附近 Wi-Fi、通知和前台服务权限；Android 12 及更早版本的蓝牙/Wi-Fi Direct 还需要系统定位权限及相应开关。文件使用系统选择器，无通用存储权限。主页面不开放 WebView 定位、文件访问、混合内容、调试或证书绕过。禁用云备份与设备迁移备份。
+
+外部 HTTPS 链接交给系统浏览器；阻止文件、`javascript:`、`intent:` 等主页面导航。网页地图位于隔离 iframe。Android 返回键优先点击网页弹窗的关闭按钮，保留网页取消/确认语义；关闭按钮禁用时不强行绕过。
+
+## 本机构建与检查
+
+需要 Node.js 24、JDK 21、Android SDK `android-36`、build-tools `36.0.0`。Windows 在网页工程根目录运行：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-android.ps1
 ```
 
-脚本会运行两项 URL 策略测试、四个模拟弹窗返回场景、Android release lint、签名构建和 APK 签名校验。版本读取 `package.json`，例如 `0.3.1` 对应版本代码 `3001`；原生变更发布时也应递增版本。必要时可通过 `GEOMETRY_VERSION_CODE` 指定更高代码。
+脚本运行 JVM 单元测试、真实网页 NativeClient 的合成桥契约检查、模拟返回场景、release lint、签名构建和 APK 签名校验。`0.4.0` 当前为 21 项 JVM 测试、12 个真实客户端方法/请求 ID 场景、4 个返回场景；都是本地合成测试，没有发送真实短信、云账号请求、蓝牙或车辆命令。`verification/android-check.json` 记录构建、清单、签名、对齐和边界。
 
-首次本机构建自动生成 `android/.signing/`，里面包含私钥和随机密码文件，均被 Git 忽略。**应将整个目录备份到自己的私密安全位置，不能上传 GitHub 或发到聊天。** 丢失签名就无法覆盖升级现有 APK，只能卸载重装。脚本发现私钥缺失时会报错，不会静默换钥匙。
+版本读取 `package.json`，例如 `0.4.0` 对应版本代码 `4000`。原生代码变化也应递增版本；必要时通过 `GEOMETRY_VERSION_CODE` 指定更高版本代码。产物：
 
-产物是 `android/app/build/outputs/apk/release/GeometryPanel-版本.apk`；同目录 `verification.json` 记录 SHA-256 和自动检查边界，不包含账号。发布时只上传 APK 和校验摘要，不上传 `.signing/`、`local.properties` 或构建目录。
+```text
+android/app/build/outputs/apk/release/GeometryPanel-版本.apk
+android/app/build/outputs/apk/release/verification.json
+```
 
-macOS/Linux 可安装同等 SDK 后，在 `android/` 运行 `bash ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease`，签名参数通过以下环境变量提供：
+首次本机构建会生成被 Git 忽略的 `android/.signing/`。**将整个目录备份到自己的私密安全位置，不能上传 GitHub 或发送聊天。** 丢失签名将无法覆盖升级已有安装。脚本发现私钥缺失会报错，不会悄悄更换。发布仅上传 APK、摘要和公开验证记录。
 
-- `GEOMETRY_KEYSTORE`：私钥文件绝对路径。
-- `GEOMETRY_STORE_PASSWORD`、`GEOMETRY_KEY_PASSWORD`：对应密码。
-- `GEOMETRY_KEY_ALIAS`：私钥别名。
+macOS/Linux 可在同等 SDK 下进入 `android/` 运行 `bash ./gradlew :app:testReleaseUnitTest :app:lintRelease :app:assembleRelease`。签名参数使用环境变量 `GEOMETRY_KEYSTORE`、`GEOMETRY_STORE_PASSWORD`、`GEOMETRY_KEY_PASSWORD`、`GEOMETRY_KEY_ALIAS`。
 
-## GitHub 自动检查与签名
+## GitHub 自动检查
 
-`.github/workflows/android.yml` 运行同样的单元测试和 lint，并生成 `GeometryPanel-Android-debug-CI-only` 检查产物。它使用 `.debug` 包名，与正式验收包分开，不能当作稳定升级渠道。
+`.github/workflows/android.yml` 安装 npm 依赖并运行桥检查，再运行 JVM 测试、lint 和 debug 构建。SDK 初始化使用 `platform-tools`，再安装 Android 36 / build-tools 36.0.0。`GeometryPanel-Android-debug-CI-only` 使用独立 `.debug` 包名，仅供检查。
 
-SDK 初始化显式使用 `platform-tools`，再安装 Android 36 和 build-tools 36.0.0，避免 setup-android 默认尝试安装已经下架的旧 `tools` 包。
+若仓库配置同一私钥的 `GEOMETRY_KEYSTORE_BASE64` 和上述签名 secrets，CI 还生成可升级的正式签名 APK；否则正式包使用本机稳定签名构建。私钥和密码不进入仓库。
 
-如需在 CI 中生成相同签名的正式包，将本机同一私钥的 Base64 内容保存到仓库 Actions secret `GEOMETRY_KEYSTORE_BASE64`，并配置 `GEOMETRY_STORE_PASSWORD`、`GEOMETRY_KEY_PASSWORD`、`GEOMETRY_KEY_ALIAS`。流水线才会额外上传 `GeometryPanel-Android-signed-release`，不会在没有稳定私钥时冒充正式签名。当前发布 APK 可直接由助手本机构建后上传 GitHub Release。
-
-## 容器边界
-
-- 主页面只能是正式域名的 `/GeometryPanel/` 路径；外部 HTTPS 链接交给浏览器，阻止文件、`javascript:`、`intent:` 等导航。
-- 高德等 HTTPS 子页面保留在 iframe 中，不把地图加载误当作主页面跳转。
-- 不添加 `addJavascriptInterface` 或其它原生桥；账号加密存储仍由现有网页处理。
-- 不绕过跨域策略或证书错误，不缓存 API 响应，不记录地址、凭据或车辆信息。
-- 禁止云备份和设备迁移备份，不开放 WebView 调试；退出和清理登录仍由网页操作完成。
-- Android 系统返回先关闭弹窗，再退回网页历史或退出。没有后台常驻、蓝牙钥匙、OTA 或通知服务。
-
-自动检查只证明构建、策略和静态配置；没有 Android 实机或模拟器时，不把这些检查称为手机运行验收。网页现有 Chromium/WebKit 合成测试也不代表真实车辆执行。
+当前没有连接 Android 实机或模拟器；编译、签名、协议单元测试和浏览器合成检查都不能称为 Android 运行或实车验收。实际系统权限、后台时长、蓝牙广播/配对、车型读数、仪表 Wi-Fi、画面与安装升级纳入最终集中验收。

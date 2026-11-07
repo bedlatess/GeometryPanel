@@ -7,7 +7,12 @@ export const cars = [
   { vinNo: VIN_A, vehicleName: '测试极核 A', vehicleType: 'AE8', licensePlate: '' },
   { vinNo: VIN_B, vehicleName: '测试极核 B', vehicleType: 'AE6', licensePlate: '' },
 ];
-export interface Call { path: string; method: string; body: any; authorization: string }
+export interface Call { path: string; method: string; body: any; authorization: string; query?: Record<string, string> }
+export interface ExtensionMocks {
+  month: unknown; tracks: unknown; tires: unknown; alerts: unknown; capabilities: unknown; settings: Record<string, unknown>;
+  fail?: 'month' | 'tracks' | 'tires' | 'alerts' | 'settings';
+  expired?: boolean; hold?: { kind: string; wait: Promise<void> }; writeFailure?: 'network' | 'false';
+}
 type CommandStage = 'prepare' | 'normal' | 'high' | 'unlock' | 'seat';
 export interface Mocks {
   calls: Call[]; external: string[]; maps: string[]; listFailures: number; empty: boolean;
@@ -16,6 +21,7 @@ export interface Mocks {
   holdList?: Promise<void>; holdCommand?: { stage: CommandStage; wait: Promise<void> };
   vehicleRows?: unknown[];
   home?: Record<string, unknown>; battery?: Record<string, unknown>;
+  extensions?: ExtensionMocks;
 }
 export const test = base.extend<{ mocks: Mocks }>({
   mocks: [async ({ context }, use) => {
@@ -44,6 +50,36 @@ export const test = base.extend<{ mocks: Mocks }>({
         if (state.batteryFailure) return reply(null, 503, 50000);
         return reply({ bmssoc: call.path.endsWith(VIN_B) ? 45 : 82, hmiRidableMile: 91, bmsVoltage: 76.4, chargeState: 0, ...state.battery });
       }
+      // Opt-in synthetic extension responses; original tests retain their defaults.
+      const extension = state.extensions;
+      if (extension) {
+        const kind = call.path.endsWith('/myRideInfo') ? 'month' : call.path.endsWith('/ridetrack_v2') ? 'tracks'
+          : call.path.endsWith('/tire/monitoring') ? 'tires' : call.path.endsWith('/Message/list_v2') ? 'alerts'
+          : call.path.endsWith('/vehicleSet/items') || call.path.includes('/vehicleSetInfo/') ? 'settings' : '';
+        if (kind) {
+          if (extension.hold?.kind === kind) await extension.hold.wait;
+          if (extension.expired) return reply(null, 401, 401);
+          if (extension.fail === kind) return reply(null, 503, 50000);
+          if (kind === 'settings') return reply(call.path.endsWith('/items') ? extension.capabilities : extension.settings);
+          return reply(extension[kind as 'month' | 'tracks' | 'tires' | 'alerts']);
+        }
+        if (/\/vehicleSet\/(propertyOne\/one|soundSize|motoPlay\/one)$/.test(call.path)) {
+          if (extension.hold?.kind === 'write') await extension.hold.wait;
+          if (extension.writeFailure === 'network') return { abort: true };
+          if (extension.writeFailure === 'false') return reply(false);
+          if (call.body.commond === '55') extension.settings.precisionEndurance = Number(call.body.commondParam);
+          if (call.path.endsWith('/soundSize')) extension.settings.soundEffectSetting = { soundSize: call.body.size };
+          if (call.path.endsWith('/motoPlay/one')) extension.settings.motoPlay = call.body.motoPlay;
+          return reply(null);
+        }
+        if (call.path.endsWith('/inductiveUnlock/airLock/setting')) {
+          if (extension.hold?.kind === 'write') await extension.hold.wait;
+          if (extension.writeFailure === 'network') return { abort: true };
+          if (extension.writeFailure === 'false') return reply(false);
+          extension.settings.inductiveUnlocking2 = call.body.openStatus;
+          return reply(null);
+        }
+      }
       const stage: CommandStage | null = call.path.endsWith('/dbpoint/send') ? 'prepare'
         : call.path.includes('/vehicleInfo/control/') ? 'normal' : call.path.endsWith('/vehicleInfo/controlV2') ? 'high'
         : call.path.endsWith('/vehicleSet/network/unlock') ? 'unlock' : call.path.endsWith('/vehicleSet/propertyTwo/one') ? 'seat' : null;
@@ -71,7 +107,7 @@ export const test = base.extend<{ mocks: Mocks }>({
           const abort = () => reject(new DOMException('Cancelled', 'AbortError'));
           request.signal.addEventListener('abort', abort, { once: true });
           if (request.signal.aborted) { abort(); return; }
-          (window as any).__mockUpstream({ path: url.pathname, method: request.method, body: body ? JSON.parse(body) : null, authorization: request.headers.get('authorization') ?? '' }).then((result: any) => {
+          (window as any).__mockUpstream({ path: url.pathname, query: Object.fromEntries(url.searchParams), method: request.method, body: body ? JSON.parse(body) : null, authorization: request.headers.get('authorization') ?? '' }).then((result: any) => {
             request.signal.removeEventListener('abort', abort);
             if (request.signal.aborted) { abort(); return; }
             if (result.abort) { reject(new TypeError('Synthetic network failure')); return; }

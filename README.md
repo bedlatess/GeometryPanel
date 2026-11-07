@@ -4,6 +4,8 @@ iPhone 验收网址：[打开几何面板](https://bedlatess.github.io/GeometryP
 
 当前顺序：iPhone Safari / 添加到主屏幕 → Android APK → iOS IPA。界面和业务以此工程为主；后续原生壳只补系统能力，避免维护三套界面。
 
+0.4.0 扩展“用车”页：骑行记录、历史轨迹、胎压、车辆告警及按车型返回能力的车辆设置。Android 和 iOS 原生工程加入蓝牙认证/2.0 登记/车况读取、用户主动开启的连接提醒、本地低电量提醒、桌面摘要组件和仪表壁纸/投屏。云接口、原生协议、模拟器和真实车辆验收分开记录；旧版未验证的自动解锁和 BLE2/3 配对没有伪装成已支持。整体 UI 仍后置。
+
 0.3.1 修复有效位置被数字/厂商坐标标签阻挡的问题，按旧版车辆地图约定兼容显示。接口给出的文字地址直接显示；没有文字时可在高德地图中查看道路、小区和停车点，经纬度收进“查看坐标信息”。这没有接入独立的坐标转地址服务，不能承诺显示与官方 App 完全相同的一行地址。依据及限制见 [地图修复](verification/map-fix.md)。
 
 0.3.0 修复续航来源优先级：按旧协议只从车辆主页读取剩余续航，电池接口同名占位值不再覆盖；异常数组不再转换成 0，主页真正上报 0 时仍保留。位置新增面板内直接打开的高德地图，“带我去找车”说明为走到停车处的路线。本批同时完成 iPhone 使用与常用配置功能，整体视觉设计留到全部功能验收后。
@@ -16,13 +18,15 @@ iPhone 验收网址：[打开几何面板](https://bedlatess.github.io/GeometryP
 |---|---|
 | `src/api/` | 极核接口、签名、登录、车辆命令 |
 | `src/core/` | 车辆及充电模型、坐标导航、本地登录存储、无账号信息的命令摘要 |
-| `src/ui/` | 日常用车页面与手动滑块验证 |
+| `src/ui/` | 日常用车、骑行设置、系统能力面板与手动滑块验证 |
 | `src/main.ts`、`src/styles.css` | 面板、外观、设置和页面编排 |
 | `public/` | 主屏幕图标和安装信息 |
 | `scripts/` | 构建后的离线页面生成 |
 | `tests/` | 完整模拟登录、异常、离线与更新的浏览器检查 |
 | `.github/workflows/` | 检查通过后部署 GitHub Pages |
 | `verification/` | 开发验证记录与演示截图 |
+| `android/` | Android 原生能力、容器、签名构建与组件 |
+| `ios/` | iOS 原生能力、XcodeGen 工程、测试和 unsigned IPA 打包 |
 
 ## 开发
 
@@ -65,6 +69,6 @@ WebCrypto AES-GCM 与非导出的 CryptoKey 以一个原子记录存入本机 In
 
 ## 原生阶段
 
-Android 容器在 `android/`，打开固定的正式 HTTPS 网页，共用全部现有业务与离线缓存。网页修复通常不需要重打 APK；首次运行需要联网。登录仍由网页在设备内加密保存，容器不读取账号、没有车辆 JS 桥。外部地图在系统浏览器打开；网页和 APK 各自保存登录。构建、签名升级与下载说明见 [Android 说明](android/README.md)，Windows 可运行 `npm run android:build`。
+Android 工程在 `android/`，iOS 工程在 `ios/`，固定打开正式 HTTPS 网页，共用业务与离线缓存。网页修复通常不需要重打包；原生能力变化需要更新安装包。登录仍由网页在设备内加密保存；白名单原生桥只向系统能力提供必要材料，不传账号 token。来源、账号/车辆作用域、取消与协议边界见 [原生桥说明](verification/native-contract.md)。
 
-之前的 `panel-android/` 协议验证工程保留在本地工作区，暂停扩展。后续再处理 iOS IPA 的签名、安装渠道及必要的原生功能。IPA 需要 macOS/Xcode 或相应构建服务，不能直接从网页生成一个可在任意 iPhone 安装的未签名包。
+构建与维护见 [Android 说明](android/README.md) 和 [iOS 说明](ios/README.md)。Windows 可运行 `npm run android:build`；iOS 在 GitHub macOS Actions 实际编译和测试。常规 IPA 和可选组件版 IPA 均不签名，由使用者自签；组件版需要相应 App Groups 权限。不签名继续使用 Safari 添加到主屏幕。之前的 `panel-android/` 保留本地参考，暂停扩展。

@@ -1,10 +1,10 @@
 {
-  "version": "0.3.1",
+  "version": "0.4.0",
   "applicationId": "app.geometrypanel.mobile",
-  "versionCode": 3001,
+  "versionCode": 4000,
   "minSdk": 26,
   "targetSdk": 36,
-  "mode": "fixed-https-webview",
+  "mode": "fixed-https-webview-with-scoped-native-v1",
   "panelUrl": "https://bedlatess.github.io/GeometryPanel/",
   "build": {
     "jdk": 21,
@@ -12,30 +12,85 @@
     "androidGradlePlugin": "8.13.2",
     "releaseAssembled": true,
     "debugAssembled": true,
+    "jvmUnitTestsPassed": 21,
+    "jvmUnitTestsFailed": 0,
     "urlPolicyTestsPassed": 2,
     "syntheticNativeBackScenariosPassed": 4,
+    "realNativeClientSyntheticRpcScenariosPassed": 12,
     "releaseLintErrors": 0,
-    "releaseLintWarnings": 0,
+    "releaseLintWarnings": 2,
+    "lintWarningScope": "Pinned AndroidX WebKit and test-only org.json have newer versions available",
     "apkV2SignatureVerified": true,
-    "zipAlignmentVerified": true,
+    "zipAlignment16KiBVerified": true,
     "certificateSha256": "aa4fc92bf7812c06b0cb4785e1493fbb534693ff1d05da60d4b6dcb4ba325440",
-    "apkSha256": "0f6f057ee86c50d9ae680478a71252f0cc60726f579a9f9dc27236bf2bc160a5"
+    "apkSha256": "c27fbe0ee2d4fd123264d119d530a5b1599c49ba55399aa5f1ecf0a6701b0478"
   },
   "compiledManifest": {
-    "permissions": ["android.permission.INTERNET"],
+    "permissions": [
+      "INTERNET",
+      "ACCESS_NETWORK_STATE",
+      "BLUETOOTH (max 30)",
+      "BLUETOOTH_ADMIN (max 30)",
+      "BLUETOOTH_CONNECT",
+      "BLUETOOTH_SCAN (neverForLocation)",
+      "ACCESS_COARSE_LOCATION (max 32)",
+      "ACCESS_FINE_LOCATION (max 32)",
+      "ACCESS_WIFI_STATE",
+      "CHANGE_WIFI_STATE",
+      "NEARBY_WIFI_DEVICES (neverForLocation)",
+      "POST_NOTIFICATIONS",
+      "FOREGROUND_SERVICE",
+      "FOREGROUND_SERVICE_CONNECTED_DEVICE",
+      "FOREGROUND_SERVICE_MEDIA_PROJECTION"
+    ],
     "allowBackup": false,
     "cleartextTraffic": false,
     "debuggable": false,
-    "deviceTransferExcluded": true
+    "deviceTransferExcluded": true,
+    "exportedComponents": [
+      "MainActivity launcher",
+      "PanelWidget system widget receiver"
+    ],
+    "privateComponents": [
+      "MeterActivity",
+      "ProximityService connectedDevice",
+      "CastProjectionService mediaProjection"
+    ]
   },
+  "contracts": {
+    "bridge": "WebViewCompat.addWebMessageListener: exact HTTPS origin, main frame, current panel path, whitelist, bounded requests",
+    "storage": "Android Keystore AES-GCM in noBackup directory; no automatic connection after restart",
+    "ble": "Recovered BLE1 frame/protobuf/AES challenge, auth, identity registration ACK/bond/query and streams",
+    "proximity": "Explicit foreground signal reminder only; five-minute owner-material deadline; no automatic unlocking",
+    "notification": "Fresh local cloud snapshot only; suppress statically mapped unverified BLE values",
+    "widget": "Local SOC/range/voltage/time snapshot, stale marker after 30 minutes",
+    "wallpaper": "Actual selected template, two locally prepared PNGs or verified ZIP; matched P2P peer, route-bound socket, strict metadata/end/final ACK",
+    "cast": "System MediaProjection consent and foreground stop; verified P2P peer; 3-channel pull H.264; no audio/touch",
+    "p2pFallback": "When no ConnectivityManager Network exists: verified group interface/private subnet, reject VPN/competing routes/interfaces, Socket.bind source and verify actual source/peer",
+    "cancellation": "Page lifecycle, vehicle generation, background wallpaper connection/transfer and explicit stop cancel native work"
+  },
+  "evidence": [
+    "analysis/zeehowebnext-1.8.12/BLE_KEYS.md (workspace-only)",
+    "analysis/zeehowebnext-1.8.12/METER_CAST.md (workspace-only)",
+    "analysis/zeehowebnext-1.8.12/jadx/sources/defpackage/h1.java (P2P source binding; workspace-only)",
+    "verification/native-contract.md",
+    "android/README.md"
+  ],
   "boundaries": {
     "realDeviceVerified": false,
     "emulatorVerified": false,
+    "realBleVerified": false,
+    "realWifiDirectVerified": false,
     "runtimeWebViewMapVerified": false,
     "runtimeOfflineVerified": false,
     "realLoginRequestsSent": false,
     "vehicleCommandsSent": false,
-    "nativeAccountBridge": false,
-    "signingPrivateKeyCommitted": false
+    "realScreenCaptured": false,
+    "sourceIsStaticRecovery": true,
+    "automaticUnlockImplemented": false,
+    "ble2OrBle3PairingImplemented": false,
+    "otaImplemented": false,
+    "signingPrivateKeyCommitted": false,
+    "noPrivateKeyInspectedOrReplaced": true
   }
 }

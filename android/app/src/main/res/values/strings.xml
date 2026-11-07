@@ -1,0 +1,7 @@
+<resources>
+    <string name="widget_description">显示本机最近一次读取的电量、续航和电压；点击打开面板</string>
+    <string name="widget_title">几何面板</string>
+    <string name="widget_empty">—</string>
+    <string name="widget_empty_details">续航 — · 电压 —</string>
+    <string name="widget_open_hint">打开面板读取车况</string>
+</resources>

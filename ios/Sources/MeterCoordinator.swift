@@ -9,38 +9,45 @@ import ImageIO
     private var socket: MeterSocket?
     private var task: Task<Void, Never>?
     private var generation = 0
+    private var activeMode: String?
     private var stopButton: UIButton?
     private(set) var state = "idle"
     var status: [String: Any] { ["state": state, "cast": cast.state, "transport": "manual_vehicle_wifi", "addressVerifiedByVIN": false, "audio": false, "remoteControl": false] }
     init(host: UIViewController) { self.host = host; cast.changed = { [weak self] text in self?.changed(text) } }
-    func open(mode: String, params: [String: Any]) throws {
+    func open(mode: String, params: [String: Any], validate: @escaping () throws -> Void) throws {
         guard let host, host.presentedViewController == nil else { throw PanelError.unavailable("请先关闭当前系统窗口。") }
-        let panel = MeterViewController(mode: mode, params: params, coordinator: self); controller = panel
+        let panel = MeterViewController(mode: mode, params: params, coordinator: self, validate: validate); controller = panel
         let navigation = UINavigationController(rootViewController: panel); navigation.modalPresentationStyle = .pageSheet
         host.present(navigation, animated: true)
     }
     func stop() {
+        let resultUnknown = state == "transferring"
         generation += 1; task?.cancel(); task = nil; socket?.close(); socket = nil; cast.stop(); state = "idle"
+        activeMode = nil; if resultUnknown { state = "cancelled_result_unknown" }
         stopButton?.removeFromSuperview(); stopButton = nil
         controller?.navigationController?.dismiss(animated: true); controller = nil
     }
-    func beginWallpaper(first: Data, second: Data, params: [String: Any]) throws {
-        guard task == nil, let number = params["wallpaperNum"] as? String, !number.isEmpty, number.utf8.count <= 4096,
+    func beginWallpaper(first: Data, second: Data, params: [String: Any], validate: @escaping () throws -> Void) throws {
+        try validate()
+        guard task == nil, cast.state == "idle" || cast.state == "failed" else { throw PanelError.coded("busy", "请先停止当前投屏或仪表操作。") }
+        guard let number = params["wallpaperNum"] as? String, !number.isEmpty, number.utf8.count <= 4096,
               let display = params["displayWallpaperSet"] as? String, !display.isEmpty, display.utf8.count <= 4096 else { throw PanelError.invalid("缺少所选壁纸模板的编号或显示配置，请返回网页重新读取模板。") }
         let archive = try MeterWire.wallpaperArchive(first: first, second: second), epoch = generation
-        state = "preparing"; changed("正在连接车辆热点的 192.168.0.1:10950…")
+        activeMode = "wallpaper"; state = "preparing"; changed("正在连接车辆热点的 192.168.0.1:10950…")
         task = Task { [weak self] in
             guard let self else { return }; var began = false
             let socket = MeterSocket(port: 10950); self.socket = socket
-            defer { socket.close(); self.socket = nil; self.task = nil }
+            let expiry = Task { do { try await Task.sleep(nanoseconds: 120_000_000_000); socket.close() } catch { } }
+            defer { expiry.cancel(); socket.close(); if self.generation == epoch { self.socket = nil; self.task = nil } }
             do {
-                try await socket.open(); guard self.generation == epoch else { throw PanelError.cancelled }
+                try await socket.open(); try validate(); guard self.generation == epoch else { throw PanelError.cancelled }
                 let metadata = try MeterWire.json(["fileName": "GeometryPanel-wallpaper.zip", "fileSize": archive.count, "md5": MeterWire.md5(archive), "wallpaperNum": number, "displayWallpaperSet": display])
                 began = true; self.state = "transferring"; self.controller?.isModalInPresentation = true
                 try await socket.send(MeterWire.wallpaper(0x10000043, flag: 1, body: metadata)); try await MeterWire.wallpaperAck(socket, expected: 0x80000043)
                 let deadline = Date().addingTimeInterval(120)
                 for offset in stride(from: 0, to: archive.count, by: 65536) {
                     guard self.generation == epoch, !Task.isCancelled else { throw PanelError.cancelled }
+                    try validate()
                     guard Date() < deadline else { throw PanelError.timeout }
                     try await socket.send(MeterWire.wallpaper(0x10000044, flag: 0, body: archive.subdata(in: offset..<min(archive.count, offset + 65536))))
                     self.changed("正在传输壁纸 \(min(100, (offset + 65536) * 100 / archive.count))%…")
@@ -55,20 +62,22 @@ import ImageIO
             self.controller?.isModalInPresentation = false
         }
     }
-    func beginCast() throws {
+    func beginCast(validate: @escaping () throws -> Void) throws {
+        try validate()
         guard task == nil else { throw PanelError.invalid("已有仪表操作在进行。") }
+        activeMode = "cast"
         let epoch = generation
         task = Task { [weak self] in
-            guard let self else { return }; defer { self.task = nil }
+            guard let self else { return }; defer { if self.generation == epoch { self.task = nil } }
             do {
-                try await self.cast.start(); guard self.generation == epoch else { self.cast.stop(); return }
+                try await self.cast.start(validate: validate); guard self.generation == epoch else { return }
                 self.controller?.navigationController?.dismiss(animated: true)
                 self.installStopButton()
             } catch { if self.generation == epoch { self.changed((error as? PanelError)?.errorDescription ?? "投屏启动未完成。") } }
         }
     }
     func stopCast() { cast.stop(); stopButton?.removeFromSuperview(); stopButton = nil; state = "idle"; controller?.setStatus("投屏已停止。") }
-    private func changed(_ text: String) { state = cast.state == "casting" ? "casting" : state; controller?.setStatus(text) }
+    private func changed(_ text: String) { if activeMode == "cast" { state = cast.state }; controller?.setStatus(text) }
     private func installStopButton() {
         guard let host else { return }; stopButton?.removeFromSuperview()
         let button = UIButton(type: .system); button.setTitle("停止仪表投屏", for: .normal); button.setTitleColor(.white, for: .normal); button.backgroundColor = .systemRed; button.layer.cornerRadius = 12
@@ -79,11 +88,12 @@ import ImageIO
 
 @MainActor final class MeterViewController: UIViewController, UIDocumentPickerDelegate {
     private let mode: String, params: [String: Any]
+    private let validate: () throws -> Void
     private unowned let coordinator: MeterCoordinator
     private let output = UILabel()
     private var first: Data?, second: Data?, choosing = 1
     private var firstButton: UIButton!, secondButton: UIButton!, startButton: UIButton!
-    init(mode: String, params: [String: Any], coordinator: MeterCoordinator) { self.mode = mode; self.params = params; self.coordinator = coordinator; super.init(nibName: nil, bundle: nil) }
+    init(mode: String, params: [String: Any], coordinator: MeterCoordinator, validate: @escaping () throws -> Void) { self.mode = mode; self.params = params; self.coordinator = coordinator; self.validate = validate; super.init(nibName: nil, bundle: nil) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func viewDidLoad() {
         super.viewDidLoad(); title = mode == "wallpaper" ? "仪表壁纸" : "仪表投屏"; view.backgroundColor = .systemBackground
@@ -150,7 +160,7 @@ import ImageIO
         let alert = UIAlertController(title: "确认当前车辆热点", message: mode == "wallpaper" ? "确认当前 Wi-Fi 是自己的仪表热点，车辆停稳且供电正常。推送后请查看仪表；中断时结果可能未知。" : "确认当前 Wi-Fi 是自己的仪表热点。系统授权后只采集本应用画面，可随时点击红色按钮停止。", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "取消", style: .cancel)); alert.addAction(UIAlertAction(title: "确认", style: .default) { [weak self] _ in
             guard let self else { return }
-            do { if self.mode == "wallpaper", let first = self.first, let second = self.second { try self.coordinator.beginWallpaper(first: first, second: second, params: self.params) } else { try self.coordinator.beginCast() } }
+            do { try self.validate(); if self.mode == "wallpaper", let first = self.first, let second = self.second { try self.coordinator.beginWallpaper(first: first, second: second, params: self.params, validate: self.validate) } else { try self.coordinator.beginCast(validate: self.validate) } }
             catch { self.output.text = (error as? PanelError)?.errorDescription ?? "仪表操作未完成。" }
         }); present(alert, animated: true)
     }

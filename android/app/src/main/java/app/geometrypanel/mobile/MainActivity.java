@@ -50,6 +50,27 @@ public final class MainActivity extends Activity {
     private LinearLayout errorPanel;
     private ProgressBar progress;
     private boolean loadFailed;
+    private NativeBridge nativeBridge;
+    private java.util.function.Consumer<Boolean> permissionReply;
+    private int permissionRequest, permissionCounter = 701;
+
+    void nativePermission(String[] permissions, java.util.function.Consumer<Boolean> reply) {
+        if (permissionRequest != 0) { reply.accept(false); return; }
+        java.util.ArrayList<String> missing = new java.util.ArrayList<>();
+        for (String permission : permissions) if (checkSelfPermission(permission) != android.content.pm.PackageManager.PERMISSION_GRANTED) missing.add(permission);
+        if (missing.isEmpty()) { reply.accept(true); return; }
+        permissionReply = reply; permissionRequest = permissionCounter++; requestPermissions(missing.toArray(new String[0]), permissionRequest);
+    }
+    void cancelNativePermission() { permissionReply = null; }
+    @Override public void onRequestPermissionsResult(int code, String[] permissions, int[] grants) {
+        super.onRequestPermissionsResult(code, permissions, grants);
+        if (code != permissionRequest) return;
+        permissionRequest = 0;
+        java.util.function.Consumer<Boolean> reply = permissionReply; permissionReply = null;
+        if (reply == null) return;
+        boolean allowed = grants.length > 0; for (int value : grants) allowed &= value == android.content.pm.PackageManager.PERMISSION_GRANTED;
+        reply.accept(allowed);
+    }
 
     @Override public void onCreate(Bundle state) {
         super.onCreate(state);
@@ -99,6 +120,7 @@ public final class MainActivity extends Activity {
     @SuppressLint("SetJavaScriptEnabled")
     private void createPanel() {
         panel = new WebView(this);
+        nativeBridge = new NativeBridge(this, panel);
         root.addView(panel, 0, new FrameLayout.LayoutParams(-1, -1));
         WebSettings settings = panel.getSettings();
         // The panel needs JS and localStorage. Native file/content access stays off.
@@ -123,6 +145,7 @@ public final class MainActivity extends Activity {
             }
 
             @Override public void onPageStarted(WebView view, String url, android.graphics.Bitmap favicon) {
+                if (nativeBridge != null) nativeBridge.navigation();
                 if (!NavigationPolicy.isPanel(url)) { view.stopLoading(); return; }
                 loadFailed = false;
                 if (progress != null) progress.setVisibility(View.VISIBLE);
@@ -150,6 +173,7 @@ public final class MainActivity extends Activity {
             }
 
             @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
+                if (nativeBridge != null) nativeBridge.close();
                 root.removeView(view);
                 view.destroy();
                 panel = null;
@@ -242,7 +266,13 @@ public final class MainActivity extends Activity {
 
     @Override protected void onResume() { super.onResume(); if (panel != null) panel.onResume(); }
 
+    @Override protected void onStop() {
+        if (!ProximityService.running) NativeEngine.get(this).ble.disconnect("page_stopped");
+        super.onStop();
+    }
+
     @Override protected void onDestroy() {
+        if (nativeBridge != null) nativeBridge.close();
         if (panel != null) {
             root.removeView(panel);
             panel.stopLoading();

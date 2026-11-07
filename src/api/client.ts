@@ -26,6 +26,7 @@ export function messageFor(error: unknown): string {
 type Options = {
   method?: 'GET' | 'POST' | 'PUT'; token?: string; body?: unknown;
   clientAuth?: boolean; appLike?: boolean; signal?: AbortSignal;
+  query?: Record<string, string>;
 };
 
 export class CloudClient {
@@ -33,8 +34,15 @@ export class CloudClient {
 
   async request(path: string, options: Options = {}): Promise<unknown> {
     if (!/^\/v1\.0\/[A-Za-z0-9/_-]+$/.test(path)) throw new ApiError('format');
+    const query = options.query ?? {};
+    if (!query || typeof query !== 'object' || Array.isArray(query) || Object.keys(query).length > 30
+      || Object.entries(query).some(([key, value]) => !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key)
+        || typeof value !== 'string' || value.length > 256 || !/^[A-Za-z0-9_.:-]*$/.test(value))) throw new ApiError('format');
     const body = options.body === undefined ? '' : JSON.stringify(options.body);
-    const signed = sign(body);
+    // Legacy query signing uses sorted, nonempty raw k=v pairs. These recovered
+    // endpoints use bounded ASCII values without query delimiters, so wire and
+    // signed text agree.
+    const signed = sign(body, query);
     const headers: Record<string, string> = {
       'Content-Type': 'application/json;charset=UTF-8', 'Accept-Language': 'zh-CN',
       interfaceversion: '2', 'cfmoto-x-param': signed.parameters,
@@ -56,7 +64,7 @@ export class CloudClient {
     if (options.signal?.aborted) cancel();
     const timeout = setTimeout(cancel, 20000);
     try {
-      const response = await this.fetcher(`https://tapi.zeehoev.com${path}`, {
+      const response = await this.fetcher(`https://tapi.zeehoev.com${path}${signed.canonical ? `?${signed.canonical}` : ''}`, {
         method: options.method ?? 'GET', headers, body: body || undefined,
         signal: controller.signal, credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer',
       });

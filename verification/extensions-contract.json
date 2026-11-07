@@ -1,0 +1,282 @@
+{
+  "evidence": {
+    "source": "inline-12.decoded.js",
+    "sha256": "d56c1e40a3279a26dfa2f6a32f53691f9e7bf840a2dc673b57ff241ef0846214",
+    "method": "Inert TypeScript AST literal parsing; recovered code was not executed"
+  },
+  "settings": [
+    {
+      "key": "precisionEndurance",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "55",
+      "version": "",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "motoPlay",
+      "kind": "field",
+      "endpoint": "set_motoPlay",
+      "command": null,
+      "version": null,
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "extendedRange",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "72",
+      "version": "",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "kineticEnergyRecovery",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "62",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
+    {
+      "key": "cruiseControlHold",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "64",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "barkePower",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "57",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "etcsTractionControl",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "59",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "radarBsd",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "81",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1",
+        "2"
+      ]
+    },
+    {
+      "key": "automaticParking",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "51",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "passwordUnlocking",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "74",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "originNfc",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "90",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "inducedVibration",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "61",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1",
+        "2",
+        "3"
+      ]
+    },
+    {
+      "key": "emergencyBrakeFlash",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "107",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "automaticShutdown",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "32",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "automaticShutdownSwitch",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "103",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "automaticShutdownTimeout",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "108",
+      "version": "v2",
+      "choices": [
+        "5",
+        "10",
+        "20",
+        "30",
+        "60"
+      ]
+    },
+    {
+      "key": "edgeSupportSensing",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "73",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "comeHomeWithYou",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "56",
+      "version": "v2",
+      "choices": [
+        "0",
+        "1"
+      ]
+    },
+    {
+      "key": "comeHomeWithYouTime",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "58",
+      "version": "v2",
+      "choices": [
+        "3",
+        "10",
+        "30",
+        "60",
+        "120",
+        "180"
+      ]
+    },
+    {
+      "key": "mileageUnit",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "2",
+      "version": "v2",
+      "choices": [
+        "1",
+        "2"
+      ]
+    },
+    {
+      "key": "temperatureUnit",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "3",
+      "version": "v2",
+      "choices": [
+        "1",
+        "2"
+      ]
+    },
+    {
+      "key": "timeFormat",
+      "kind": "commond",
+      "endpoint": "set_property",
+      "command": "5",
+      "version": "v2",
+      "choices": [
+        "1",
+        "2"
+      ]
+    },
+    {
+      "key": "soundEffectSetting.soundSize",
+      "kind": "soundSize",
+      "endpoint": "set_sound_size",
+      "command": null,
+      "version": null,
+      "choices": [
+        "0",
+        "10",
+        "20",
+        "30",
+        "40",
+        "50",
+        "60",
+        "70",
+        "80",
+        "90",
+        "100"
+      ]
+    }
+  ]
+}

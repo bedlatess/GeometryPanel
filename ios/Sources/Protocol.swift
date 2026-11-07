@@ -2,9 +2,11 @@ import Foundation
 
 enum PanelError: Error, LocalizedError {
     case invalid(String), unavailable(String), cancelled, timeout, disconnected
+    case coded(String, String)
     var errorDescription: String? {
         switch self {
         case .invalid(let text), .unavailable(let text): return text
+        case .coded(_, let text): return text
         case .cancelled: return "已取消本轮操作。"
         case .timeout: return "连接或回复超时；车辆执行结果需要观察确认。"
         case .disconnected: return "连接已断开；请重新连接后再试。"
@@ -12,6 +14,7 @@ enum PanelError: Error, LocalizedError {
     }
     var code: String {
         switch self {
+        case .coded(let code, _): return code
         case .invalid: return "invalid"
         case .unavailable: return "unsupported"
         case .cancelled: return "cancelled"
@@ -134,7 +137,7 @@ struct VehicleBinding: Codable {
               params["ownerId"] as? String == uid, String(describing: params["bindingUserId"] ?? "") == uid,
               String(describing: params["sharedFlag"] ?? "") == "0",
               let digest = params["credentialDigest"] as? String, digest.count == 64, Data(hex: digest) != nil,
-              let fetched = params["fetchedAt"] as? Double, fetched <= now + 5000, now - fetched < 300000 else { throw PanelError.invalid("请先刷新当前车主账号的车辆资料，再操作。") }
+              let fetched = params["fetchedAt"] as? Double, fetched <= now + 5000, now - fetched < 300000 else { throw PanelError.coded("owner_not_verified", "请先刷新当前车主账号的车辆资料，再操作。") }
         self.vin = vin; self.uid = uid; self.credentialDigest = digest; self.fetchedAt = fetched
         self.inductiveGeneration = String(describing: params["inductiveGeneration"] ?? "")
         self.broadcastType = String(describing: params["broadcastType"] ?? "")
@@ -142,10 +145,12 @@ struct VehicleBinding: Codable {
         self.encryptValue = info?["encryptValue"] as? String; self.key = info?["key"] as? String
         self.cloudEnabled = params["cloudEnabled"] as? Bool
     }
-    func requireFresh() throws { guard Date().timeIntervalSince1970 * 1000 - fetchedAt < 300000 else { throw PanelError.invalid("蓝牙资料已超过五分钟，请重新刷新。") } }
+    func requireFresh(now: Double = Date().timeIntervalSince1970 * 1000) throws {
+        guard now.isFinite, fetchedAt.isFinite, fetchedAt > 0, fetchedAt <= now + 5000, now - fetchedAt < 300000 else { throw PanelError.coded("stale_material", "蓝牙资料已过期或手机时间已改变，请重新刷新。") }
+    }
     func requireKey() throws -> (Data, Data) {
         try requireFresh()
-        guard let encryptValue, encryptValue.count == 128, let encrypted = Data(hex: encryptValue), encrypted.count == 64, let key, [16,24,32].contains(key.utf8.count) else { throw PanelError.unavailable("该车辆没有返回可用的蓝牙认证材料。壁纸和组件仍可单独使用。") }
+        guard let encryptValue, encryptValue.count == 128, let encrypted = Data(hex: encryptValue), encrypted.count == 64, let key, [16,24,32].contains(key.utf8.count) else { throw PanelError.coded("ble_material_missing", "该车辆没有返回可用的蓝牙认证材料。壁纸和组件仍可单独使用。") }
         guard !inductiveGeneration.hasPrefix("3") else { throw PanelError.unavailable("旧版没有恢复 3.0 钥匙协议，当前不能登记或认证 3.0。") }
         return (encrypted, Data(key.utf8))
     }

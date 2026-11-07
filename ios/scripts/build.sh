@@ -11,6 +11,10 @@ text=path.read_text()
 version=os.environ['GEOMETRY_IOS_VERSION']
 if not re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', version): raise SystemExit('Unexpected version')
 path.write_text(re.sub(r"MARKETING_VERSION: '[^']+'", "MARKETING_VERSION: '"+version+"'",text))
+major,minor,patch=map(int,version.split('.'))
+build_number=major*1000000+minor*1000+patch
+text=path.read_text()
+path.write_text(re.sub(r"CURRENT_PROJECT_VERSION: '[^']+'", "CURRENT_PROJECT_VERSION: '"+str(build_number)+"'",text))
 PY
 xcodegen generate --spec project.yml
 mkdir -p build/packages

@@ -66,6 +66,7 @@ import WebKit
         case "bindVehicle":
             let validated = try VehicleBinding(params)
             if binding?.vin != validated.vin || binding?.uid != validated.uid || binding?.credentialDigest != validated.credentialDigest { clear() }
+            else if binding?.key != validated.key || binding?.encryptValue != validated.encryptValue || binding?.cloudEnabled != validated.cloudEnabled { bluetooth.disconnect() }
             try SecureStore.write(JSONEncoder().encode(validated), name: "binding"); binding = validated; bluetooth.binding = validated
             return ["bound": true]
         case "forgetVehicle": clear(); return ["forgotten": true]
@@ -93,7 +94,12 @@ import WebKit
         case "meter.open":
             guard let binding else { throw PanelError.invalid("请先刷新当前车辆资料。") }; try binding.requireFresh()
             guard let mode = params["mode"] as? String, ["wallpaper", "cast"].contains(mode) else { throw PanelError.invalid("仪表功能无效。") }
-            try meter.open(mode: mode, params: params); return ["opened": true]
+            let generation = epoch
+            try meter.open(mode: mode, params: params, validate: { [weak self] in
+                guard let self, self.epoch == generation, self.binding?.vin == binding.vin, self.binding?.uid == binding.uid,
+                      self.binding?.credentialDigest == binding.credentialDigest else { throw PanelError.cancelled }
+                try binding.requireFresh()
+            }); return ["opened": true]
         default: throw PanelError.unavailable("没有这个原生方法。")
         }
     }

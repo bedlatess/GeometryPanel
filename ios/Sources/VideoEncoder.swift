@@ -15,17 +15,28 @@ final class VideoEncoder {
     private var width = 800, height = 480, fps = 20
     private var forceKeyframe = true
     private var recording = false
+    private var capturePending = false, captureGeneration = 0
     var failed: (() -> Void)?
     func beginCapture() async throws {
         guard RPScreenRecorder.shared().isAvailable else { throw PanelError.unavailable("当前设备无法采集本应用画面。") }
+        lock.lock()
+        guard !capturePending, !recording, !RPScreenRecorder.shared().isRecording else { lock.unlock(); throw PanelError.coded("busy", "上一次录屏授权或停止仍在处理，请稍后再试。") }
+        capturePending = true; captureGeneration += 1; let epoch = captureGeneration; lock.unlock()
         RPScreenRecorder.shared().isMicrophoneEnabled = false
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
             RPScreenRecorder.shared().startCapture(handler: { [weak self] sample, kind, error in
-                if error != nil { self?.failed?(); return }
-                guard kind == .video else { return }; self?.feed(sample)
+                guard let self else { return }
+                self.lock.lock(); let current = self.captureGeneration == epoch; self.lock.unlock(); guard current else { return }
+                if error != nil { self.failed?(); return }
+                if kind == .video { self.feed(sample) }
             }, completionHandler: { [weak self] error in
-                if error != nil { continuation.resume(throwing: PanelError.unavailable("系统没有允许录制本应用画面。")) }
-                else { self?.recording = true; continuation.resume() }
+                DispatchQueue.main.async {
+                    guard let self else { continuation.resume(throwing: PanelError.cancelled); return }
+                    self.lock.lock(); self.capturePending = false; let current = self.captureGeneration == epoch; self.recording = error == nil && current; self.lock.unlock()
+                    if !current { if error == nil { RPScreenRecorder.shared().stopCapture { _ in } }; continuation.resume(throwing: PanelError.cancelled) }
+                    else if error != nil { continuation.resume(throwing: PanelError.unavailable("系统没有允许录制本应用画面。")) }
+                    else { continuation.resume() }
+                }
             })
         }
     }
@@ -54,7 +65,8 @@ final class VideoEncoder {
     }
     var dimensions: (Int, Int) { queue.sync { (width, height) } }
     func stop() {
-        if recording { recording = false; RPScreenRecorder.shared().stopCapture { _ in } }
+        lock.lock(); captureGeneration += 1; let wasRecording = recording; recording = false; lock.unlock()
+        if wasRecording || RPScreenRecorder.shared().isRecording { RPScreenRecorder.shared().stopCapture { _ in } }
         queue.sync { if let session { VTCompressionSessionInvalidate(session) }; session = nil }
         lock.lock(); frames.removeAll(); lock.unlock()
     }

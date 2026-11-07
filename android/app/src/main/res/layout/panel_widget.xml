@@ -1,0 +1,7 @@
+<!-- A RemoteViews widget has no Activity window background; the overdraw inference does not apply. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools" tools:ignore="Overdraw" android:id="@+id/widget_root" android:layout_width="match_parent" android:layout_height="match_parent" android:orientation="vertical" android:gravity="center_vertical" android:padding="16dp" android:background="#173B2D">
+    <TextView android:id="@+id/widget_title" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_title" android:textColor="#FFFFFF" android:textSize="15sp" android:maxLines="1" android:ellipsize="end" />
+    <TextView android:id="@+id/widget_soc" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_empty" android:textColor="#FFFFFF" android:textSize="30sp" />
+    <TextView android:id="@+id/widget_details" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_empty_details" android:textColor="#D5E7DC" android:textSize="12sp" />
+    <TextView android:id="@+id/widget_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_open_hint" android:textColor="#D5E7DC" android:textSize="11sp" />
+</LinearLayout>

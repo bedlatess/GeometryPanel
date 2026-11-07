@@ -2,9 +2,9 @@ name: Verify Android container
 
 on:
   push:
-    paths: ['android/**', 'package.json', 'scripts/check-android.mjs', 'scripts/build-android.ps1', '.github/workflows/android.yml']
+    paths: ['android/**', 'src/core/native.ts', 'package.json', 'package-lock.json', 'scripts/check-android.mjs', 'scripts/build-android.ps1', '.github/workflows/android.yml']
   pull_request:
-    paths: ['android/**', 'package.json', 'scripts/check-android.mjs', 'scripts/build-android.ps1', '.github/workflows/android.yml']
+    paths: ['android/**', 'src/core/native.ts', 'package.json', 'package-lock.json', 'scripts/check-android.mjs', 'scripts/build-android.ps1', '.github/workflows/android.yml']
   workflow_dispatch:
 
 permissions:
@@ -18,6 +18,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: npm
+      - run: npm ci
       - run: node scripts/check-android.mjs
       - uses: actions/setup-java@v4
         with:

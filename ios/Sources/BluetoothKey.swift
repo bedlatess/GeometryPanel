@@ -15,6 +15,7 @@ import CoreBluetooth
     private var scanning = false
     private var scanGeneration = 0
     private var authenticated = false, telemetry = false, dashboard = false
+    private var bindAcknowledged = false, vehicleRegistered = false
     private(set) var proximity = false
     private var lastRSSI: Int?
     private var telemetryValues: [String: Any] = [:]
@@ -24,26 +25,32 @@ import CoreBluetooth
 
     var status: [String: Any] {
         ["state": peer == nil ? "disconnected" : writable == nil ? "connecting" : authenticated ? "authenticated" : "connected_unverified",
-         "authenticated": authenticated, "automaticUnlockVerified": false, "systemBondVerified": false,
+         "authenticated": authenticated, "bindAcknowledged": bindAcknowledged, "vehicleRegistered": vehicleRegistered, "automaticUnlockVerified": false, "systemBondVerified": false,
          "proximity": proximity, "rssi": lastRSSI as Any? ?? NSNull(), "telemetry": telemetryValues,
          "telemetrySubscribed": telemetry, "dashboardSubscribed": dashboard]
     }
     func scan() async throws -> [[String: Any]] {
         _ = central
         for _ in 0..<50 where central.state == .unknown || central.state == .resetting { try? await Task.sleep(nanoseconds: 100_000_000) }
-        guard central.state == .poweredOn else { throw PanelError.unavailable("请允许蓝牙权限并打开蓝牙，然后再扫描。") }
+        guard central.state == .poweredOn else { throw PanelError.coded("bluetooth_off", "请允许蓝牙权限并打开蓝牙，然后再扫描。") }
         guard !scanning, connecting == nil, awaiting == nil else { throw PanelError.invalid("已有蓝牙操作在进行。") }
         guard let binding else { throw PanelError.invalid("请先刷新当前车辆的蓝牙资料。") }; _ = try binding.requireKey()
         scanGeneration += 1; let scanEpoch = scanGeneration
         scanning = true; discovered.removeAll(); devices.removeAll()
         central.scanForPeripherals(withServices: [CBUUID(string: KeyProtocol.service)], options: [CBCentralManagerScanOptionAllowDuplicatesKey: false])
-        try? await Task.sleep(nanoseconds: 8_000_000_000)
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
+        guard scanGeneration == scanEpoch else { throw PanelError.cancelled }
+        // The Android artifact connected by MAC and did not establish that every
+        // supported vehicle advertises its service UUID. Foreground fallback is
+        // selectable by the owner; service/characteristics remain mandatory.
+        if discovered.isEmpty { central.scanForPeripherals(withServices: nil, options: [CBCentralManagerScanOptionAllowDuplicatesKey: false]) }
+        try? await Task.sleep(nanoseconds: 4_000_000_000)
         guard scanGeneration == scanEpoch else { throw PanelError.cancelled }
         central.stopScan(); scanning = false
         return discovered.values.sorted { ($0["rssi"] as? Int ?? -127) > ($1["rssi"] as? Int ?? -127) }
     }
     func connect(_ id: String) async throws {
-        guard central.state == .poweredOn else { throw PanelError.unavailable("请打开蓝牙。") }
+        guard central.state == .poweredOn else { throw PanelError.coded("bluetooth_off", "请打开蓝牙。") }
         guard let binding else { throw PanelError.invalid("请先刷新蓝牙资料。") }; _ = try binding.requireKey()
         guard let uuid = UUID(uuidString: id), let device = devices[uuid] else { throw PanelError.invalid("请选择本轮扫描到的车辆。") }
         guard device.state == .disconnected else { throw PanelError.invalid("该设备仍有连接或正在断开，请稍后再连接。") }
@@ -54,10 +61,12 @@ import CoreBluetooth
         }
     }
     func disconnect() {
+        proximity = false
         scanGeneration += 1; if scanning { central.stopScan() }; scanning = false; devices.removeAll(); discovered.removeAll()
         timer?.cancel(); timer = nil
         if let peer { central.cancelPeripheralConnection(peer) }
         peer = nil; writable = nil; authenticated = false; telemetry = false; dashboard = false
+        bindAcknowledged = false; vehicleRegistered = false
         input.removeAll(); output.removeAll(); telemetryValues.removeAll()
         let old = awaiting; awaiting = nil; old?.1(.failure(PanelError.cancelled))
         let pending = connecting; connecting = nil; pending?(.failure(PanelError.cancelled))
@@ -79,14 +88,15 @@ import CoreBluetooth
             guard second[1] == .number(0) else { throw PanelError.invalid("车辆未通过蓝牙认证。") }
             authenticated = true; return ["authenticated": true, "automaticUnlockVerified": false]
         }
-        guard authenticated else { throw PanelError.invalid("请先完成蓝牙认证。") }
+        guard authenticated else { throw PanelError.coded("authenticate_first", "请先完成蓝牙认证。") }
         switch action {
         case "register":
-            guard binding.cloudEnabled == true else { throw PanelError.invalid("请先在官方车辆设置中开启感应功能并刷新，不能在未知开关状态下登记。") }
+            guard binding.cloudEnabled == true else { throw PanelError.coded("enable_inductive_in_cloud_first", "请先在官方车辆设置中开启感应功能并刷新，不能在未知开关状态下登记。") }
             guard binding.inductiveGeneration == "2.0" || binding.inductiveGeneration == "2" else { throw PanelError.unavailable("当前只恢复了 2.0 的本机登记协议。") }
             let identity = try SecureStore.identity()
             let result = try await transact(0x77, expected: 0xf7, payload: KeyProtocol.bytes(1, identity), timeout: 8)
             guard result.isEmpty else { throw PanelError.invalid("登记回复格式与旧版协议不符。") }
+            bindAcknowledged = true
             if binding.broadcastType != "1" {
                 let response = try KeyProtocol.decode(await transact(0x78, expected: 0xf8, payload: KeyProtocol.number(1, 2), timeout: 6))
                 guard response[1] == .number(1) else { throw PanelError.invalid("车辆没有确认配对广播设置。") }
@@ -96,7 +106,8 @@ import CoreBluetooth
             let request = KeyProtocol.number(1, 1) + KeyProtocol.bytes(2, try SecureStore.identity())
             let response = try KeyProtocol.decode(await transact(0x7f, expected: 0xff, payload: request, timeout: 6))
             guard response[1] == .number(1) else { throw PanelError.invalid("车辆钥匙角色不匹配。") }
-            return ["vehicleRegistered": response[2] == nil || response[2] == .number(0), "automaticUnlockVerified": false]
+            vehicleRegistered = response[2] == nil || response[2] == .number(0)
+            return ["vehicleRegistered": vehicleRegistered, "automaticUnlockVerified": false]
         case "telemetryOn", "telemetryOff":
             let enabled = action == "telemetryOn"
             _ = try await transact(0x7c, expected: 0xfc, payload: enabled ? KeyProtocol.number(1, 1) : Data(), timeout: 6)
@@ -109,7 +120,8 @@ import CoreBluetooth
         }
     }
     private func transact(_ command: UInt8, expected: UInt8, payload: Data, timeout: Double = 10) async throws -> Data {
-        guard let peer, let writable, peer.state == .connected, awaiting == nil else { throw PanelError.disconnected }
+        guard awaiting == nil else { throw PanelError.coded("busy", "已有蓝牙操作在进行。") }
+        guard let peer, let writable, peer.state == .connected else { throw PanelError.coded("not_connected", "请先连接车辆蓝牙。") }
         let frame = try KeyProtocol.frame(command, payload)
         let size = max(1, min(peer.maximumWriteValueLength(for: .withResponse), 244))
         return try await withCheckedThrowingContinuation { continuation in
@@ -126,7 +138,7 @@ import CoreBluetooth
         let old = awaiting; awaiting = nil; old?.1(.failure(error))
         let pending = connecting; connecting = nil; pending?(.failure(error))
         if let peer { central.cancelPeripheralConnection(peer) }
-        peer = nil; writable = nil; authenticated = false; input.removeAll(); output.removeAll(); event?()
+        peer = nil; writable = nil; authenticated = false; telemetry = false; dashboard = false; input.removeAll(); output.removeAll(); event?()
     }
     func centralManagerDidUpdateState(_ central: CBCentralManager) { if central.state != .poweredOn { fail(PanelError.disconnected) }; event?() }
     func centralManager(_ central: CBCentralManager, didDiscover peripheral: CBPeripheral, advertisementData: [String : Any], rssi RSSI: NSNumber) {

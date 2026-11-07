@@ -8,6 +8,7 @@ import UIKit
     private var tasks: [Task<Void, Never>] = []
     private var probe: MeterSocket?
     private var active = false
+    private var generation = 0
     private var acceptedPorts: Set<UInt16> = []
     private var encoder = VideoEncoder()
     private var configured = false, extended = false
@@ -16,30 +17,32 @@ import UIKit
     private let phoneUUID = UUID().uuidString
     private(set) var state = "idle"
     var changed: ((String) -> Void)?
-    func start() async throws {
-        stop(); active = true; state = "authorizing"; changed?(state)
-        encoder.failed = { [weak self] in Task { @MainActor in self?.fail("视频编码中断，已停止投屏。") } }
+    func start(validate: @escaping () throws -> Void) async throws {
+        stop(); let epoch = generation; active = true; state = "authorizing"; changed?(state)
+        encoder.failed = { [weak self] in Task { @MainActor in guard self?.generation == epoch else { return }; self?.fail("视频编码中断，已停止投屏。") } }
         do {
             try await encoder.beginCapture()
-            guard active else { throw PanelError.cancelled }
+            try validate(); guard active, generation == epoch, !Task.isCancelled else { throw PanelError.cancelled }
             state = "probing"; changed?(state)
             let socket = MeterSocket(port: 10930); probe = socket; try await socket.open()
+            try validate(); guard generation == epoch, !Task.isCancelled else { socket.close(); throw PanelError.cancelled }
             try await socket.send(MeterWire.control(0x70000010, MeterWire.json(["phoneType": "iOS", "packageName": Bundle.main.bundleIdentifier ?? "app.geometrypanel.mobile"])))
             let (command, data) = try await MeterWire.readControl(socket)
+            guard generation == epoch, !Task.isCancelled else { socket.close(); throw PanelError.cancelled }
             guard command == 0x70000011, let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any], reply["status"] as? Bool == true else { throw PanelError.unavailable("仪表没有接受 iOS 投屏连接；当前车型可能只开放 Android Wi-Fi Direct。") }
             socket.close(); probe = nil
             for port in [UInt16(10920),10921,10922] {
                 let listener = try NWListener(using: MeterSocket.parameters(), on: NWEndpoint.Port(rawValue: port)!)
-                listener.newConnectionHandler = { [weak self] connection in Task { @MainActor in self?.accept(connection, port: port) } }
-                listener.stateUpdateHandler = { [weak self] value in if case .failed = value { Task { @MainActor in self?.fail("仪表监听失败，已停止投屏。") } } }
+                listener.newConnectionHandler = { [weak self] connection in Task { @MainActor in guard self?.generation == epoch else { connection.cancel(); return }; self?.accept(connection, port: port) } }
+                listener.stateUpdateHandler = { [weak self] value in if case .failed = value { Task { @MainActor in guard self?.generation == epoch else { return }; self?.fail("仪表监听失败，已停止投屏。") } } }
                 listeners.append(listener); listener.start(queue: .main)
             }
             state = "handshaking"; changed?(state)
-            tasks.append(Task { [weak self] in try? await Task.sleep(nanoseconds: 20_000_000_000); guard let self, self.active, self.state != "casting" else { return }; self.fail("仪表协商超时；请确认车辆热点和局域网权限。") })
-        } catch { stop(); throw error }
+            tasks.append(Task { [weak self] in do { try await Task.sleep(nanoseconds: 20_000_000_000) } catch { return }; guard let self, self.generation == epoch, self.active, self.state != "casting" else { return }; self.fail("仪表协商超时；请确认车辆热点和局域网权限。") })
+        } catch { if generation == epoch { stop() }; throw error }
     }
     func stop() {
-        active = false; listeners.forEach { $0.cancel() }; listeners.removeAll(); sockets.forEach { $0.close() }; sockets.removeAll()
+        generation += 1; active = false; listeners.forEach { $0.cancel() }; listeners.removeAll(); sockets.forEach { $0.close() }; sockets.removeAll()
         probe?.close(); probe = nil; tasks.forEach { $0.cancel() }; tasks.removeAll(); acceptedPorts.removeAll()
         encoder.stop(); configured = false; privateKey = nil; state = "idle"; changed?(state)
     }

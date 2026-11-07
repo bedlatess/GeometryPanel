@@ -50,6 +50,12 @@ final class ProtocolTests: XCTestCase {
         var params = binding(); params.removeValue(forKey: "encryptInfo"); params["fetchedAt"] = Date().timeIntervalSince1970 * 1000
         let result = try VehicleBinding(params); XCTAssertNoThrow(try result.requireFresh()); XCTAssertThrowsError(try result.requireKey())
     }
+    func testMaterialFreshnessCannotBeExtendedByMovingClockBack() throws {
+        let result = try VehicleBinding(binding(), now: 1000001)
+        XCTAssertNoThrow(try result.requireFresh(now: 1000001))
+        XCTAssertThrowsError(try result.requireFresh(now: 900000))
+        XCTAssertThrowsError(try result.requireFresh(now: 1300000))
+    }
     func testMaterialCannotAuthorizeBLE3() throws {
         var params = binding(); params["inductiveGeneration"] = "3.0"; params["fetchedAt"] = Date().timeIntervalSince1970 * 1000
         XCTAssertThrowsError(try VehicleBinding(params).requireKey())
@@ -75,5 +81,11 @@ final class ProtocolTests: XCTestCase {
     }
     func testWallpaperFrameIsBigEndian() throws {
         let frame = MeterWire.wallpaper(0x10000043, flag: 1, body: Data([3,4])); XCTAssertEqual(frame, Data([1,1,0x10,0,0,0x43,0,0,0,2,3,4]))
+    }
+    func testWallpaperAckRejectsDuplicateAndNumericCode() throws {
+        XCTAssertNoThrow(try MeterWire.validateWallpaperAck(Data("{\"code\":\"1\"}".utf8)))
+        XCTAssertThrowsError(try MeterWire.validateWallpaperAck(Data("{\"code\":1}".utf8)))
+        XCTAssertThrowsError(try MeterWire.validateWallpaperAck(Data("{\"code\":\"0\",\"code\":\"1\"}".utf8)))
+        XCTAssertThrowsError(try MeterWire.validateWallpaperAck(Data("{\"code\":\"0\",\"\\u0063ode\":\"1\"}".utf8)))
     }
 }

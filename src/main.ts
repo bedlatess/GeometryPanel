@@ -14,6 +14,9 @@ import { defaultPreferences, readPreferences, writePreferences, exportPreference
 import { currentInstallContext } from './core/pwa';
 import { navigationLinks } from './core/navigation';
 import { renderUsagePreferences } from './ui/preferences';
+import { connectNative } from './core/native';
+import { mountNative, widgetSnapshot } from './ui/native';
+import { mountExtensions } from './ui/extensions';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '<div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
@@ -21,6 +24,8 @@ const content = document.querySelector<HTMLDivElement>('#content')!;
 const modal = document.querySelector<HTMLDialogElement>('#modal')!;
 const api = new ZeehoApi();
 const controls = new VehicleControls();
+const native = connectNative(window);
+let disposePanel: (() => void) | undefined;
 let session: Session | null = null;
 let reading: Snapshot | null = null;
 let preview = false, busy = false, booting = true, committing = false, activeControl = false, expired = false, generation = 0;
@@ -79,6 +84,7 @@ function render() {
     ${expired ? '<button class="primary block" data-action="connect">重新登录</button>' : ''}
     ${!session ? `<div class="welcome-actions"><button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>连接我的极核</button><button class="text-button" data-action="preview" ${locked ? 'disabled' : ''}>${preview ? '退出演示' : '先体验面板'}</button></div>` : ''}`;
   if (tab === 'daily') body = renderDaily({ car, data, demo: preview, enabled: Boolean(enabled), locked, online: navigator.onLine })
+    + `<section class="settings-card"><h2>更多用车功能</h2><div class="module-links"><button class="control-button" data-action="extensions" ${locked ? 'disabled' : ''}>骑行记录、胎压与车辆设置</button><button class="control-button" data-action="native" ${locked ? 'disabled' : ''}>蓝牙、提醒与仪表工具</button></div></section>`
     + `<div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>${reportButton()}`
     + (expired ? '<button class="primary block" data-action="connect">重新登录</button>' : '');
   if (tab === 'appearance') body = `
@@ -93,7 +99,7 @@ function render() {
       ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
     <section class="settings-card"><h2>iPhone 与离线使用</h2><p>${currentInstallContext() === 'installed' ? '当前从主屏幕图标独立运行' : '当前在浏览器中运行'}</p><p>${cacheReady ? '离线页面已准备好；车辆数据和控制需要联网。' : '联网后准备离线页面；车辆数据和控制需要联网。'}</p><button class="setting-row" data-action="install"><span>${currentInstallContext() === 'installed' ? '查看主屏幕使用说明' : '添加到 iPhone 主屏幕'}</span><span aria-hidden="true">→</span></button><button class="text-button" data-action="check-update" ${locked || checkingUpdate || !navigator.onLine ? 'disabled' : ''}>${checkingUpdate ? '正在检查更新…' : '检查新版本'}</button></section>
     ${renderUsagePreferences(preferences)}
-    <section class="settings-card"><h2>几何面板</h2><p>网页版 · ${escape(version)} 验收版</p><p class="muted">车况、充电、位置与日常车控，集中在“用车”页。</p></section>
+    <section class="settings-card"><h2>几何面板</h2><p>${native.available ? '原生容器' : '网页版'} · ${escape(version)} 验收版</p><p class="muted">车况、骑行、车辆设置与原生工具，集中在“用车”页。</p><button class="text-button" data-action="native" ${locked ? 'disabled' : ''}>查看系统能力与安装包</button></section>
     ${lastCommandReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看操作结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
     <div class="notice" role="status">${escape(notice)}</div>`;
   content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">Z.</span><span>几何面板<small>YOUR RIDE. YOUR WAY.</small></span><span class="platform-label">WEB</span></header>
@@ -105,6 +111,7 @@ function render() {
 }
 
 function show(title: string, body: string) {
+  disposePanel?.(); disposePanel = undefined;
   commandTarget = null; commandIntent = null;
   modal.innerHTML = `<div class="modal-heading"><h2 id="modal-title">${escape(title)}</h2><button class="text-button" data-action="close" aria-label="关闭">关闭</button></div>${body}<p id="modal-message" class="form-message" role="status" aria-live="polite"></p>`;
   if (!modal.open) modal.showModal();
@@ -113,6 +120,7 @@ function show(title: string, body: string) {
 }
 function close() {
   if (committing) return;
+  disposePanel?.(); disposePanel = undefined;
   if (busy) {
     aborter?.abort(); generation++; busy = false;
     if (activeControl) notice = '请求结果尚未确认，请先观察车辆，避免重复发送。';
@@ -134,7 +142,10 @@ async function run(task: (signal: AbortSignal, current: () => boolean) => Promis
   try { await task(signal, () => epoch === generation && !signal.aborted); }
   catch (error) {
     if (epoch !== generation || signal.aborted) return;
-    if (error instanceof ApiError && error.kind === 'expired' && options.bound && session === options.bound) expired = true;
+    if (error instanceof ApiError && error.kind === 'expired' && options.bound && session === options.bound) {
+      expired = true;
+      if (native.available) void native.call('forgetVehicle').catch(() => {});
+    }
     notice = (error instanceof UserMessage ? error.message : messageFor(error)) + (options.control && !(error instanceof ApiError && error.kind === 'expired')
       ? ' 执行结果尚未确认，请先观察车辆，避免重复发送。' : '');
     if (error instanceof ApiError && error.kind === 'expired' && pending) { pending = null; showPhone(); }
@@ -221,7 +232,7 @@ async function refresh() {
   lastReadAttempt = Date.now();
   await run(async (signal, current) => {
     const data = await api.read(bound, signal);
-    if (current() && session === bound) { reading = data; notice = data.partial ? '已读取车况，电池详情暂未取得。' : '车况已读取。'; }
+    if (current() && session === bound) { reading = data; notice = data.partial ? '已读取车况，电池详情暂未取得。' : '车况已读取。'; syncWidget(bound, data); }
   }, { bound });
 }
 async function selectVehicle(index: number) {
@@ -231,7 +242,7 @@ async function selectVehicle(index: number) {
     committing = true;
     const closeButton = modal.querySelector<HTMLButtonElement>('[data-action="close"]');
     if (closeButton) closeButton.disabled = true;
-    try { await saveSession(candidate); }
+    try { if (native.available) await native.call('forgetVehicle', {}, signal); await saveSession(candidate); }
     catch { throw new UserMessage('本机未能保存连接，本次切换未完成。请重试，或检查浏览器的存储设置。'); }
     finally { committing = false; }
     if (!current()) return;
@@ -241,8 +252,15 @@ async function selectVehicle(index: number) {
     render();
     lastReadAttempt = Date.now();
     const data = await api.read(candidate, signal);
-    if (current()) { reading = data; notice = data.partial ? '车辆已连接，电池详情暂未取得。' : '车辆已连接，出发前看一眼。'; }
+    if (current()) { reading = data; notice = data.partial ? '车辆已连接，电池详情暂未取得。' : '车辆已连接，出发前看一眼。'; syncWidget(candidate, data); }
   }, { bound: candidate });
+}
+function syncWidget(bound: Session, data: Snapshot) {
+  if (native.available && session === bound && !expired && !preview) void native.call('widget.update', widgetSnapshot(bound, data)).catch(() => {});
+}
+function panelExpired() {
+  expired = true; notice = '登录信息已失效，请重新登录。'; close();
+  if (native.available) void native.call('forgetVehicle').catch(() => {});
 }
 
 function beginCommand(mode: CommandMode) {
@@ -281,6 +299,16 @@ content.addEventListener('click', event => {
   if (action === 'tab') { tab = button.dataset.value as typeof tab; render(); window.scrollTo(0, 0); }
   if (action === 'preview') { preview = !preview; notice = preview ? '当前为演示数据，所有车辆控制均已停用。' : '连接你的极核，开启自己的面板。'; render(); }
   if (action === 'connect' && !busy) showPhone();
+  if (action === 'extensions' && !busy) {
+    show('骑行与车辆设置', '<div id="extension-panel"></div>');
+    disposePanel = mountExtensions(modal.querySelector<HTMLElement>('#extension-panel')!, { session: expired ? null : session, demo: preview, onExpired: panelExpired,
+      onUncertain: () => { notice = '车辆设置操作已中断，结果尚未确认。请重新读取设置并检查车辆，再决定是否重试。'; } });
+  }
+  if (action === 'native' && !busy) {
+    show('系统能力与仪表工具', '<div id="native-panel"></div>');
+    disposePanel = mountNative(modal.querySelector<HTMLElement>('#native-panel')!, { native, session: expired ? null : session, demo: preview, snapshot: reading, onExpired: panelExpired,
+      onUncertain: () => { notice = '操作已中断，车辆执行结果尚未确认。请先查看车辆和登记状态，再决定是否重试。'; } });
+  }
   if (action === 'switch' && session && !busy && !expired) {
     const bound = session;
     pending = { token: bound.token, uid: bound.uid, vehicles: [] };
@@ -369,7 +397,7 @@ modal.addEventListener('click', event => {
     committing = true;
     const closeButton = modal.querySelector<HTMLButtonElement>('[data-action="close"]');
     if (closeButton) closeButton.disabled = true;
-    try { await forgetSession(); }
+    try { if (native.available) await native.call('forgetVehicle'); await forgetSession(); }
     catch { throw new UserMessage('本机登录信息未能清除，请重试。'); }
     finally { committing = false; }
     if (!current()) return;

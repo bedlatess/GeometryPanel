@@ -94,7 +94,33 @@ enum MeterWire {
         let command = try header.unsigned(2, 4, little: false), length = try header.unsigned(6, 4, little: false)
         guard header[0] == 1, header[1] == 2, command == expected, (1...65536).contains(length) else { throw PanelError.invalid("仪表壁纸回复格式不符。") }
         let data = try await socket.read(Int(length))
-        guard let body = try JSONSerialization.jsonObject(with: data) as? [String: Any], let code = body["code"] as? String, code == "1" else { throw PanelError.invalid("仪表没有确认壁纸传输。") }
+        try validateWallpaperAck(data)
+    }
+    static func validateWallpaperAck(_ data: Data) throws {
+        guard data.count <= 65536, String(data: data, encoding: .utf8) != nil,
+              let body = try JSONSerialization.jsonObject(with: data) as? [String: Any], let code = body["code"] as? String, code == "1" else { throw PanelError.invalid("仪表没有确认壁纸传输。") }
+        // Foundation keeps the last occurrence of duplicate JSON keys. Reject
+        // duplicates before treating a reply as an ACK, including escaped keys.
+        var index = 0, depth = 0; var keys: Set<String> = []
+        while index < data.count {
+            let byte = data[index]
+            if byte == 34 {
+                let start = index; index += 1
+                while index < data.count {
+                    if data[index] == 92 { index += 2; continue }
+                    if data[index] == 34 { index += 1; break }; index += 1
+                }
+                if depth == 1 {
+                    var look = index
+                    while look < data.count && [UInt8(9),10,13,32].contains(data[look]) { look += 1 }
+                    if look < data.count && data[look] == 58 {
+                        guard let key = try JSONSerialization.jsonObject(with: data.subdata(in: start..<index), options: [.fragmentsAllowed]) as? String, keys.insert(key).inserted else { throw PanelError.invalid("仪表回复包含重复字段。") }
+                    }
+                }
+                continue
+            }
+            if byte == 123 || byte == 91 { depth += 1 }; if byte == 125 || byte == 93 { depth -= 1 }; index += 1
+        }
     }
     static func json(_ value: [String: Any]) throws -> Data { try JSONSerialization.data(withJSONObject: value, options: [.sortedKeys]) }
     static func crc(_ data: Data) -> UInt32 {
