@@ -4,7 +4,7 @@ import { clearLocalHistory, readLocalHistory } from '../core/history-store';
 import { historyCsv } from '../core/history';
 import { nativeMessage, type NativeCapabilities, type NativeClient, type NativeMethod } from '../core/native';
 import { storagePrefix } from '../core/scope';
-import type { Snapshot } from '../core/model';
+import { demoVehicle, type Snapshot } from '../core/model';
 
 const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const time = (value: unknown) => typeof value === 'number' && Number.isFinite(value) && value > 0 ? new Date(value).toLocaleString('zh-CN') : '未知';
@@ -17,7 +17,9 @@ export function mountBackground(host: HTMLElement, options: { native: NativeClie
   let selected = book.selectedVehicleId ?? '', style = '2x2', controls = false;
   let range = '24h', startTime = '', endTime = '';
   const preferences = readBackgroundPreferences();
-  const vehicles = book.accounts.flatMap(account => account.vehicles.map(car => ({ ...car, accountLabel: account.label })));
+  const vehicles = demo ? [{ id: 'demo-vehicle', vin: demoVehicle.vin, label: demoVehicle.name, accountLabel: '演示' }]
+    : book.accounts.flatMap(account => account.vehicles.map(car => ({ ...car, accountLabel: account.label })));
+  if (!vehicles.some(car => car.id === selected)) selected = vehicles[0]?.id ?? '';
   const feature = (name: keyof NativeCapabilities['features']) => native.available && caps?.features[name] === true;
   const enabled = () => !demo && !working && Boolean(selected);
   const useNativeHistory = () => feature('history') && nativeAccountsAuthorized();

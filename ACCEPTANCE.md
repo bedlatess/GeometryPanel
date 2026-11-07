@@ -1,5 +1,7 @@
 # 0.6.0 UI 与功能集中验收
 
+> 当前线上网页 0.6.0，安装包 0.5.0；0.7.0 UI 重构进行中，最终验收单在 P4 统一替换。
+
 Safari打开 [几何面板](https://bedlatess.github.io/GeometryPanel/)，设置里确认共享页面 **0.6.0**，旧页面有提示时点“更新并重新打开”。[现有安装包](https://github.com/bedlatess/GeometryPanel/releases/tag/v0.5.0)仍是 0.5.0，联网加载相同的新网页；本轮没有另行发布原生包。IPA使用者自签；不会签名继续用Safari添加到主屏幕。iOS16+，Android8+。不同入口可能需分别登录一次。
 
 ## UI 按四个场景验收

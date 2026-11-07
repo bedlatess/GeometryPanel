@@ -4,7 +4,7 @@
 
 [打开网页](https://bedlatess.github.io/GeometryPanel/) · [下载APK / unsigned IPA](https://github.com/bedlatess/GeometryPanel/releases/tag/v0.5.0) · [集中验收](ACCEPTANCE.md) · [原版功能逐项对照](verification/original-parity.md)
 
-当前共享网页 **0.6.0**，完成车控首页、深浅主题、统一组件及独立状态模拟器。设计规则见 [DESIGN.md](DESIGN.md)，自测范围见 [UI 验证](verification/ui-review.md)。已有 0.5.0 APK / IPA 加载同一正式网页，联网更新共享界面；本次没有另行发布原生安装包。iPhone可在Safari分享菜单中“添加到主屏幕”。IPA不签名，使用者自签；不会签名继续使用网页。Android使用本项目稳定证书，可覆盖本项目旧版升级。
+当前共享网页 **0.6.0**，完成车控首页、深浅主题、统一组件及独立状态模拟器。0.7.0 UI 重构执行工作区 `../docs/开发任务书.md`，唯一设计依据为 `../docs/design/设计规范.md`；当前线上 0.6.0，安装包 0.5.0。旧设计记录见 [DESIGN.md](DESIGN.md)，自测范围见 [UI 验证](verification/ui-review.md)。已有 0.5.0 APK / IPA 加载同一正式网页，联网更新共享界面；本次没有另行发布原生安装包。iPhone可在Safari分享菜单中“添加到主屏幕”。IPA不签名，使用者自签；不会签名继续使用网页。Android使用本项目稳定证书，可覆盖本项目旧版升级。
 
 演示入口：未登录点“先体验面板”，展开底部“设计预览与状态模拟”；或设置 → 设计预览。可以独立切换平台、主题、低电、长名称、缺失及通信异常等场景，不调用真实账号或车控接口。
 
