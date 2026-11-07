@@ -1,0 +1,38 @@
+name: Verify iOS native and unsigned IPA
+
+on:
+  push:
+    paths: ['ios/**', 'package.json', '.github/workflows/ios.yml']
+  pull_request:
+    paths: ['ios/**', 'package.json', '.github/workflows/ios.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ios:
+    runs-on: macos-15
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install project generator
+        run: brew install xcodegen
+      - name: Read version
+        id: version
+        run: echo "value=$(python3 -c 'import json; print(json.load(open("package.json"))["version"])')" >> "$GITHUB_OUTPUT"
+      - name: Test simulator and build unsigned device applications
+        run: bash ios/scripts/build.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ios-packages-${{ steps.version.outputs.value }}
+          path: ios/build/packages/*
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-test-results
+          path: ios/build/SimulatorTests.xcresult
+          if-no-files-found: ignore
+          retention-days: 14

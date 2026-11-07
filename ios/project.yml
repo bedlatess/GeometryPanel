@@ -1,0 +1,77 @@
+name: GeometryPanel
+options:
+  bundleIdPrefix: app.geometrypanel
+  deploymentTarget:
+    iOS: '16.0'
+  xcodeVersion: '16.0'
+settings:
+  base:
+    SWIFT_VERSION: '5.0'
+    MARKETING_VERSION: '0.4.0'
+    CURRENT_PROJECT_VERSION: '400'
+    CODE_SIGNING_ALLOWED: NO
+    TARGETED_DEVICE_FAMILY: '1,2'
+    IPHONEOS_DEPLOYMENT_TARGET: '16.0'
+targetTemplates:
+  MainApp:
+    type: application
+    platform: iOS
+    sources:
+      - path: Sources
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.geometrypanel.mobile
+        INFOPLIST_FILE: Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridging.h
+        GENERATE_INFOPLIST_FILE: NO
+    resources:
+      - path: Resources/Assets.xcassets
+targets:
+  GeometryPanel:
+    templates: [MainApp]
+  GeometryPanelWithWidget:
+    templates: [MainApp]
+    settings:
+      base:
+        CODE_SIGN_ENTITLEMENTS: Resources/App.entitlements
+    dependencies:
+      - target: GeometryWidget
+        embed: true
+  GeometryWidget:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: Widget
+      - path: Shared
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.geometrypanel.mobile.widget
+        INFOPLIST_FILE: Resources/WidgetInfo.plist
+        CODE_SIGN_ENTITLEMENTS: Resources/App.entitlements
+        APPLICATION_EXTENSION_API_ONLY: YES
+        SKIP_INSTALL: YES
+        GENERATE_INFOPLIST_FILE: NO
+  GeometryPanelTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources: [Tests]
+    dependencies:
+      - target: GeometryPanel
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: app.geometrypanel.mobile.tests
+        GENERATE_INFOPLIST_FILE: YES
+schemes:
+  GeometryPanel:
+    build:
+      targets:
+        GeometryPanel: all
+        GeometryPanelTests: [test]
+    test:
+      targets: [GeometryPanelTests]
+  GeometryPanelWithWidget:
+    build:
+      targets:
+        GeometryPanelWithWidget: all
