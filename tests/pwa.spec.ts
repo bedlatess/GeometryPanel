@@ -1,6 +1,20 @@
 import { test, expect, open, login } from './fixtures';
 
 test.use({ serviceWorkers: 'allow' });
+// Worker installation/update exercises browser-managed storage and process
+// lifecycles. Keep these cases sequential within each browser project.
+test.describe.configure({ mode: 'default' });
+
+test.afterEach(async ({ page }, testInfo) => {
+  if (testInfo.status === testInfo.expectedStatus) return;
+  const state = await page.evaluate(async () => {
+    const reg = await navigator.serviceWorker.getRegistration();
+    return { controller: navigator.serviceWorker.controller?.state, installing: reg?.installing?.state,
+      waiting: reg?.waiting?.state, active: reg?.active?.state, scope: reg?.scope,
+      workers: (await navigator.serviceWorker.getRegistrations()).map(item => ({ scope: item.scope, waiting: item.waiting?.state })) };
+  }).catch(() => ({ pageUnavailable: true }));
+  console.log('Synthetic service-worker failure state:', JSON.stringify(state));
+});
 
 test('offline shell loads at a repository subpath and never caches API data', async ({ page, context }) => {
   const response = await page.request.get('./');
@@ -42,15 +56,18 @@ test('separate project paths do not share sessions or preferences', async ({ pag
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
-test('waiting updates require an explicit idle action and preserve login', async ({ page, request }) => {
-  await open(page); await login(page);
+test('waiting updates require an explicit idle action and preserve login', async ({ page, request }, testInfo) => {
+  const scope = `/isolated/waiting-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now().toString(36)}/`;
+  await page.goto(`http://127.0.0.1:4174${scope}`);
+  await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
+  await login(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await page.getByLabel('首页快捷操作', { exact: true }).selectOption('seat');
   await page.getByRole('button', { name: '车辆', exact: true }).click();
   await page.evaluate(async () => { await caches.open('another-app-cache'); });
-  await request.post('http://127.0.0.1:4174/__test/update');
+  await request.post(`http://127.0.0.1:4174/__test/update?scope=${encodeURIComponent(scope)}`);
   await page.evaluate(async () => { const registration = await navigator.serviceWorker.getRegistration(); await registration?.update(); });
   const update = page.getByRole('button', { name: '更新并重新打开' });
   await expect(update).toBeVisible();
@@ -65,9 +82,11 @@ test('waiting updates require an explicit idle action and preserve login', async
   expect(await page.evaluate(() => caches.has('another-app-cache'))).toBe(true);
 });
 
-test('manual update check reports status and prepares an explicit update without reloading during use', async ({ page, request }) => {
-  // A separate scope keeps the other update test's SW revision independent.
-  await page.goto('http://127.0.0.1:4174/other/');
+test('manual update check reports status and prepares an explicit update without reloading during use', async ({ page, request }, testInfo) => {
+  // Each mutating case gets its own URL scope across browsers and workers. Reusing
+  // /other/ can expose another case's installed worker/revision under WebKit.
+  const scope = `/isolated/manual-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now().toString(36)}/`;
+  await page.goto(`http://127.0.0.1:4174${scope}`);
   await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
   await login(page);
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
@@ -76,7 +95,7 @@ test('manual update check reports status and prepares an explicit update without
   await expect(page.getByText('离线页面已准备好；车辆数据和控制需要联网。')).toBeVisible();
   await page.getByRole('button', { name: '检查新版本', exact: true }).click();
   await expect(page.locator('.notice')).toHaveText('已检查，目前没有新版本。');
-  await request.post('http://127.0.0.1:4174/__test/update?scope=other');
+  await request.post(`http://127.0.0.1:4174/__test/update?scope=${encodeURIComponent(scope)}`);
   await page.getByRole('button', { name: '检查新版本', exact: true }).click();
   await expect(page.locator('.notice')).toContainText('新版本已准备好');
   await expect(page.getByRole('button', { name: '更新并重新打开' })).toBeEnabled();

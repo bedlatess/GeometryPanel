@@ -38,6 +38,8 @@ macOS/Linux 可安装同等 SDK 后，在 `android/` 运行 `bash ./gradlew :app
 
 `.github/workflows/android.yml` 运行同样的单元测试和 lint，并生成 `GeometryPanel-Android-debug-CI-only` 检查产物。它使用 `.debug` 包名，与正式验收包分开，不能当作稳定升级渠道。
 
+SDK 初始化显式使用 `platform-tools`，再安装 Android 36 和 build-tools 36.0.0，避免 setup-android 默认尝试安装已经下架的旧 `tools` 包。
+
 如需在 CI 中生成相同签名的正式包，将本机同一私钥的 Base64 内容保存到仓库 Actions secret `GEOMETRY_KEYSTORE_BASE64`，并配置 `GEOMETRY_STORE_PASSWORD`、`GEOMETRY_KEY_PASSWORD`、`GEOMETRY_KEY_ALIAS`。流水线才会额外上传 `GeometryPanel-Android-signed-release`，不会在没有稳定私钥时冒充正式签名。当前发布 APK 可直接由助手本机构建后上传 GitHub Release。
 
 ## 容器边界

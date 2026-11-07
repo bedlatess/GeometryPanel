@@ -19,7 +19,8 @@
   "initialBrowserRun": {
     "passed": 107,
     "failed": 1,
-    "case": "WebKit manual update check reported current instead of ready; isolated recheck and complete rerun passed without source changes"
+    "case": "WebKit manual update check reported current instead of ready; isolated recheck and complete rerun passed without source changes",
+    "followup": "Cloud WebKit also exposed inconsistent update expectations. Strengthened test isolation and synthetic revision cache identities; targeted PWA checks passed after correction. Full release CI verifies all cases."
   },
   "mapCases": "opaque numeric/vendor tags, supported aliases, known incompatible systems, click-only iframe, close cleanup, absent address does not invent a place name",
   "realMapObservation": {
@@ -35,5 +36,12 @@
   "remainingDeviceAcceptance": [
     "iPhone parking point and nearby road/community labels",
     "Android install/login/reopen/map/back/offline runtime"
-  ]
+  ],
+  "cacheIsolationChecks": {
+    "passed": 8,
+    "failed": 0,
+    "durationMs": 50572.155999999995,
+    "command": "npx playwright test tests/pwa.spec.ts",
+    "correction": "Unique URL scopes for update cases, sequential worker lifecycle cases within each browser, and distinct synthetic release cache identities. Production update code unchanged."
+  }
 }
