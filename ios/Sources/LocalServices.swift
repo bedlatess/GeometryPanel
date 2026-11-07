@@ -2,17 +2,26 @@ import Foundation
 import UserNotifications
 import WidgetKit
 
-@MainActor final class LocalServices {
+@MainActor final class LocalServices: NSObject, UNUserNotificationCenterDelegate {
     private let center = UNUserNotificationCenter.current()
     private var enabled = false
+    private var proximityEnabled = false
     private var lowBattery: Double = 20
     private var lastLowBattery: Date?
     var widgetAvailable: Bool { WidgetSnapshot.sharedDefaults != nil }
+    override init() { super.init(); center.delegate = self }
+    func configureProximity(_ requested: Bool) async throws {
+        if requested {
+            guard try await center.requestAuthorization(options: [.alert, .sound]) else { throw PanelError.unavailable("连接提醒需要通知权限，可在 iOS 设置中开启。") }
+        }
+        proximityEnabled = requested
+        if !requested { center.removeDeliveredNotifications(withIdentifiers: ["ble-disconnected"]) }
+    }
     func configure(_ params: [String: Any]) async throws -> [String: Any] {
         guard let requested = params["enabled"] as? Bool else { throw PanelError.invalid("提醒设置无效。") }
         if requested {
             guard try await center.requestAuthorization(options: [.alert, .sound]) else { throw PanelError.unavailable("通知权限未允许，可在 iOS 设置中开启。") }
-        } else { center.removePendingNotificationRequests(withIdentifiers: ["low-battery", "ble-disconnected"]); center.removeDeliveredNotifications(withIdentifiers: ["low-battery", "ble-disconnected"]) }
+        } else { center.removePendingNotificationRequests(withIdentifiers: ["low-battery"]); center.removeDeliveredNotifications(withIdentifiers: ["low-battery"]) }
         enabled = requested
         if let threshold = params["lowBattery"] as? Double, (5...80).contains(threshold) { lowBattery = threshold }
         return ["enabled": enabled, "lowBattery": lowBattery, "backgroundCloudPolling": false]
@@ -31,10 +40,10 @@ import WidgetKit
         }
         return ["updated": widgetAvailable, "widgetAvailable": widgetAvailable]
     }
-    func bluetoothDisconnected() { if enabled { notify("ble-disconnected", title: "车辆蓝牙连接已断开", body: "可能超出距离或车辆关闭了蓝牙；车辆锁定状态请现场确认。") } }
+    func bluetoothDisconnected() { if proximityEnabled { notify("ble-disconnected", title: "车辆蓝牙连接已断开", body: "可能超出距离或车辆关闭了蓝牙；车辆锁定状态请现场确认。") } }
     func clear() {
         WidgetSnapshot.sharedDefaults?.removeObject(forKey: "vehicle-snapshot.v1"); WidgetCenter.shared.reloadAllTimelines()
-        enabled = false; lastLowBattery = nil
+        enabled = false; proximityEnabled = false; lastLowBattery = nil
         center.removePendingNotificationRequests(withIdentifiers: ["low-battery", "ble-disconnected"])
         center.removeDeliveredNotifications(withIdentifiers: ["low-battery", "ble-disconnected"])
     }
@@ -42,4 +51,5 @@ import WidgetKit
         let content = UNMutableNotificationContent(); content.title = title; content.body = body; content.sound = .default
         center.add(UNNotificationRequest(identifier: id, content: content, trigger: nil))
     }
+    func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) { completionHandler([.banner, .sound]) }
 }

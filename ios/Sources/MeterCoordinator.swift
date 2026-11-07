@@ -136,9 +136,9 @@ import ImageIO
         let targetWidth = dimension("width") ?? width, targetHeight = dimension("height") ?? height
         guard targetWidth * targetHeight <= 16777216, let image = CGImageSourceCreateThumbnailAtIndex(source, 0, [kCGImageSourceCreateThumbnailFromImageAlways: true, kCGImageSourceCreateThumbnailWithTransform: true, kCGImageSourceThumbnailMaxPixelSize: max(width, height)] as CFDictionary) else { throw PanelError.invalid("图片无法在本机解码。") }
         let format = UIGraphicsImageRendererFormat(); format.scale = 1; format.opaque = true
-        let renderer = UIGraphicsImageRenderer(size: CGSize(width: targetWidth, height: targetHeight), format: format)
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: CGFloat(targetWidth), height: CGFloat(targetHeight)), format: format)
         let output = renderer.pngData { context in
-            UIColor.black.setFill(); context.fill(CGRect(x: 0, y: 0, width: targetWidth, height: targetHeight))
+            UIColor.black.setFill(); context.fill(CGRect(x: 0, y: 0, width: CGFloat(targetWidth), height: CGFloat(targetHeight)))
             let factor = max(CGFloat(targetWidth) / CGFloat(image.width), CGFloat(targetHeight) / CGFloat(image.height))
             let size = CGSize(width: CGFloat(image.width) * factor, height: CGFloat(image.height) * factor)
             UIImage(cgImage: image).draw(in: CGRect(x: (CGFloat(targetWidth) - size.width) / 2, y: (CGFloat(targetHeight) - size.height) / 2, width: size.width, height: size.height))

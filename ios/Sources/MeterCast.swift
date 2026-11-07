@@ -28,7 +28,7 @@ import UIKit
             let (command, data) = try await MeterWire.readControl(socket)
             guard command == 0x70000011, let reply = try JSONSerialization.jsonObject(with: data) as? [String: Any], reply["status"] as? Bool == true else { throw PanelError.unavailable("仪表没有接受 iOS 投屏连接；当前车型可能只开放 Android Wi-Fi Direct。") }
             socket.close(); probe = nil
-            for port: UInt16 in [10920,10921,10922] {
+            for port in [UInt16(10920),10921,10922] {
                 let listener = try NWListener(using: MeterSocket.parameters(), on: NWEndpoint.Port(rawValue: port)!)
                 listener.newConnectionHandler = { [weak self] connection in Task { @MainActor in self?.accept(connection, port: port) } }
                 listener.stateUpdateHandler = { [weak self] value in if case .failed = value { Task { @MainActor in self?.fail("仪表监听失败，已停止投屏。") } } }

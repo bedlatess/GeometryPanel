@@ -70,7 +70,7 @@ final class VideoEncoder {
             var target: CVPixelBuffer?
             let attrs: [String: Any] = [kCVPixelBufferCGImageCompatibilityKey as String: true, kCVPixelBufferCGBitmapContextCompatibilityKey as String: true, kCVPixelBufferIOSurfacePropertiesKey as String: [:]]
             guard CVPixelBufferCreate(kCFAllocatorDefault, self.width, self.height, kCVPixelFormatType_32BGRA, attrs as CFDictionary, &target) == kCVReturnSuccess, let target else { return }
-            let image = CIImage(cvPixelBuffer: source), bounds = CGRect(x: 0, y: 0, width: self.width, height: self.height)
+            let image = CIImage(cvPixelBuffer: source), bounds = CGRect(x: 0, y: 0, width: CGFloat(self.width), height: CGFloat(self.height))
             let scale = min(CGFloat(self.width) / image.extent.width, CGFloat(self.height) / image.extent.height)
             let transformed = image.transformed(by: CGAffineTransform(scaleX: scale, y: scale)).transformed(by: CGAffineTransform(translationX: (CGFloat(self.width) - image.extent.width * scale) / 2, y: (CGFloat(self.height) - image.extent.height * scale) / 2))
             let composed = transformed.composited(over: CIImage(color: .black).cropped(to: bounds)); self.context.render(composed, to: target, bounds: bounds, colorSpace: CGColorSpaceCreateDeviceRGB())

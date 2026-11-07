@@ -4,3 +4,4 @@ build/
 *.ipa
 *.xcresult/
 .DS_Store
+__pycache__/

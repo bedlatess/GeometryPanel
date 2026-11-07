@@ -83,7 +83,11 @@ import WebKit
             return try await bluetooth.command(action)
         case "ble.proximity":
             guard let enabled = params["enabled"] as? Bool else { throw PanelError.invalid("连接提醒选项无效。") }
-            try bluetooth.setProximity(enabled); return ["enabled": enabled, "automaticUnlockVerified": false]
+            let generation = epoch
+            try await local.configureProximity(enabled)
+            do { guard generation == epoch else { throw PanelError.cancelled }; try bluetooth.setProximity(enabled) }
+            catch { try? await local.configureProximity(false); throw error }
+            return ["enabled": enabled, "automaticUnlockVerified": false]
         case "notifications.configure": return try await local.configure(params)
         case "widget.update": return try local.update(params)
         case "meter.open":
