@@ -96,3 +96,4 @@ input { display:block; width:100%; background:var(--bg); color:var(--text); bord
 @media (max-width:360px) { .shell { padding-left:18px; padding-right:18px; } .battery-card { padding:21px; } .battery-bottom span:last-child { font-size:6px; } h1 { font-size:27px; } }
 @media (min-width:700px) { .shell { padding-top:38px; } .brand { margin-bottom:48px; } }
 @media (prefers-reduced-motion:no-preference) { button { transition:opacity .15s,background-color .15s,transform .15s; } button:active:not(:disabled) { transform:scale(.98); } }
+.diagnostic-summary { white-space: pre-wrap; overflow-wrap: anywhere; font: 13px/1.8 ui-monospace, SFMono-Regular, Consolas, monospace; user-select: text; }

@@ -1,225 +1,251 @@
 {
   "date": "2026-11-07",
-  "version": "0.1.1",
-  "unitTests": 20,
+  "version": "0.1.2",
+  "unitTests": 29,
   "browsers": [
     "Chrome 156.0.8078.80 mobile viewport",
     "Playwright WebKit 27.2 mobile viewport on Windows"
   ],
   "basePath": "/panel/",
-  "stats": {
-    "startTime": "2026-11-07T06:17:44.871Z",
-    "duration": 116862.366,
-    "expected": 32,
-    "skipped": 0,
-    "unexpected": 0,
-    "flaky": 0
-  },
+  "browserTests": 46,
+  "passed": 46,
+  "failed": 0,
   "cases": [
     {
-      "title": "demo is labelled, does not call upstream, and fits small screens",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 552
+      "title": "high-volume search is explicit and only sends its recovered request",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "preparation alone never shows success; both buttons lock until the PUT finishes",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a negative PUT is not accepted and its summary remains private",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a rejected high-volume request does not run ordinary search as a fallback",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a network failure at the PUT is uncertain and never retries automatically",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "expiry at the PUT disables controls without asking for another SMS automatically",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "closing an in-flight PUT records cancellation and ignores late acceptance",
+      "project": "chromium-mobile",
+      "status": "passed"
     },
     {
       "title": "demo is labelled, does not call upstream, and fits small screens",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 9796
+      "project": "chromium-mobile",
+      "status": "passed"
     },
     {
       "title": "login, encrypted restore, vehicle switch, confirmed horn, and logout",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 903
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "SMS countdown and recovery without requesting another message",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a failed vehicle list retries the verified account without consuming SMS again",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "empty vehicle lists provide retry and account change",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "initial read failure retains selected account and allows refresh",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "15 character frame numbers can be selected, restored, and used for confirmed control",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "returned but unrecognized vehicles do not produce an empty-account message",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "battery outage preserves home data; expired sessions disable control",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "uncertain horn results do not retry or fall back",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "closing an in-flight command preserves uncertainty and prevents late success",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a failed local save keeps the previous vehicle and persisted account",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "closing a pending login list discards a late response",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "offline shell loads at a repository subpath and never caches API data",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "separate project paths do not share sessions or preferences",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "waiting updates require an explicit idle action and preserve login",
+      "project": "chromium-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "high-volume search is explicit and only sends its recovered request",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "preparation alone never shows success; both buttons lock until the PUT finishes",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a negative PUT is not accepted and its summary remains private",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a rejected high-volume request does not run ordinary search as a fallback",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "a network failure at the PUT is uncertain and never retries automatically",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "expiry at the PUT disables controls without asking for another SMS automatically",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "closing an in-flight PUT records cancellation and ignores late acceptance",
+      "project": "webkit-mobile",
+      "status": "passed"
+    },
+    {
+      "title": "demo is labelled, does not call upstream, and fits small screens",
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "login, encrypted restore, vehicle switch, confirmed horn, and logout",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 13205
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "SMS countdown and recovery without requesting another message",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 1221
-    },
-    {
-      "title": "SMS countdown and recovery without requesting another message",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 6219
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "a failed vehicle list retries the verified account without consuming SMS again",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 403
-    },
-    {
-      "title": "a failed vehicle list retries the verified account without consuming SMS again",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 3165
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "empty vehicle lists provide retry and account change",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 407
-    },
-    {
-      "title": "empty vehicle lists provide retry and account change",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 5443
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "initial read failure retains selected account and allows refresh",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 482
-    },
-    {
-      "title": "initial read failure retains selected account and allows refresh",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 23761
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "15 character frame numbers can be selected, restored, and used for confirmed control",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 507
-    },
-    {
-      "title": "15 character frame numbers can be selected, restored, and used for confirmed control",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 23781
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "returned but unrecognized vehicles do not produce an empty-account message",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 436
-    },
-    {
-      "title": "returned but unrecognized vehicles do not produce an empty-account message",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 5131
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "battery outage preserves home data; expired sessions disable control",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 442
-    },
-    {
-      "title": "battery outage preserves home data; expired sessions disable control",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 5461
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "uncertain horn results do not retry or fall back",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 474
-    },
-    {
-      "title": "uncertain horn results do not retry or fall back",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 5432
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "closing an in-flight command preserves uncertainty and prevents late success",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 557
-    },
-    {
-      "title": "closing an in-flight command preserves uncertainty and prevents late success",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 5563
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "a failed local save keeps the previous vehicle and persisted account",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 523
-    },
-    {
-      "title": "a failed local save keeps the previous vehicle and persisted account",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 13188
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "closing a pending login list discards a late response",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 418
-    },
-    {
-      "title": "closing a pending login list discards a late response",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 9534
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "offline shell loads at a repository subpath and never caches API data",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 476
-    },
-    {
-      "title": "offline shell loads at a repository subpath and never caches API data",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 34056
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "separate project paths do not share sessions or preferences",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 506
-    },
-    {
-      "title": "separate project paths do not share sessions or preferences",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 37710
+      "project": "webkit-mobile",
+      "status": "passed"
     },
     {
       "title": "waiting updates require an explicit idle action and preserve login",
-      "browser": "chromium-mobile",
-      "status": "expected",
-      "durationMs": 3309
-    },
-    {
-      "title": "waiting updates require an explicit idle action and preserve login",
-      "browser": "webkit-mobile",
-      "status": "expected",
-      "durationMs": 11030
+      "project": "webkit-mobile",
+      "status": "passed"
     }
   ],
   "mocksBeforeServiceWorker": true,
   "testHostCsp": "connect-src 'self'",
   "realSafariOrVehicleAcceptance": false,
-  "vehicleDiscoveryNotes": "vehicle-discovery-fix.md",
-  "pwaRecheckAfterCacheUpdate": {
-    "startTime": "2026-11-07T06:20:19.519Z",
-    "duration": 48249.703,
-    "expected": 6,
-    "skipped": 0,
-    "unexpected": 0,
-    "flaky": 0
-  },
-  "serviceWorkerSha256": "d98a636a4dd60b99783dec8cc9c3e71cc7789940871daa47ec69e33fcf420f3c"
+  "notes": "WebKit passed in the first run. Chromium initially lacked its bundled executable; rerun separately with installed Chrome, all 23 passed. No actual account or vehicle requests.",
+  "hornProtocolNotes": "horn-fix.md",
+  "serviceWorkerSha256": "8475215ac3ce79b835596616af3be7a688bbd175f8efac9109e12d9f8053f237"
 }

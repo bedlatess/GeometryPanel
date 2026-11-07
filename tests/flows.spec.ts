@@ -44,9 +44,10 @@ test('login, encrypted restore, vehicle switch, confirmed horn, and logout', asy
   await page.getByRole('button', { name: '鸣笛寻车' }).click();
   expect(mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'))).toHaveLength(0);
   await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
-  await expect(page.getByText('服务器已受理，请确认车辆是否鸣响。')).toBeVisible();
+  await expect(page.getByText('普通寻车完整流程已提交，请确认车辆是否鸣响。')).toBeVisible();
   const horn = mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'));
   expect(horn).toHaveLength(1); expect(JSON.parse(horn[0].body.param).vinNo).toBe(VIN_B);
+  expect(mocks.calls.filter(call => call.path.endsWith(`/vehicleInfo/control/${VIN_B}`))).toHaveLength(1);
   expect(mocks.calls.filter(call => call.path.endsWith('/loginByPhone'))).toHaveLength(1);
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await page.getByRole('button', { name: '退出本机登录', exact: true }).click();
@@ -119,9 +120,10 @@ test('15 character frame numbers can be selected, restored, and used for confirm
   await expect(page.getByRole('button', { name: '鸣笛寻车' })).toBeEnabled();
   await page.getByRole('button', { name: '鸣笛寻车' }).click();
   await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
-  await expect(page.getByText('服务器已受理，请确认车辆是否鸣响。')).toBeVisible();
+  await expect(page.getByText('普通寻车完整流程已提交，请确认车辆是否鸣响。')).toBeVisible();
   const horn = mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'));
   expect(horn).toHaveLength(1); expect(JSON.parse(horn[0].body.param).vinNo).toBe(id);
+  expect(mocks.calls.filter(call => call.path.endsWith(`/vehicleInfo/control/${id}`))).toHaveLength(1);
   expect(mocks.calls.some(call => call.path.endsWith(`/vehicleHomePageV2/${id}`))).toBe(true);
 });
 
@@ -152,18 +154,19 @@ test('battery outage preserves home data; expired sessions disable control', asy
 
 test('uncertain horn results do not retry or fall back', async ({ page, mocks }) => {
   await open(page); await login(page);
-  mocks.hornFailure = true;
+  mocks.commandResults.prepare = 'network';
   await page.getByRole('button', { name: '鸣笛寻车' }).click();
   await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
   await expect(page.locator('#modal-message')).toContainText('执行结果尚未确认');
   await page.getByRole('button', { name: '关闭', exact: true }).click();
   await expect(page.locator('.notice')).toContainText('执行结果尚未确认');
   expect(mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'))).toHaveLength(1);
+  expect(mocks.calls.some(call => call.path.includes('/vehicleInfo/control'))).toBe(false);
 });
 
 test('closing an in-flight command preserves uncertainty and prevents late success', async ({ page, mocks }) => {
   let release!: () => void;
-  mocks.holdHorn = new Promise<void>(resolve => { release = resolve; });
+  mocks.holdCommand = { stage: 'prepare', wait: new Promise<void>(resolve => { release = resolve; }) };
   await open(page); await login(page);
   await page.getByRole('button', { name: '鸣笛寻车' }).click();
   await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
@@ -173,6 +176,7 @@ test('closing an in-flight command preserves uncertainty and prevents late succe
   await expect(page.locator('.notice')).toContainText('请求结果尚未确认');
   await expect(page.locator('#modal')).not.toBeVisible();
   expect(mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'))).toHaveLength(1);
+  expect(mocks.calls.some(call => call.path.includes('/vehicleInfo/control'))).toBe(false);
 });
 
 test('a failed local save keeps the previous vehicle and persisted account', async ({ page }) => {

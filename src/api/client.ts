@@ -1,7 +1,15 @@
 import { sign } from './sign';
 
+export type ApiErrorKind = 'expired' | 'network' | 'rejected' | 'format' | 'limit';
 export class ApiError extends Error {
-  constructor(readonly kind: 'expired' | 'network' | 'rejected' | 'format' | 'limit') { super(kind); }
+  readonly httpStatus?: number;
+  readonly businessCode?: string;
+  constructor(readonly kind: ApiErrorKind, status?: number, code?: unknown) {
+    super(kind);
+    if (typeof status === 'number' && Number.isInteger(status) && status >= 100 && status <= 599) this.httpStatus = status;
+    // Keep only numeric protocol codes, never a server message or response body.
+    if ((typeof code === 'number' || typeof code === 'string') && /^-?\d{1,6}$/.test(String(code))) this.businessCode = String(code);
+  }
 }
 
 export function messageFor(error: unknown): string {
@@ -16,7 +24,7 @@ export function messageFor(error: unknown): string {
 }
 
 type Options = {
-  method?: 'GET' | 'POST'; token?: string; body?: unknown;
+  method?: 'GET' | 'POST' | 'PUT'; token?: string; body?: unknown;
   clientAuth?: boolean; appLike?: boolean; signal?: AbortSignal;
 };
 
@@ -52,7 +60,7 @@ export class CloudClient {
         method: options.method ?? 'GET', headers, body: body || undefined,
         signal: controller.signal, credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer',
       });
-      if (response.status === 401) throw new ApiError('expired');
+      if (response.status === 401) throw new ApiError('expired', response.status);
       let text = '';
       if (response.body) {
         const reader = response.body.getReader();
@@ -70,12 +78,12 @@ export class CloudClient {
         } finally { reader.releaseLock(); }
       }
       let json: Record<string, unknown>;
-      try { json = JSON.parse(text); } catch { throw new ApiError('format'); }
-      if (!json || typeof json !== 'object') throw new ApiError('format');
+      try { json = JSON.parse(text); } catch { throw new ApiError('format', response.status); }
+      if (!json || typeof json !== 'object') throw new ApiError('format', response.status);
       if (response.ok && String(json.code) === '10000') return json.data;
       const detail = `${json.code ?? ''} ${json.message ?? ''}`.toLowerCase();
-      if (/invalid_?token|登录已过期|登录失效|请重新登录|未登录|token过期|token失效/.test(detail)) throw new ApiError('expired');
-      throw new ApiError('rejected');
+      if (/invalid_?token|登录已过期|登录失效|请重新登录|未登录|token过期|token失效/.test(detail)) throw new ApiError('expired', response.status, json.code);
+      throw new ApiError('rejected', response.status, json.code);
     } catch (error) {
       if (options.signal?.aborted) throw new DOMException('Cancelled', 'AbortError');
       if (error instanceof ApiError) throw error;

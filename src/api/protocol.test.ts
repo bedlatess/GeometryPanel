@@ -67,20 +67,8 @@ test('a cloud supplied 15 character frame number remains bound for reads and hor
     '/v1.0/app/cfmotoserverapp/vehicleHomePageV2/123456789012345',
     '/v1.0/app/cfmotoserverapp/batteryInfo/123456789012345',
     '/v1.0/app/cfmotoserverapp/dbpoint/send',
+    '/v1.0/app/cfmotoserverapp/vehicleInfo/control/123456789012345',
   ]);
-});
-test('horn uses the selected binding and recovered command envelope once', async () => {
-  let calls = 0;
-  const api = new ZeehoApi(new CloudClient(async (_url, init) => {
-    calls++;
-    assert.equal(init?.method, 'POST');
-    const body = JSON.parse(String(init?.body));
-    assert.equal(body.eventId, 11631);
-    assert.equal(body.zeehoParamTypeBO, null);
-    assert.deepEqual(JSON.parse(body.param), { vinNo: fixture.vehicle.vin, functionCode: 'LOUDLY_SEARCH_CAR', type: 'LOW' });
-    return reply(null);
-  }));
-  await api.horn(fixture); assert.equal(calls, 1);
 });
 test('uncertain command failures never trigger retries or fallback commands', async () => {
   let calls = 0;

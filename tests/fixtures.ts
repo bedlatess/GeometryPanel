@@ -8,15 +8,17 @@ export const cars = [
   { vinNo: VIN_B, vehicleName: '测试极核 B', vehicleType: 'AE6', licensePlate: '' },
 ];
 export interface Call { path: string; method: string; body: any; authorization: string }
+type CommandStage = 'prepare' | 'normal' | 'high';
 export interface Mocks {
   calls: Call[]; external: string[]; listFailures: number; empty: boolean;
-  expired: boolean; readFailure: boolean; batteryFailure: boolean; hornFailure: boolean;
-  holdList?: Promise<void>; holdHorn?: Promise<void>;
+  expired: boolean; readFailure: boolean; batteryFailure: boolean;
+  commandResults: Partial<Record<CommandStage, 'network' | 'false' | 'rejected' | 'expired'>>;
+  holdList?: Promise<void>; holdCommand?: { stage: CommandStage; wait: Promise<void> };
   vehicleRows?: unknown[];
 }
 export const test = base.extend<{ mocks: Mocks }>({
   mocks: [async ({ context }, use) => {
-    const state: Mocks = { calls: [], external: [], listFailures: 0, empty: false, expired: false, readFailure: false, batteryFailure: false, hornFailure: false };
+    const state: Mocks = { calls: [], external: [], listFailures: 0, empty: false, expired: false, readFailure: false, batteryFailure: false, commandResults: {} };
     const errors: string[] = [];
     context.on('page', page => page.on('pageerror', error => errors.push(error.message)));
     // A fetch replacement runs before the application and before service-worker dispatch.
@@ -41,9 +43,15 @@ export const test = base.extend<{ mocks: Mocks }>({
         if (state.batteryFailure) return reply(null, 503, 50000);
         return reply({ bmssoc: call.path.endsWith(VIN_B) ? 45 : 82, hmiRidableMile: 91, bmsVoltage: 76.4, chargeState: 0 });
       }
-      if (call.path.endsWith('/dbpoint/send')) {
-        if (state.holdHorn) await state.holdHorn;
-        if (state.hornFailure) return { abort: true };
+      const stage: CommandStage | null = call.path.endsWith('/dbpoint/send') ? 'prepare'
+        : call.path.includes('/vehicleInfo/control/') ? 'normal' : call.path.endsWith('/vehicleInfo/controlV2') ? 'high' : null;
+      if (stage) {
+        if (state.holdCommand?.stage === stage) await state.holdCommand.wait;
+        const result = state.commandResults[stage];
+        if (result === 'network') return { abort: true };
+        if (result === 'expired') return reply(null, 401, 401);
+        if (result === 'rejected') return reply(null, 200, 30121);
+        if (result === 'false') return reply(false);
         return reply(null);
       }
       return { abort: true };

@@ -6,6 +6,9 @@ test('offline shell loads at a repository subpath and never caches API data', as
   const response = await page.request.get('./');
   expect(response.headers()['content-security-policy']).toBe("connect-src 'self'");
   await open(page); await login(page);
+  await page.getByRole('button', { name: '鸣笛寻车' }).click();
+  await page.getByRole('button', { name: '发送鸣笛', exact: true }).click();
+  await expect(page.locator('.notice')).toContainText('普通寻车完整流程已提交');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   const cached = await page.evaluate(async () => {

@@ -7,6 +7,7 @@ import { forgetSession, loadSession, saveSession } from './core/vault';
 import { mountCaptcha } from './ui/captcha';
 import { storagePrefix } from './core/scope';
 import { installUpdates } from './core/updates';
+import { commandSummary, type HornMode, type HornReport } from './core/command-report';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '<div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
@@ -22,6 +23,7 @@ let tab: 'vehicle' | 'appearance' | 'settings' = 'vehicle';
 let notice = '连接你的极核，开启自己的面板。';
 let aborter: AbortController | null = null;
 let pending: { token: string; uid: string; vehicles: Vehicle[] } | null = null;
+let lastHornReport: HornReport | null = null;
 let phone = '';
 const cooldowns = new Map<string, number>();
 class UserMessage extends Error { }
@@ -64,6 +66,7 @@ function render() {
       <button class="action-card" data-action="horn" ${enabled ? '' : 'disabled'}><span class="action-symbol" aria-hidden="true">)))</span><span><strong>鸣笛寻车</strong><small>让爱车回应你</small></span><span class="arrow" aria-hidden="true">→</span></button>
     </section>
     <div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>
+    ${lastHornReport ? '<button class="text-button" data-action="command-report">查看寻车结果</button>' : ''}
     ${data?.receivedAt ? `<p class="timestamp">上次读取 ${new Date(data.receivedAt).toLocaleString('zh-CN')} · 以车辆上报状态为准</p>` : ''}
     ${expired ? '<button class="primary block" data-action="connect">重新登录</button>' : ''}
     ${!session ? `<div class="welcome-actions"><button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>连接我的极核</button><button class="text-button" data-action="preview" ${locked ? 'disabled' : ''}>${preview ? '退出演示' : '先体验面板'}</button></div>` : ''}`;
@@ -79,6 +82,7 @@ function render() {
       ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
     <section class="settings-card"><button class="setting-row" data-action="install"><span>添加到 iPhone 主屏幕</span><span aria-hidden="true">→</span></button></section>
     <section class="settings-card"><h2>几何面板</h2><p>网页版 · ${escape(version)} 验收版</p><p class="muted">先把日常车况与寻车做好，再慢慢长成你的样子。</p></section>
+    ${lastHornReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看寻车结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
     <div class="notice" role="status">${escape(notice)}</div>`;
   content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">Z.</span><span>几何面板<small>YOUR RIDE. YOUR WAY.</small></span><span class="platform-label">WEB</span></header>
     ${booting ? '<p class="connection-banner" role="status">正在恢复本机连接…</p>' : ''}
@@ -179,7 +183,7 @@ function listBody(result: VehicleList | null) {
   const cars = result?.vehicles ?? [];
   const status = !result ? '<p>正在读取车辆列表…</p>' : cars.length
     ? `<p class="muted">已读取 ${cars.length} 辆车。${result.unrecognizedCount ? `另有 ${result.unrecognizedCount} 条车辆记录暂未识别。` : ''}</p><div class="vehicle-list">${cars.map((car, index) => `<button class="vehicle-choice" data-action="select" data-value="${index}"><strong>${escape(car.name)}</strong><small>尾号 ${escape(car.vin.slice(-6))}${session?.vehicle.vin === car.vin ? ' · 当前车辆' : ''}</small></button>`).join('')}</div>`
-    : result.receivedCount ? `<p>已返回 ${result.receivedCount} 条车辆记录，但车辆编号暂未识别。车辆没有被解绑，请稍后重新读取。</p>`
+    : result.receivedCount ? `<p>已返回 ${result.receivedCount} 条车辆记录，但车辆编号暂未识别。这不代表车辆已解绑，请稍后重新读取。</p>`
     : '<p>极核车辆接口本次返回 0 辆车。这不代表车辆已解绑；若官方应用中已有车辆，请先重新读取，无需重复获取短信。</p>';
   return status + '<button class="text-button" data-action="retry-list">重新读取车辆列表</button><button class="text-button" data-action="phone">更换账号</button>';
 }
@@ -217,7 +221,7 @@ async function selectVehicle(index: number) {
     catch { throw new UserMessage('本机未能保存连接，本次切换未完成。请重试，或检查浏览器的存储设置。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; preview = expired = false; pending = null; tab = 'vehicle';
+    session = candidate; reading = null; lastHornReport = null; preview = expired = false; pending = null; tab = 'vehicle';
     notice = '车辆已连接，正在读取车况…';
     modal.close();
     render();
@@ -246,7 +250,8 @@ content.addEventListener('click', event => {
   if (action === 'install') show('添加到主屏幕', '<p>在 iPhone 的 Safari 中打开正式网址，点击分享按钮，选择“添加到主屏幕”，再点“添加”。</p><p class="muted">以后即可从桌面图标打开几何面板。</p><button class="primary block" data-action="close">知道了</button>');
   if (action === 'refresh') void refresh();
   if (action === 'update' && !busy && !modal.open && navigator.onLine) { updating = true; render(); updates?.activate(); }
-  if (action === 'horn' && session && !expired && !busy) show('鸣笛寻车', `<p>向 <strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）发送一次鸣笛请求。</p><button class="primary block" data-action="send-horn">发送鸣笛</button>`);
+  if (action === 'horn' && session && !expired && !busy) show('鸣笛寻车', `<p>向 <strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）发送寻车请求。</p><button class="primary block" data-action="send-horn">发送鸣笛</button><button class="text-button block" data-action="send-horn-high">高声寻车</button><p class="muted">高声寻车可能更响；每次只执行你选择的一种。</p>`);
+  if (action === 'command-report' && lastHornReport && !busy) show('寻车结果', `<pre class="diagnostic-summary" tabindex="0">${escape(commandSummary(lastHornReport, version))}</pre><button class="primary block" data-action="copy-command-report">复制排查摘要</button>`);
   if (action === 'logout' && !busy) show('退出本机登录', '<p>此设备保存的登录信息将被移除。</p><button class="primary block" data-action="confirm-logout">确认退出</button>');
 });
 modal.addEventListener('cancel', event => { event.preventDefault(); close(); });
@@ -261,12 +266,33 @@ modal.addEventListener('click', event => {
   if (button.dataset.action === 'phone') showPhone();
   if (button.dataset.action === 'retry-list') void run(retrieveCars, { bound: pending?.token === session?.token ? session! : undefined });
   if (button.dataset.action === 'select') void selectVehicle(Number(button.dataset.value));
-  if (button.dataset.action === 'send-horn' && session && !expired) {
+  if (['send-horn', 'send-horn-high'].includes(button.dataset.action ?? '') && session && !expired) {
     const bound = session;
+    const mode: HornMode = button.dataset.action === 'send-horn-high' ? 'high' : 'normal';
+    const report: HornReport = { mode, startedAt: Date.now(), steps: [] };
+    lastHornReport = report;
     void run(async (signal, current) => {
-      await api.horn(bound, signal);
-      if (current()) { notice = '服务器已受理，请确认车辆是否鸣响。'; modal.close(); }
+      await api.horn(bound, signal, { mode, onProgress: step => {
+        const index = report.steps.findIndex(value => value.stage === step.stage);
+        if (index < 0) report.steps.push(step); else report.steps[index] = step;
+        if (current()) {
+          const message = modal.querySelector('#modal-message');
+          if (message) message.textContent = step.stage === 'prepare' ? '正在准备寻车请求…' : '正在下发鸣笛请求…';
+        }
+      } });
+      if (current()) { notice = `${mode === 'high' ? '高声寻车' : '普通寻车完整流程'}已提交，请确认车辆是否鸣响。`; modal.close(); }
     }, { bound, control: true });
+  }
+  if (button.dataset.action === 'copy-command-report' && lastHornReport) {
+    const summary = commandSummary(lastHornReport, version);
+    const copy = navigator.clipboard ? navigator.clipboard.writeText(summary) : Promise.reject(new Error('Clipboard unavailable'));
+    void copy.then(() => {
+      const message = modal.querySelector('#modal-message');
+      if (message) message.textContent = '已复制，可直接用于排查。';
+    }).catch(() => {
+      const message = modal.querySelector('#modal-message');
+      if (message) message.textContent = '浏览器未允许复制，可长按上方摘要复制。';
+    });
   }
   if (button.dataset.action === 'confirm-logout') void run(async (_signal, current) => {
     committing = true;
@@ -276,7 +302,7 @@ modal.addEventListener('click', event => {
     catch { throw new UserMessage('本机登录信息未能清除，请重试。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = null; reading = null; pending = null; expired = preview = false; notice = '已退出本机登录。'; modal.close();
+    session = null; reading = null; pending = null; lastHornReport = null; expired = preview = false; notice = '已退出本机登录。'; modal.close();
   });
 });
 modal.addEventListener('submit', event => {

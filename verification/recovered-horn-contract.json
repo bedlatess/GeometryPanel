@@ -1,0 +1,54 @@
+{
+  "schema": 1,
+  "syntheticVin": "LAAAAAAAAAAAAAAA1",
+  "normal": [
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/dbpoint/send",
+      "body": {
+        "eventId": 11631,
+        "param": "{\"vinNo\":\"LAAAAAAAAAAAAAAA1\",\"functionCode\":\"LOUDLY_SEARCH_CAR\",\"type\":\"LOW\"}",
+        "uuid": "",
+        "zeehoParamTypeBO": null
+      }
+    },
+    {
+      "method": "PUT",
+      "path": "/v1.0/app/cfmotoserverapp/vehicleInfo/control/LAAAAAAAAAAAAAAA1"
+    }
+  ],
+  "high": [
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/vehicleInfo/controlV2",
+      "body": {
+        "param": "4",
+        "vin": "LAAAAAAAAAAAAAAA1"
+      }
+    }
+  ],
+  "provenance": {
+    "authority": "recovered-webpage-static-syntax",
+    "execution": "none",
+    "sources": [
+      {
+        "name": "inline-10.decoded.js",
+        "sha256": "bfc4a489d9456bbf452ca7cd70bd0c6b99498dfc1897de50d5b92c00d205f12d"
+      },
+      {
+        "name": "inline-28.decoded.js",
+        "sha256": "0ea77e925634727b224fa327572a6b678f83a24071e50e4e1de9024c79809a0f"
+      }
+    ],
+    "offsets": {
+      "search": {
+        "start": 59882,
+        "end": 60013
+      },
+      "searchHigh": {
+        "start": 60072,
+        "end": 60165
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { ApiError, CloudClient } from './client';
 import { object, snapshot, validVehicleId, vehicleList, type Session } from '../core/model';
+import type { CommandStep, HornMode } from '../core/command-report';
 
 const APP = '/v1.0/app/cfmotoserverapp';
 const MINE = '/v1.0/mine/cfmotoservermine';
@@ -52,13 +53,36 @@ export class ZeehoApi {
     }
     return snapshot(home, battery);
   }
-  async horn(session: Session, signal?: AbortSignal) {
+  async horn(session: Session, signal?: AbortSignal, options: { mode?: HornMode; onProgress?: (step: CommandStep) => void } = {}) {
     this.binding(session);
-    await this.cloud.request(`${APP}/dbpoint/send`, { method: 'POST', token: session.token, signal, body: {
-      eventId: 11631,
-      param: JSON.stringify({ vinNo: session.vehicle.vin, functionCode: 'LOUDLY_SEARCH_CAR', type: 'LOW' }),
-      uuid: '', zeehoParamTypeBO: null,
-    } });
+    const mode = options.mode ?? 'normal';
+    if (mode !== 'normal' && mode !== 'high') throw new ApiError('format');
+    // The recovered webpage sends BOTH ordinary-search steps. The first ACK
+    // alone is not completion. High-volume search is a separate explicit action.
+    const steps = mode === 'normal' ? [
+      { stage: 'prepare' as const, path: `${APP}/dbpoint/send`, method: 'POST' as const, body: {
+        eventId: 11631,
+        param: JSON.stringify({ vinNo: session.vehicle.vin, functionCode: 'LOUDLY_SEARCH_CAR', type: 'LOW' }),
+        uuid: '', zeehoParamTypeBO: null,
+      } },
+      { stage: 'control' as const, path: `${APP}/vehicleInfo/control/${session.vehicle.vin}`, method: 'PUT' as const },
+    ] : [
+      { stage: 'control' as const, path: `${APP}/vehicleInfo/controlV2`, method: 'POST' as const, body: { param: '4', vin: session.vehicle.vin } },
+    ];
+    for (const step of steps) {
+      signal?.throwIfAborted();
+      options.onProgress?.({ stage: step.stage, state: 'sending' });
+      try {
+        const data = await this.cloud.request(step.path, { method: step.method, body: 'body' in step ? step.body : undefined, token: session.token, signal });
+        signal?.throwIfAborted();
+        if (data === false) throw new ApiError('rejected', undefined, '10000');
+        options.onProgress?.({ stage: step.stage, state: 'accepted' });
+      } catch (error) {
+        options.onProgress?.({ stage: step.stage, state: signal?.aborted ? 'cancelled' : 'failed',
+          ...(error instanceof ApiError ? { failure: error.kind, httpStatus: error.httpStatus, businessCode: error.businessCode } : {}) });
+        throw error;
+      }
+    }
   }
   private phone(phone: string) { if (!/^1\d{10}$/.test(phone)) throw new ApiError('format'); }
   private binding(session: Session) { if (!validVehicleId(session.vehicle.vin) || !session.token) throw new ApiError('format'); }
