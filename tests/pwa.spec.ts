@@ -32,7 +32,8 @@ test('offline shell loads at a repository subpath and never caches API data', as
     }
     return results;
   });
-  expect(cached.length).toBe(7);
+  expect(cached.length).toBeGreaterThan(7);
+  expect(cached.some(url => url.endsWith("gp-num-barlow-semibold.woff2"))).toBe(true);
   expect(cached.every(url => url.startsWith('http://127.0.0.1:4174/panel/'))).toBe(true);
   expect(cached.some(url => /tapi|captcha|vehicle|token/.test(url))).toBe(false);
   await context.setOffline(true);
@@ -66,7 +67,11 @@ test('cache management keeps the active shell, other projects and encrypted logi
   });
   await page.getByRole('button', { name: '设置', exact: true }).click();
   await page.getByRole('button', { name: '查看离线缓存', exact: true }).click();
-  await expect(page.locator('.notice')).toContainText('离线页面完整，共 7 个静态文件。');
+  const shellFiles = await page.evaluate(async () => {
+    const name = (await caches.keys()).find(key => key.startsWith('zeeho-shell:') && !key.endsWith('synthetic-unused'))!;
+    return (await (await caches.open(name)).keys()).length;
+  });
+  await expect(page.locator('.notice')).toContainText(`离线页面完整，共 ${shellFiles} 个静态文件。`);
   await page.getByRole('button', { name: '清理旧页面缓存', exact: true }).click();
   await expect(page.locator('.notice')).toContainText('已清理 1 份旧页面缓存。');
   const names = await page.evaluate(() => caches.keys());

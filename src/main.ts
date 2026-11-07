@@ -30,6 +30,8 @@ import { renderUsagePreferences } from './ui/preferences';
 import { connectNative } from './core/native';
 import { mountNative, widgetSnapshot } from './ui/native';
 import { mountExtensions } from './ui/extensions';
+import { componentsPage } from './ui/kit/components-page';
+import { PageHeader } from './ui/kit';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '<a class="skip-link" href="#main-content">跳到主要内容</a><div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
@@ -64,7 +66,7 @@ function applyPreferences(save = true) {
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.dataset.accent = preferences.accent;
   const dark = preferences.theme === 'dark' || preferences.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#101516' : '#f1f5f2');
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0B0D10' : '#FBFCFD');
   if (save && !writePreferences(preferences, `${storagePrefix}preferences`)) notice = '配置已在当前页面生效，但本机保存未完成，重开后可能恢复原配置。';
 }
 const escape = (value: unknown) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
@@ -73,6 +75,7 @@ const isHorn = (mode: CommandMode) => mode === 'normal' || mode === 'high';
 const reportButton = () => lastCommandReport ? `<button class="text-button" data-action="command-report">查看${isHorn(lastCommandReport.mode) ? '寻车' : '车控'}结果</button>` : '';
 
 function render() {
+  if (location.hash === '#/me/components') { content.innerHTML = `<div class="shell">${PageHeader('组件一览')}${componentsPage()}</div>`; return; }
   const focused = document.activeElement instanceof HTMLButtonElement && content.contains(document.activeElement) ? { action: document.activeElement.dataset.action, value: document.activeElement.dataset.value } : null;
   const car = vehicle();
   const data = preview ? demoSnapshot : reading;

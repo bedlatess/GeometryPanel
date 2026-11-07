@@ -2,7 +2,7 @@
 import { chromium } from '@playwright/test';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
-const source = await readFile(new URL('../design/mark.svg', import.meta.url), 'utf8');
+const source = await readFile(new URL('../design/app-icon.svg', import.meta.url), 'utf8');
 const browser = await chromium.launch(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
   ? { executablePath:process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {});
 try {

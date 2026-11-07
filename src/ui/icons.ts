@@ -1,5 +1,14 @@
 /** One outline icon family; decorative by default, controls keep visible labels. */
 const paths = {
+  back: '<path d="m15 18-6-6 6-6"/>',
+  close: '<path d="m18 6-12 12M6 6l12 12"/>',
+  bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',
+  more: '<circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/>',
+  gauge: '<path d="M3 17a10 10 0 1 1 18 0M12 13l4-5"/>',
+  user: '<circle cx="12" cy="7" r="4"/><path d="M4 22v-2a8 8 0 0 1 16 0v2"/>',
+  chart: '<path d="M4 20h16M6 15V9M12 15V4M18 15V7"/>',
+  key: '<circle cx="7" cy="9" r="4"/><path d="M11 9h10M17 9v4M20 9v3"/>',
+  tire: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="4"/><path d="M12 3v5M12 16v5M3 12h5M16 12h5"/>',
   vehicle: '<path d="M4 16h13l-3-7h-4l-2 7M14 9l-1-5h4M6 13H3"/><circle cx="5" cy="18" r="3"/><circle cx="18" cy="18" r="3"/>',
   refresh: '<path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/>',
   lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',
@@ -20,4 +29,4 @@ const paths = {
   lab: '<path d="M9 3h6M10 3v6L4 19a1.3 1.3 0 0 0 1 2h14a1.3 1.3 0 0 0 1-2L14 9V3M7 15h10"/>',
 } as const;
 export type Icon = keyof typeof paths;
-export const icon = (name: Icon) => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`;
+export const icon = (name: Icon) => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`;
