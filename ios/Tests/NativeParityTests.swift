@@ -45,6 +45,13 @@ final class NativeParityTests: XCTestCase {
         XCTAssertTrue(NativeAsset.permitted(URL(string: "https://oss-cfmoto-private.zeehoev.com/a.zip?signature=synthetic")!))
         for value in ["http://oss-cfmoto-private.zeehoev.com/a.zip", "https://oss-cfmoto-private.zeehoev.com.evil.test/a.zip", "https://user@oss-cfmoto-private.zeehoev.com/a.zip", "https://zeeho-user.oss-cn-hangzhou.aliyuncs.com:444/a.zip", "https://zeeho-user.oss-cn-hangzhou.aliyuncs.com/a.zip#fragment"] { XCTAssertFalse(NativeAsset.permitted(URL(string: value)!)) }
     }
+    func testPanelExportAcceptsOnlyBoundedNamedPNG() throws {
+        let params: [String:Any] = ["kind":"panel", "fileName":"geometry-status.png", "data":png.base64EncodedString()]
+        XCTAssertEqual(try NativeAsset.panel(params), png)
+        var other = params; other["fileName"] = "../account.json"; XCTAssertThrowsError(try NativeAsset.panel(other))
+        other = params; other["data"] = "data:image/png;base64," + png.base64EncodedString(); XCTAssertThrowsError(try NativeAsset.panel(other))
+        other["data"] = String(repeating: "A", count: 1_400_004); XCTAssertThrowsError(try NativeAsset.panel(other))
+    }
     func testGeminiHeaderUsesBigEndianAndLimitsPayload() throws {
         XCTAssertEqual(try GeminiOTA.frame(0x10000005, Data([1,2])), Data([0,0,0x10,0,0,5,0,0,0,2,1,2]))
         XCTAssertThrowsError(try GeminiOTA.frame(0x10000005, Data(repeating: 0, count: 65537)))

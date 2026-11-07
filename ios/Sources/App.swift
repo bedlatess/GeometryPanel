@@ -44,8 +44,8 @@ import WebKit
     }
     @objc private func retry() { retryButton.isHidden = true; web.load(URLRequest(url: TrustedPage.home)) }
     @objc private func background() { meter.stop(); tools.stop(); if !bluetooth.proximity { bluetooth.disconnect() } }
-    private func clear() {
-        epoch += 1; binding = nil; bluetooth.binding = nil; bluetooth.disconnect(); meter.stop(); tools.stop(); local.clear(); SecureStore.delete("binding")
+    private func clear(advanceEpoch: Bool = true) {
+        if advanceEpoch { epoch += 1 }; binding = nil; bluetooth.binding = nil; bluetooth.disconnect(); meter.stop(); tools.stop(); local.clear(); SecureStore.delete("binding")
     }
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let origin = message.frameInfo.securityOrigin
@@ -53,8 +53,8 @@ import WebKit
               origin.port == 443 || origin.port == 0, TrustedPage.permits(web.url), TrustedPage.permits(message.frameInfo.request.url),
               let body = message.body as? [String: Any], let id = body["id"] as? String, !id.isEmpty, id.count <= 100,
               let method = body["method"] as? String, let params = body["params"] as? [String: Any], pending.count < 8, !pending.contains(id),
-              let serialized = try? JSONSerialization.data(withJSONObject: body), serialized.count <= 262144,
-              serialized.count <= (["accounts.sync", "background.configure", "tasks.configure"].contains(method) ? 262144 : 16384) else { return }
+              let serialized = try? JSONSerialization.data(withJSONObject: body), serialized.count <= 1572864,
+              serialized.count <= (method == "asset.export" && params["kind"] as? String == "panel" ? 1572864 : ["accounts.sync", "background.configure", "tasks.configure"].contains(method) ? 262144 : 16384) else { return }
         let methods: Set<String> = ["capabilities", "status", "bindVehicle", "forgetVehicle", "ble.scan", "ble.connect", "ble.disconnect", "ble.command", "ble.proximity", "notifications.configure", "widget.update", "meter.open", "accounts.sync", "accounts.remove", "background.configure", "background.status", "background.run", "background.history", "history.clear", "tasks.configure", "tasks.run", "tasks.status", "widget.configure", "widget.pin", "shortcuts.configure", "tools.open", "diagnostics.export", "updates.check", "updates.install", "keepalive.export", "officialLogin.start", "officialLogin.stop", "officialLogin.result", "asset.export"]
         guard methods.contains(method) else { reply(id, failure: PanelError.unavailable("当前版本没有这个原生方法。")); return }
         pending.insert(id); let generation = epoch
@@ -78,6 +78,7 @@ import WebKit
             if binding?.vin != validated.vin || binding?.uid != validated.uid || binding?.credentialDigest != validated.credentialDigest { clear() }
             else if binding?.key != validated.key || binding?.encryptValue != validated.encryptValue || binding?.cloudEnabled != validated.cloudEnabled { bluetooth.disconnect() }
             try SecureStore.write(JSONEncoder().encode(validated), name: "binding"); binding = validated; bluetooth.binding = validated
+            try NativeBackground.shared.accounts.cache(validated)
             return ["bound": true]
         case "forgetVehicle": clear(); return ["forgotten": true]
         case "ble.scan": return try await bluetooth.scan()
@@ -101,9 +102,12 @@ import WebKit
             return ["enabled": enabled, "automaticUnlockVerified": false]
         case "notifications.configure": return try await local.configure(params)
         case "widget.update": return try local.update(params)
-        case "accounts.sync": return try NativeBackground.shared.sync(params)
+        case "accounts.sync":
+            let result = try NativeBackground.shared.sync(params)
+            if let binding, !NativeBackground.shared.accounts.permits(binding) { clear(advanceEpoch: false) }; return result
         case "accounts.remove":
-            guard let id = params["accountId"] as? String else { throw PanelError.invalid("账号标识无效。") }; return try NativeBackground.shared.remove(id)
+            guard let id = params["accountId"] as? String else { throw PanelError.invalid("账号标识无效。") }; let result = try NativeBackground.shared.remove(id)
+            if let binding, !NativeBackground.shared.accounts.permits(binding) { clear(advanceEpoch: false) }; return result
         case "background.configure":
             let generation = epoch; return try await NativeBackground.shared.configure(params, validate: { [weak self] in self?.epoch == generation })
         case "background.status": return NativeBackground.shared.status()
@@ -124,7 +128,7 @@ import WebKit
         case "diagnostics.export": return try tools.exportDiagnostics()
         case "updates.check": return try await tools.checkUpdate()
         case "updates.install": return try tools.installUpdate()
-        case "asset.export": return try await tools.asset(params)
+        case "asset.export": let generation = epoch; return try await tools.asset(params, validate: { [weak self] in self?.epoch == generation })
         case "keepalive.export": throw PanelError.unavailable("iOS 不支持 Android Magisk / KernelSU 保活模块。")
         case "officialLogin.start", "officialLogin.stop", "officialLogin.result": throw PanelError.unavailable("iOS 不提供 Android 本地 VPN 官方登录捕获，请使用当前短信登录。")
         case "meter.open":
@@ -139,15 +143,15 @@ import WebKit
         default: throw PanelError.unavailable("没有这个原生方法。")
         }
     }
-    @objc private func deliverShortcut() { deliverShortcut(attempt: 0) }
-    private func deliverShortcut(attempt: Int) {
+    @objc private func deliverShortcut() { tryDeliverShortcut(attempt: 0) }
+    private func tryDeliverShortcut(attempt: Int) {
         guard webReady, !shortcutDelivering, UIApplication.shared.applicationState == .active, TrustedPage.permits(web.url), let value = NativeShortcuts.peek(), let data = try? JSONSerialization.data(withJSONObject: value), let json = String(data: data, encoding: .utf8) else { return }
         shortcutDelivering = true; let generation = epoch
         web.evaluateJavaScript("(() => { if (window.__geometryNativeShortcutReady !== true) return false; window.dispatchEvent(new CustomEvent('geometry:native-shortcut', {detail: \(json)})); return true; })()") { [weak self] result, error in
             guard let self else { return }; self.shortcutDelivering = false
             guard self.epoch == generation else { return }
             if error == nil, result as? Bool == true { NativeShortcuts.acknowledge(value) }
-            else if attempt < 20 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.deliverShortcut(attempt: attempt + 1) } }
+            else if attempt < 20 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.tryDeliverShortcut(attempt: attempt + 1) } }
         }
     }
     func confirm(_ title: String, _ message: String) async throws {

@@ -31,7 +31,7 @@ import WidgetKit
         guard allowed.contains(action), let configuration = try EncryptedLocalFile.read(Configuration.self, name: "shortcuts.v1"), configuration.actions.contains(action), vehicleId == nil || vehicleId == configuration.vehicleId else { throw PanelError.invalid("请先在面板为这辆车配置系统快捷入口。") }
         pending = ["vehicleId": configuration.vehicleId, "action": action]; NotificationCenter.default.post(name: received, object: nil)
     }
-    static func peek() -> [String: String]? { pending }
+    static func peek() -> [String: String]? { reconcile(NativeBackground.shared.accounts); return pending }
     static func acknowledge(_ value: [String: String]) { if pending == value { pending = nil } }
     static func handle(_ url: URL) -> Bool {
         guard url.scheme == "geometrypanel", url.host == "action", url.path.isEmpty || url.path == "/", url.user == nil, url.password == nil, url.fragment == nil, let components = URLComponents(url: url, resolvingAgainstBaseURL: false), let items = components.queryItems, items.count <= 2, Set(items.map(\.name)).count == items.count, items.allSatisfy({ ["action", "vehicleId"].contains($0.name) }), let action = items.first(where: { $0.name == "action" })?.value else { return false }

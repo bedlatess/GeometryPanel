@@ -51,7 +51,7 @@ import WidgetKit
         let next = try raw.map { try NativeAccount($0) }, previous = accounts.accounts
         let selected = params["selectedVehicleId"] as? String
         try accounts.replace(next, selectedVehicleId: selected)
-        if previous != next { reconcile(previous) }
+        if previous != accounts.accounts { reconcile(previous) }
         return accounts.summary()
     }
     func remove(_ id: String) throws -> [String: Any] {
@@ -62,12 +62,14 @@ import WidgetKit
         cancel(); NativeTasks.shared.cancel(); NativeShortcuts.reconcile(accounts)
         for old in previous {
             let current = accounts.accounts.first { $0.id == old.id && $0.uid == old.uid }
-            for vehicle in old.vehicles where current?.vehicles.contains(where: { $0.id == vehicle.id && $0.vin == vehicle.vin }) != true {
-                try? NativeHistory.clear(account: old, vehicle: vehicle)
+            for vehicle in old.vehicles {
+                if current?.vehicles.contains(where: { $0.id == vehicle.id && $0.vin == vehicle.vin }) != true { try? NativeHistory.clear(account: old, vehicle: vehicle) }
+                if current?.token != old.token || current?.epoch != old.epoch || current?.vehicles.contains(where: { $0 == vehicle }) != true { SecureStore.delete(NativeAccountStore.materialName(uid: old.uid, vin: vehicle.vin)) }
             }
         }
         let ids = Set(accounts.accounts.flatMap { $0.vehicles.map(\.id) })
         snapshots = snapshots.filter { ids.contains($0.key) }; failures = failures.filter { ids.contains($0.key) }; messages.removeAll()
+        if let shared = WidgetSnapshot.sharedDefaults, let widgetId = shared.string(forKey: "widget.vehicle"), !ids.contains(widgetId) { shared.removeObject(forKey: "vehicle-snapshot.v1"); shared.removeObject(forKey: "widget.vehicle"); shared.set(false, forKey: "widget.controls"); WidgetCenter.shared.reloadAllTimelines() }
         if ids.isEmpty { configuration.enabled = false; try? EncryptedLocalFile.write(configuration, name: "monitor.v1"); foreground(false) }
         schedule()
     }

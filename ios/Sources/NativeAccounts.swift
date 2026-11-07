@@ -46,7 +46,12 @@ struct NativeAccount: Codable, Equatable {
     func replace(_ accounts: [NativeAccount], selectedVehicleId: String?) throws {
         let vehicleIds = accounts.flatMap { $0.vehicles.map(\.id) }
         guard accounts.count <= 8, Set(accounts.map(\.id)).count == accounts.count, Set(vehicleIds).count == vehicleIds.count, selectedVehicleId == nil || vehicleIds.contains(selectedVehicleId!) else { throw PanelError.invalid("账号列表无效。") }
-        let next = Envelope(version: 1, selectedVehicleId: selectedVehicleId, accounts: accounts)
+        let restored = accounts.map { incoming -> NativeAccount in
+            var account = incoming
+            if let old = envelope.accounts.first(where: { $0.id == account.id && $0.uid == account.uid && $0.token == account.token && $0.epoch == account.epoch }), old.expired { account.expired = true }
+            return account
+        }
+        let next = Envelope(version: 1, selectedVehicleId: selectedVehicleId, accounts: restored)
         try save(next); envelope = next
     }
     func remove(_ id: String?) throws {
@@ -65,6 +70,14 @@ struct NativeAccount: Codable, Equatable {
         try SecureStore.write(JSONEncoder().encode(value), name: "accounts.v1", background: true)
     }
     func summary() -> [String: Any] { ["count": accounts.count, "selectedVehicleId": selectedVehicleId as Any? ?? NSNull(), "expiredIds": accounts.filter(\.expired).map(\.id)] }
+    static func materialName(uid: String, vin: String) -> String { "material." + MeterWire.md5(Data((uid + "|" + vin).utf8)) }
+    func cache(_ binding: VehicleBinding) throws {
+        guard accounts.contains(where: { $0.uid == binding.uid && $0.vehicles.contains(where: { $0.vin == binding.vin }) }) else { return }
+        try SecureStore.write(JSONEncoder().encode(binding), name: Self.materialName(uid: binding.uid, vin: binding.vin))
+    }
+    func permits(_ binding: VehicleBinding) -> Bool {
+        accounts.contains { account in account.uid == binding.uid && !account.expired && SHA256.hash(data: Data(account.token.utf8)).map { String(format: "%02x", $0) }.joined() == binding.credentialDigest && account.vehicles.contains { $0.vin == binding.vin } }
+    }
 }
 
 enum EncryptedLocalFile {

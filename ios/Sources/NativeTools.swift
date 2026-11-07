@@ -1,8 +1,15 @@
 import UIKit
 import AVFoundation
 import UniformTypeIdentifiers
+import ImageIO
 
 enum NativeAsset {
+    static func panel(_ params: [String: Any]) throws -> Data {
+        guard params["kind"] as? String == "panel", params["fileName"] as? String == "geometry-status.png", let base64 = params["data"] as? String, base64.utf8.count <= 1_400_000, let data = Data(base64Encoded: base64), !data.isEmpty, data.count <= 1024 * 1024 else { throw PanelError.invalid("车况图片须为 1 MiB 内的 PNG。") }
+        try WallpaperArchive.png(data)
+        guard let source = CGImageSourceCreateWithData(data as CFData, [kCGImageSourceShouldCache:false] as CFDictionary), let properties = CGImageSourceCopyPropertiesAtIndex(source, 0, nil) as? [CFString:Any], let width = properties[kCGImagePropertyPixelWidth] as? Int, let height = properties[kCGImagePropertyPixelHeight] as? Int, (1...2048).contains(width), (1...2048).contains(height) else { throw PanelError.invalid("车况图片边长不能超过 2048 像素。") }
+        return data
+    }
     static func permitted(_ url: URL) -> Bool {
         url.scheme == "https" && ["oss-cfmoto-private.zeehoev.com", "zeeho-user.oss-cn-hangzhou.aliyuncs.com"].contains(url.host ?? "") && (url.port == nil || url.port == 443) && url.user == nil && url.password == nil && url.fragment == nil
     }
@@ -50,12 +57,15 @@ enum NativeAsset {
         let data = try JSONSerialization.data(withJSONObject: ["platform": "ios", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown", "schema": 1, "accountCount": NativeBackground.shared.accounts.accounts.count, "monitorEnabled": NativeBackground.shared.enabled, "backgroundMode": NativeBackground.shared.backgroundMode, "widgetAvailable": WidgetSnapshot.sharedDefaults != nil, "containsCredentials": false, "containsLocation": false], options: [.prettyPrinted, .sortedKeys])
         try share(data, name: "GeometryPanel-diagnostics.json"); return ["opened": true]
     }
-    func asset(_ params: [String: Any]) async throws -> [String: Any] {
+    func asset(_ params: [String: Any], validate: () -> Bool) async throws -> [String: Any] {
+        if params["kind"] as? String == "panel" {
+            let data = try NativeAsset.panel(params); guard validate() else { throw PanelError.cancelled }; try share(data, name: "geometry-status.png"); return ["opened":true, "validated":true, "size":data.count]
+        }
         guard params["kind"] as? String == "wallpaper", let text = params["url"] as? String, text.count <= 8192, let url = URL(string: text), NativeAsset.permitted(url) else { throw PanelError.invalid("壁纸下载资料无效。") }
         let size = NativeCloud.number(params["fileSize"], range: 1...Double(16 * 1024 * 1024)), digest = params["md5"] as? String
         if params["fileSize"] != nil, !(params["fileSize"] is NSNull), size == nil { throw PanelError.invalid("壁纸长度无效。") }
         if let digest, digest.range(of: "^[a-fA-F0-9]{32}$", options: .regularExpression) == nil { throw PanelError.invalid("MD5 格式无效。") }
-        let data = try await NativeAsset.download(url)
+        let data = try await NativeAsset.download(url); try Task.checkCancellation(); guard validate() else { throw PanelError.cancelled }
         guard size == nil || Int(size!) == data.count, digest == nil || digest!.lowercased() == MeterWire.md5(data) else { throw PanelError.invalid("壁纸长度或 MD5 与云端资料不一致。") }
         try WallpaperArchive.validate(data); try share(data, name: "GeometryPanel-wallpaper.zip"); return ["opened": true, "validated": true, "size": data.count]
     }
@@ -136,6 +146,8 @@ enum GeminiOTA {
     private unowned let tools: NativeTools
     private let output = UITextView()
     private var task: Task<Void, Never>?, socket: MeterSocket?
+    private var preparation: Task<(URL, Int, String, String), Error>?
+    private var confirmation: CheckedContinuation<Void, Error>?
     private var generation = 0, began = false
     init(name: String, tools: NativeTools) { self.name = name; self.tools = tools; super.init(nibName: nil, bundle: nil) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -143,6 +155,7 @@ enum GeminiOTA {
         super.viewDidLoad(); view.backgroundColor = .systemBackground
         title = ["ota":"Gemini 仪表升级", "wallpaperZip":"检查本地壁纸 ZIP", "diagnostics":"脱敏诊断", "updates":"应用更新"][name]
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "关闭", style: .done, target: self, action: #selector(close))
+        if name == "ota" { navigationItem.leftBarButtonItem = UIBarButtonItem(title: "停止", style: .plain, target: self, action: #selector(stopTransmission)) }
         let button = UIButton(type: .system); var config = UIButton.Configuration.filled(); config.title = ["ota":"选择本地 .bin 固件", "wallpaperZip":"选择 ZIP 并校验 / 导出", "diagnostics":"导出诊断", "updates":"检查本仓库更新"][name]; button.configuration = config; button.addAction(UIAction { [weak self] _ in self?.perform() }, for: .touchUpInside)
         let stack = UIStackView(arrangedSubviews: [button, output]); stack.axis = .vertical; stack.spacing = 20; stack.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(stack)
         NSLayoutConstraint.activate([stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20), stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20), stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20), stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)])
@@ -168,10 +181,14 @@ enum GeminiOTA {
                     let access = source.startAccessingSecurityScopedResource(); defer { if access { source.stopAccessingSecurityScopedResource() } }
                     guard let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0, size <= 16 * 1024 * 1024 else { throw PanelError.invalid("ZIP 必须小于 16 MiB。") }
                     let data = try Data(contentsOf: source); try WallpaperArchive.validate(data)
-                    guard epoch == self.generation else { throw PanelError.cancelled }; self.output.text = "ZIP / PNG 校验通过，可保存后从壁纸模板入口推送。"; try self.tools.share(data, name: "GeometryPanel-wallpaper.zip"); return
+                    guard epoch == self.generation else { throw PanelError.cancelled }; self.output.text = "ZIP / PNG 校验通过，可保存后从壁纸模板入口推送。"
+                    controller.dismiss(animated: true) { [weak self] in
+                        guard let self, epoch == self.generation else { return }; do { try self.tools.share(data, name: "GeometryPanel-wallpaper.zip") } catch { self.output.text = "校验通过，导出未完成。请重新选择后重试。" }
+                    }; return
                 }
                 self.output.text = "正在复制并校验固件…"
-                let prepared = try await Task.detached(priority: .userInitiated) { try GeminiOTA.prepare(source) }.value
+                self.preparation = Task.detached(priority: .userInitiated) { try GeminiOTA.prepare(source) }
+                guard let preparation = self.preparation else { throw PanelError.cancelled }; let prepared = try await preparation.value; self.preparation = nil
                 defer { try? FileManager.default.removeItem(at: prepared.0) }
                 guard epoch == self.generation, !Task.isCancelled else { throw PanelError.cancelled }
                 let socket = MeterSocket(port: 10086); self.socket = socket; try await socket.open()
@@ -198,16 +215,24 @@ enum GeminiOTA {
     }
     private func confirm(_ title: String, _ text: String) async throws {
         try await withCheckedThrowingContinuation { (continuation: CheckedContinuation<Void, Error>) in
-            let alert = UIAlertController(title: title, message: text, preferredStyle: .alert); alert.addAction(UIAlertAction(title: "取消", style: .cancel) { _ in continuation.resume(throwing: PanelError.cancelled) }); alert.addAction(UIAlertAction(title: "确认推送", style: .destructive) { _ in continuation.resume() }); present(alert, animated: true)
+            confirmation = continuation
+            let alert = UIAlertController(title: title, message: text, preferredStyle: .alert); alert.addAction(UIAlertAction(title: "取消", style: .cancel) { [weak self] _ in self?.completeConfirmation(.failure(PanelError.cancelled)) }); alert.addAction(UIAlertAction(title: "确认推送", style: .destructive) { [weak self] _ in self?.completeConfirmation(.success(())) }); present(alert, animated: true)
         }
     }
-    func cancel() { generation += 1; task?.cancel(); task = nil; socket?.close(); socket = nil }
+    private func completeConfirmation(_ result: Result<Void, Error>) { let saved = confirmation; confirmation = nil; saved?.resume(with: result) }
+    func cancel() { generation += 1; completeConfirmation(.failure(PanelError.cancelled)); preparation?.cancel(); preparation = nil; task?.cancel(); task = nil; socket?.close(); socket = nil; isModalInPresentation = false }
+    @objc private func stopTransmission() {
+        guard task != nil, presentedViewController == nil else { return }
+        let alert = UIAlertController(title: "停止当前操作", message: began ? "请求已发送；停止后结果未知，请保持车辆供电并观察仪表，不要直接重试。" : "将取消文件准备或仪表查询。", preferredStyle: .alert)
+        alert.addAction(UIAlertAction(title: "继续", style: .cancel)); alert.addAction(UIAlertAction(title: "停止", style: .destructive) { [weak self] _ in guard let self else { return }; self.cancel(); self.output.text = self.began ? "传输已中止，结果未知。请保持供电并观察仪表。" : "已取消。" }); present(alert, animated: true)
+    }
     override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); if navigationController?.isBeingDismissed == true || isBeingDismissed { cancel() } }
     @objc private func close() { if began, task != nil { output.text = "正在传输；如确需中止，请保持车辆供电后退出应用，结果将未知。"; return }; cancel(); dismiss(animated: true) }
 }
 
 @MainActor final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
     private let session = AVCaptureSession(), result = UITextView()
+    private let captureQueue = DispatchQueue(label: "geometry.scanner.capture")
     private var closed = false
     override func viewDidLoad() {
         super.viewDidLoad(); title = "扫码工具"; view.backgroundColor = .systemBackground
@@ -221,13 +246,13 @@ enum GeminiOTA {
             self.session.addInput(input); let output = AVCaptureMetadataOutput(); guard self.session.canAddOutput(output) else { return }; self.session.addOutput(output)
             output.setMetadataObjectsDelegate(self, queue: .main); output.metadataObjectTypes = [.qr, .ean8, .ean13, .code128].filter { output.availableMetadataObjectTypes.contains($0) }
             let preview = AVCaptureVideoPreviewLayer(session: self.session); preview.videoGravity = .resizeAspectFill; preview.frame = CGRect(x: 0, y: self.view.safeAreaInsets.top, width: self.view.bounds.width, height: max(100, self.view.bounds.height - 240)); self.view.layer.insertSublayer(preview, at: 0)
-            let capture = self.session; DispatchQueue.global(qos: .userInitiated).async { capture.startRunning() }
+            let capture = self.session; self.captureQueue.async { capture.startRunning() }
         }
     }
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
         guard let text = (metadataObjects.first as? AVMetadataMachineReadableCodeObject)?.stringValue else { return }; result.text = String(text.prefix(4096)) + "\n\n可长按选择和复制。不会自动打开或执行。"
     }
-    func stopCapture() { closed = true; let capture = session; DispatchQueue.global().async { capture.stopRunning() } }
+    func stopCapture() { closed = true; let capture = session; captureQueue.async { capture.stopRunning() } }
     override func viewWillDisappear(_ animated: Bool) { super.viewWillDisappear(animated); stopCapture() }
     @objc private func close() { dismiss(animated: true) }
 }
