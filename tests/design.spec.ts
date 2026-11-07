@@ -73,6 +73,9 @@ test('responsive themes and all preview scenes fit phones, landscape and wide sc
   await mkdir('.tools/ui', { recursive: true });
   for (const [width,height] of [[360,800],[390,844],[430,932],[844,390],[1280,900]]) {
     await page.setViewportSize({ width, height });
+    const art = await page.locator('.vehicle-art').boundingBox(), hero = await page.locator('.hero-body').boundingBox();
+    expect(art!.y).toBeGreaterThanOrEqual(hero!.y);
+    expect(art!.y + art!.height).toBeLessThanOrEqual(hero!.y + hero!.height + 1);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     if (width === 390 && info.project.name === 'chromium-mobile') {
       await page.evaluate(() => window.scrollTo(0, 0));

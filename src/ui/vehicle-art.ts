@@ -1,5 +1,5 @@
 /** Original abstract side-profile. It deliberately does not identify a model. */
-export const vehicleArt = () => `<svg class="vehicle-art" viewBox="0 0 400 270" fill="none" aria-hidden="true">
+export const vehicleArt = () => `<svg class="vehicle-art" viewBox="0 0 400 270" preserveAspectRatio="xMaxYMax meet" fill="none" aria-hidden="true">
   <ellipse cx="202" cy="244" rx="166" ry="5" class="art-shadow"/>
   <g class="art-wheel"><circle cx="92" cy="207" r="36"/><circle cx="311" cy="207" r="36"/></g>
   <g class="art-rim"><circle cx="92" cy="207" r="23"/><circle cx="311" cy="207" r="23"/></g>
