@@ -1,0 +1,24 @@
+{
+  "checkedAt": "2026-11-07T07:09:00.370364+00:00",
+  "method": "OPTIONS only; no Authorization value or request body",
+  "accountReadsOrVehicleCommands": 0,
+  "results": [
+    {
+      "path": "/v1.0/app/cfmotoserverapp/vehicleSet/network/unlock",
+      "requestedMethod": "POST",
+      "status": 200,
+      "allowedOrigin": "https://bedlatess.github.io",
+      "allowedMethods": "POST",
+      "allowedHeaders": "authorization, content-type, accept-language, interfaceversion, cfmoto-x-param, cfmoto-x-sign, cfmoto-x-sign-type"
+    },
+    {
+      "path": "/v1.0/app/cfmotoserverapp/vehicleSet/propertyTwo/one",
+      "requestedMethod": "PUT",
+      "status": 200,
+      "allowedOrigin": "https://bedlatess.github.io",
+      "allowedMethods": "PUT",
+      "allowedHeaders": "authorization, content-type, accept-language, interfaceversion, cfmoto-x-param, cfmoto-x-sign, cfmoto-x-sign-type"
+    }
+  ],
+  "limit": "Preflight only; actual authenticated responses and vehicle execution require real acceptance."
+}

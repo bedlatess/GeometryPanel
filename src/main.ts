@@ -1,29 +1,34 @@
 import './styles.css';
 import { ApiError, messageFor } from './api/client';
 import { ZeehoApi } from './api/zeeho';
+import { VehicleControls, type VehicleAction } from './api/controls';
 import { demoSnapshot, demoVehicle, type Session, type Snapshot, type Vehicle, type VehicleList } from './core/model';
 import { version } from '../package.json';
 import { forgetSession, loadSession, saveSession } from './core/vault';
 import { mountCaptcha } from './ui/captcha';
 import { storagePrefix } from './core/scope';
 import { installUpdates } from './core/updates';
-import { commandSummary, type HornMode, type HornReport } from './core/command-report';
+import { commandNames, commandSummary, type CommandMode, type CommandReport, type CommandStep } from './core/command-report';
+import { renderDaily } from './ui/daily';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = '<div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
 const content = document.querySelector<HTMLDivElement>('#content')!;
 const modal = document.querySelector<HTMLDialogElement>('#modal')!;
 const api = new ZeehoApi();
+const controls = new VehicleControls();
 let session: Session | null = null;
 let reading: Snapshot | null = null;
 let preview = false, busy = false, booting = true, committing = false, activeControl = false, expired = false, generation = 0;
 let updateReady = false, updating = false, lastReadAttempt = 0;
 let updates: ReturnType<typeof installUpdates> | undefined;
-let tab: 'vehicle' | 'appearance' | 'settings' = 'vehicle';
+let tab: 'vehicle' | 'daily' | 'appearance' | 'settings' = 'vehicle';
 let notice = '连接你的极核，开启自己的面板。';
 let aborter: AbortController | null = null;
 let pending: { token: string; uid: string; vehicles: Vehicle[] } | null = null;
-let lastHornReport: HornReport | null = null;
+let lastCommandReport: CommandReport | null = null;
+let commandTarget: Session | null = null;
+let commandIntent: 'horn' | VehicleAction | null = null;
 let phone = '';
 const cooldowns = new Map<string, number>();
 class UserMessage extends Error { }
@@ -43,6 +48,8 @@ function applyPreferences() {
 const escape = (value: unknown) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const display = (value: number | null | undefined, unit = '') => value == null ? '—' : `${Number.isInteger(value) ? value : value.toFixed(1)}${unit}`;
 const vehicle = () => preview ? demoVehicle : session?.vehicle;
+const isHorn = (mode: CommandMode) => mode === 'normal' || mode === 'high';
+const reportButton = () => lastCommandReport ? `<button class="text-button" data-action="command-report">查看${isHorn(lastCommandReport.mode) ? '寻车' : '车控'}结果</button>` : '';
 
 function render() {
   const car = vehicle();
@@ -64,12 +71,16 @@ function render() {
       ${preferences.voltage ? `<section class="metric"><span>电池电压</span><strong>${display(data?.voltage)}<small>V</small></strong></section>` : ''}</div>
     <section class="section"><div class="section-heading"><h2>快捷操作</h2><span>随时掌握</span></div>
       <button class="action-card" data-action="horn" ${enabled ? '' : 'disabled'}><span class="action-symbol" aria-hidden="true">)))</span><span><strong>鸣笛寻车</strong><small>让爱车回应你</small></span><span class="arrow" aria-hidden="true">→</span></button>
+      <button class="text-button block" data-action="tab" data-value="daily">查看日常用车、位置与更多车控 →</button>
     </section>
     <div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>
-    ${lastHornReport ? '<button class="text-button" data-action="command-report">查看寻车结果</button>' : ''}
+    ${reportButton()}
     ${data?.receivedAt ? `<p class="timestamp">上次读取 ${new Date(data.receivedAt).toLocaleString('zh-CN')} · 以车辆上报状态为准</p>` : ''}
     ${expired ? '<button class="primary block" data-action="connect">重新登录</button>' : ''}
     ${!session ? `<div class="welcome-actions"><button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>连接我的极核</button><button class="text-button" data-action="preview" ${locked ? 'disabled' : ''}>${preview ? '退出演示' : '先体验面板'}</button></div>` : ''}`;
+  if (tab === 'daily') body = renderDaily({ car, data, demo: preview, enabled: Boolean(enabled), locked, online: navigator.onLine })
+    + `<div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>${reportButton()}`
+    + (expired ? '<button class="primary block" data-action="connect">重新登录</button>' : '');
   if (tab === 'appearance') body = `
     <div class="page-heading"><div><span class="eyebrow">按你的喜好</span><h1>我的风格</h1></div></div><p class="subheading">每一点改变，都保留在这台设备。</p>
     <section class="settings-card"><h2>外观模式</h2><div class="segmented">${(['system', 'light', 'dark'] as const).map((mode, i) => `<button data-action="theme" data-value="${mode}" aria-pressed="${preferences.theme === mode}">${['跟随系统', '浅色', '深色'][i]}</button>`).join('')}</div></section>
@@ -81,18 +92,19 @@ function render() {
       <button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>${session ? '重新登录' : '登录并连接'}</button>
       ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
     <section class="settings-card"><button class="setting-row" data-action="install"><span>添加到 iPhone 主屏幕</span><span aria-hidden="true">→</span></button></section>
-    <section class="settings-card"><h2>几何面板</h2><p>网页版 · ${escape(version)} 验收版</p><p class="muted">先把日常车况与寻车做好，再慢慢长成你的样子。</p></section>
-    ${lastHornReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看寻车结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
+    <section class="settings-card"><h2>几何面板</h2><p>网页版 · ${escape(version)} 验收版</p><p class="muted">车况、充电、位置与日常车控，集中在“用车”页。</p></section>
+    ${lastCommandReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看操作结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
     <div class="notice" role="status">${escape(notice)}</div>`;
   content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">Z.</span><span>几何面板<small>YOUR RIDE. YOUR WAY.</small></span><span class="platform-label">WEB</span></header>
     ${booting ? '<p class="connection-banner" role="status">正在恢复本机连接…</p>' : ''}
     ${!navigator.onLine ? '<p class="connection-banner" role="status">网络已断开，显示内容不会更新。联网后可重新读取。</p>' : ''}
     ${updateReady ? `<div class="connection-banner" role="status"><span>新版本已准备好</span><button class="text-button" data-action="update" ${locked || modal.open || !navigator.onLine ? 'disabled' : ''}>${updating ? '正在更新…' : '更新并重新打开'}</button></div>` : ''}
     <main>${body}</main>
-    <nav class="bottom-nav" aria-label="主导航">${(['vehicle', 'appearance', 'settings'] as const).map((page, i) => `<button data-action="tab" data-value="${page}" ${tab === page ? 'aria-current="page"' : ''}>${['车辆', '外观', '设置'][i]}</button>`).join('')}</nav></div>`;
+    <nav class="bottom-nav" aria-label="主导航">${(['vehicle', 'daily', 'appearance', 'settings'] as const).map((page, i) => `<button data-action="tab" data-value="${page}" ${tab === page ? 'aria-current="page"' : ''}>${['车辆', '用车', '外观', '设置'][i]}</button>`).join('')}</nav></div>`;
 }
 
 function show(title: string, body: string) {
+  commandTarget = null; commandIntent = null;
   modal.innerHTML = `<div class="modal-heading"><h2 id="modal-title">${escape(title)}</h2><button class="text-button" data-action="close" aria-label="关闭">关闭</button></div>${body}<p id="modal-message" class="form-message" role="status" aria-live="polite"></p>`;
   if (!modal.open) modal.showModal();
   if (busy) modal.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button:not([data-action="close"]),input').forEach(element => element.disabled = true);
@@ -105,14 +117,14 @@ function close() {
     if (activeControl) notice = '请求结果尚未确认，请先观察车辆，避免重复发送。';
     activeControl = false;
   }
-  pending = null; modal.close(); render();
+  pending = null; commandTarget = null; commandIntent = null; modal.close(); render();
 }
 async function run(task: (signal: AbortSignal, current: () => boolean) => Promise<void>, options: { bound?: Session; control?: boolean } = {}) {
   if (busy || booting || updating) return;
   if (!navigator.onLine && !options.control && options.bound) { notice = '当前离线，请联网后重新读取。'; render(); return; }
   busy = true; const epoch = ++generation; aborter = new AbortController();
   activeControl = Boolean(options.control);
-  if (activeControl) notice = '正在发送鸣笛请求…';
+  if (activeControl) notice = '正在发送车辆操作请求…';
   const signal = aborter.signal;
   render();
   modal.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button:not([data-action="close"]),input').forEach(element => element.disabled = true);
@@ -131,6 +143,7 @@ async function run(task: (signal: AbortSignal, current: () => boolean) => Promis
     if (epoch === generation) {
       busy = false; activeControl = false; render();
       modal.querySelectorAll<HTMLButtonElement | HTMLInputElement>('button,input').forEach(element => element.disabled = false);
+      if (expired) modal.querySelectorAll<HTMLButtonElement>('[data-action="send-horn"],[data-action="send-horn-high"],[data-action="send-control"]').forEach(element => element.disabled = true);
       updateCooldown();
     }
   }
@@ -221,7 +234,7 @@ async function selectVehicle(index: number) {
     catch { throw new UserMessage('本机未能保存连接，本次切换未完成。请重试，或检查浏览器的存储设置。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; lastHornReport = null; preview = expired = false; pending = null; tab = 'vehicle';
+    session = candidate; reading = null; lastCommandReport = null; preview = expired = false; pending = null; tab = 'vehicle';
     notice = '车辆已连接，正在读取车况…';
     modal.close();
     render();
@@ -231,12 +244,40 @@ async function selectVehicle(index: number) {
   }, { bound: candidate });
 }
 
+function beginCommand(mode: CommandMode) {
+  const bound = commandTarget;
+  if (!bound || session !== bound || busy || expired || preview || !navigator.onLine) return;
+  if (isHorn(mode) ? commandIntent !== 'horn' : commandIntent !== mode) return;
+  const capability = reading?.daily.capabilities;
+  if ((mode === 'powerOn' || mode === 'powerOff') && capability?.networkUnlock === false
+    || mode === 'seat' && capability?.seatOpen === false) return;
+  const report: CommandReport = { mode, startedAt: Date.now(), steps: [] };
+  lastCommandReport = report;
+  void run(async (signal, current) => {
+    const progress = (step: CommandStep) => {
+      const index = report.steps.findIndex(value => value.stage === step.stage);
+      if (index < 0) report.steps.push(step); else report.steps[index] = step;
+      if (current()) {
+        const message = modal.querySelector('#modal-message');
+        if (message) message.textContent = step.stage === 'prepare' ? '正在准备车辆操作…' : '正在提交车辆操作…';
+      }
+    };
+    if (mode === 'normal' || mode === 'high') await api.horn(bound, signal, { mode, onProgress: progress });
+    else await controls.execute(bound, mode, signal, progress);
+    if (current()) {
+      notice = mode === 'normal' ? '普通寻车完整流程已提交，请确认车辆是否鸣响。'
+        : mode === 'high' ? '高声寻车已提交，请确认车辆是否鸣响。' : `${commandNames[mode]}请求已提交，请刷新车况并确认车辆实际状态。`;
+      commandTarget = null; commandIntent = null; modal.close();
+    }
+  }, { bound, control: true });
+}
+
 content.addEventListener('click', event => {
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   if (booting || updating) return;
-  if (action === 'tab') { tab = button.dataset.value as typeof tab; render(); }
+  if (action === 'tab') { tab = button.dataset.value as typeof tab; render(); window.scrollTo(0, 0); }
   if (action === 'preview') { preview = !preview; notice = preview ? '当前为演示数据，所有车辆控制均已停用。' : '连接你的极核，开启自己的面板。'; render(); }
   if (action === 'connect' && !busy) showPhone();
   if (action === 'switch' && session && !busy && !expired) {
@@ -250,8 +291,19 @@ content.addEventListener('click', event => {
   if (action === 'install') show('添加到主屏幕', '<p>在 iPhone 的 Safari 中打开正式网址，点击分享按钮，选择“添加到主屏幕”，再点“添加”。</p><p class="muted">以后即可从桌面图标打开几何面板。</p><button class="primary block" data-action="close">知道了</button>');
   if (action === 'refresh') void refresh();
   if (action === 'update' && !busy && !modal.open && navigator.onLine) { updating = true; render(); updates?.activate(); }
-  if (action === 'horn' && session && !expired && !busy) show('鸣笛寻车', `<p>向 <strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）发送寻车请求。</p><button class="primary block" data-action="send-horn">发送鸣笛</button><button class="text-button block" data-action="send-horn-high">高声寻车</button><p class="muted">高声寻车可能更响；每次只执行你选择的一种。</p>`);
-  if (action === 'command-report' && lastHornReport && !busy) show('寻车结果', `<pre class="diagnostic-summary" tabindex="0">${escape(commandSummary(lastHornReport, version))}</pre><button class="primary block" data-action="copy-command-report">复制排查摘要</button>`);
+  if (action === 'horn' && session && !expired && !busy && navigator.onLine) {
+    show('鸣笛寻车', `<p>向 <strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）发送寻车请求。</p><button class="primary block" data-action="send-horn">发送鸣笛</button><button class="text-button block" data-action="send-horn-high">高声寻车</button><p class="muted">高声寻车可能更响；每次只执行你选择的一种。</p>`);
+    commandTarget = session; commandIntent = 'horn';
+  }
+  if (action === 'vehicle-action' && session && !expired && !busy && navigator.onLine) {
+    const mode = button.dataset.value as VehicleAction;
+    if (['powerOn', 'powerOff', 'seat'].includes(mode)) {
+      const description = mode === 'powerOn' ? '将开机并解锁车辆。' : mode === 'powerOff' ? '将关机并锁车，请在停车后操作。' : '将发送座桶开启请求，请在车旁确认开启结果。';
+      show(commandNames[mode], `<p>目标：<strong>${escape(session.vehicle.name)}</strong>（尾号 ${escape(session.vehicle.vin.slice(-6))}）</p><p>${description}</p><button class="primary block" data-action="send-control" data-value="${mode}">确认${commandNames[mode]}</button>`);
+      commandTarget = session; commandIntent = mode;
+    }
+  }
+  if (action === 'command-report' && lastCommandReport && !busy) show(isHorn(lastCommandReport.mode) ? '寻车结果' : '车控结果', `<pre class="diagnostic-summary" tabindex="0">${escape(commandSummary(lastCommandReport, version))}</pre><button class="primary block" data-action="copy-command-report">复制排查摘要</button>`);
   if (action === 'logout' && !busy) show('退出本机登录', '<p>此设备保存的登录信息将被移除。</p><button class="primary block" data-action="confirm-logout">确认退出</button>');
 });
 modal.addEventListener('cancel', event => { event.preventDefault(); close(); });
@@ -266,25 +318,11 @@ modal.addEventListener('click', event => {
   if (button.dataset.action === 'phone') showPhone();
   if (button.dataset.action === 'retry-list') void run(retrieveCars, { bound: pending?.token === session?.token ? session! : undefined });
   if (button.dataset.action === 'select') void selectVehicle(Number(button.dataset.value));
-  if (['send-horn', 'send-horn-high'].includes(button.dataset.action ?? '') && session && !expired) {
-    const bound = session;
-    const mode: HornMode = button.dataset.action === 'send-horn-high' ? 'high' : 'normal';
-    const report: HornReport = { mode, startedAt: Date.now(), steps: [] };
-    lastHornReport = report;
-    void run(async (signal, current) => {
-      await api.horn(bound, signal, { mode, onProgress: step => {
-        const index = report.steps.findIndex(value => value.stage === step.stage);
-        if (index < 0) report.steps.push(step); else report.steps[index] = step;
-        if (current()) {
-          const message = modal.querySelector('#modal-message');
-          if (message) message.textContent = step.stage === 'prepare' ? '正在准备寻车请求…' : '正在下发鸣笛请求…';
-        }
-      } });
-      if (current()) { notice = `${mode === 'high' ? '高声寻车' : '普通寻车完整流程'}已提交，请确认车辆是否鸣响。`; modal.close(); }
-    }, { bound, control: true });
-  }
-  if (button.dataset.action === 'copy-command-report' && lastHornReport) {
-    const summary = commandSummary(lastHornReport, version);
+  if (button.dataset.action === 'send-horn') beginCommand('normal');
+  if (button.dataset.action === 'send-horn-high') beginCommand('high');
+  if (button.dataset.action === 'send-control' && ['powerOn', 'powerOff', 'seat'].includes(button.dataset.value ?? '')) beginCommand(button.dataset.value as VehicleAction);
+  if (button.dataset.action === 'copy-command-report' && lastCommandReport) {
+    const summary = commandSummary(lastCommandReport, version);
     const copy = navigator.clipboard ? navigator.clipboard.writeText(summary) : Promise.reject(new Error('Clipboard unavailable'));
     void copy.then(() => {
       const message = modal.querySelector('#modal-message');
@@ -302,7 +340,7 @@ modal.addEventListener('click', event => {
     catch { throw new UserMessage('本机登录信息未能清除，请重试。'); }
     finally { committing = false; }
     if (!current()) return;
-    session = null; reading = null; pending = null; lastHornReport = null; expired = preview = false; notice = '已退出本机登录。'; modal.close();
+    session = null; reading = null; pending = null; lastCommandReport = null; expired = preview = false; notice = '已退出本机登录。'; modal.close();
   });
 });
 modal.addEventListener('submit', event => {

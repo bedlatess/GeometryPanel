@@ -1,4 +1,5 @@
 import { ApiError } from '../api/client';
+import { dailySnapshot, type DailyDetails } from './daily-model';
 
 export interface Vehicle { vin: string; name: string; type: string; plate: string }
 export interface Session { token: string; uid: string; vehicle: Vehicle }
@@ -8,6 +9,7 @@ export interface VehicleList {
 export interface Snapshot {
   soc: number | null; range: number | null; voltage: number | null;
   online: boolean | null; charging: string; receivedAt: number; partial: boolean;
+  daily: DailyDetails;
 }
 // vinNo is a cloud vehicle identifier, also used for frame numbers. An ISO VIN
 // length/character check here silently hid vehicles that the account API returned.
@@ -47,8 +49,16 @@ export function snapshot(home: Record<string, unknown>, battery: Record<string, 
     voltage: numeric(battery?.voltage) ?? numeric(battery?.bmsVoltage) ?? numeric(home.voltage) ?? numeric(home.bmsVoltage),
     online: ['online', '1', 'true'].includes(online) ? true : ['offline', '0', 'false'].includes(online) ? false : null,
     charging: String(battery?.chargeStateStr ?? '').includes('充满') ? '已充满' : state === '1' ? '充电中' : state === '0' ? '未充电' : '充电状态未知',
-    receivedAt: Date.now(), partial: battery === null,
+    receivedAt: Date.now(), partial: battery === null, daily: dailySnapshot(home, battery),
   };
 }
 export const demoVehicle: Vehicle = { vin: 'LAAAAAAAAAAAAAAA1', name: '我的极核', type: '演示车辆', plate: '' };
-export const demoSnapshot: Snapshot = { soc: 82, range: 91, voltage: 76.4, online: true, charging: '未充电', receivedAt: 0, partial: false };
+export const demoSnapshot: Snapshot = {
+  soc: 82, range: 91, voltage: 76.4, online: true, charging: '未充电', receivedAt: 0, partial: false,
+  daily: dailySnapshot({
+    totalRideMile: 2580, rideMileageMonth: 186, ridingTimeMonthUnitMinute: 420, avgVelocityMonth: 26.6,
+    headLockState: 1, seatLockState: 1, rideState: '演示车辆已停放', refreshTime: new Date().toISOString(),
+    location: { longitude: 116.397, latitude: 39.908, coordinateSystem: 'gcj02', locationTime: new Date().toISOString() },
+    address: '演示位置 · 示例数据',
+  }, { batteryTemp: 28, soh: 98, chargeCount: 42, current: 0, power: 0, refreshTime: new Date().toISOString() }),
+};

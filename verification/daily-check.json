@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "checkedAt": "2026-11-07T07:13:46.585581+00:00",
+  "command": "npm run verify",
+  "unitTests": {
+    "passed": 65,
+    "failed": 0
+  },
+  "productionBuild": "passed",
+  "browserTests": {
+    "passed": 84,
+    "failed": 0,
+    "skipped": 0,
+    "projects": [
+      "chromium-mobile",
+      "webkit-mobile"
+    ],
+    "durationMs": 190422
+  },
+  "browserData": "synthetic accounts, vehicles, charging and public sample coordinates; pre-fetch mocks plus loopback CSP",
+  "newBrowserCasesAcrossBothEngines": 38,
+  "independentProtocolFixtures": [
+    "recovered-horn-contract.json",
+    "recovered-controls-contract.json"
+  ],
+  "staticCacheEntries": 7,
+  "layoutReview": "390x844 daily synthetic view; no horizontal overflow; existing shell checks at 320/390/430",
+  "newEndpointsCors": "OPTIONS-only passed; see daily-cors-check.json",
+  "realSmsOrAccountOrVehicleRequests": 0,
+  "realIPhoneOrNewVehicleAcceptance": false,
+  "previouslyAcceptedByUser": [
+    "login",
+    "vehicle connection",
+    "SOC",
+    "range estimate",
+    "voltage",
+    "normal horn"
+  ],
+  "acceptance": "One grouped real iPhone/vehicle check after deployment."
+}

@@ -1,0 +1,148 @@
+{
+  "schema": 1,
+  "syntheticVin": "LAAAAAAAAAAAAAAA1",
+  "actions": {
+    "powerOn": [
+      {
+        "method": "POST",
+        "path": "/v1.0/app/cfmotoserverapp/dbpoint/send",
+        "body": {
+          "eventId": 11631,
+          "param": "{\"vinNo\":\"LAAAAAAAAAAAAAAA1\",\"functionCode\":\"ON_AND_OFF\",\"type\":\"ON\"}",
+          "uuid": "",
+          "zeehoParamTypeBO": null
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/v1.0/app/cfmotoserverapp/vehicleSet/network/unlock",
+        "body": {
+          "secret": "6o3EfAagqrc1o2QwlwBAPWtOXQNRZcg8pwtJeIuc0akgsYg1scJChHu0GPW38JfV",
+          "vinNo": "LAAAAAAAAAAAAAAA1",
+          "lockFlag": 1
+        }
+      }
+    ],
+    "powerOff": [
+      {
+        "method": "POST",
+        "path": "/v1.0/app/cfmotoserverapp/dbpoint/send",
+        "body": {
+          "eventId": 11631,
+          "param": "{\"vinNo\":\"LAAAAAAAAAAAAAAA1\",\"functionCode\":\"ON_AND_OFF\",\"type\":\"OFF\"}",
+          "uuid": "",
+          "zeehoParamTypeBO": null
+        }
+      },
+      {
+        "method": "POST",
+        "path": "/v1.0/app/cfmotoserverapp/vehicleSet/network/unlock",
+        "body": {
+          "secret": "Bk6Agu/N1wVkkbaHJzIalGtOXQNRZcg8pwtJeIuc0akgsYg1scJChHu0GPW38JfV",
+          "vinNo": "LAAAAAAAAAAAAAAA1",
+          "lockFlag": 0
+        }
+      }
+    ],
+    "seat": [
+      {
+        "method": "PUT",
+        "path": "/v1.0/app/cfmotoserverapp/vehicleSet/propertyTwo/one",
+        "body": {
+          "commond": "28",
+          "commondParam": "1",
+          "relatedFunctions": null,
+          "vcu": "LAAAAAAAAAAAAAAA1",
+          "version": "v2"
+        }
+      }
+    ]
+  },
+  "provenance": {
+    "authority": "recovered-webpage-static-syntax",
+    "execution": "none",
+    "sources": [
+      {
+        "name": "inline-10.decoded.js",
+        "sha256": "bfc4a489d9456bbf452ca7cd70bd0c6b99498dfc1897de50d5b92c00d205f12d"
+      },
+      {
+        "name": "inline-12.decoded.js",
+        "sha256": "d56c1e40a3279a26dfa2f6a32f53691f9e7bf840a2dc673b57ff241ef0846214"
+      },
+      {
+        "name": "inline-26.decoded.js",
+        "sha256": "8655a43d4653a9e96fd5fa0f4016f13ae7636de075e11b0840a4276765b812dc"
+      },
+      {
+        "name": "inline-28.decoded.js",
+        "sha256": "0ea77e925634727b224fa327572a6b678f83a24071e50e4e1de9024c79809a0f"
+      }
+    ],
+    "offsets": {
+      "lockOn": {
+        "start": 60311,
+        "end": 60452
+      },
+      "lockOff": {
+        "start": 60489,
+        "end": 60631
+      },
+      "cushion": {
+        "start": 60219,
+        "end": 60275
+      }
+    },
+    "unlockSecret": {
+      "start": 61438,
+      "end": 62364
+    },
+    "writeBody": {
+      "start": 121782,
+      "end": 122547
+    }
+  },
+  "encryption": {
+    "algorithm": "AES-256-ECB/PKCS7",
+    "keyEncoding": "32 literal ASCII bytes",
+    "goldenProducer": "Python cryptography AES ECB, independently of browser implementation",
+    "vectors": [
+      {
+        "lockFlag": 0,
+        "vin": "LAAAAAAAAAAAAAAA1",
+        "plaintext": "{\"lockFlag\":0,\"vinNo\":\"LAAAAAAAAAAAAAAA1\"}",
+        "secret": "Bk6Agu/N1wVkkbaHJzIalGtOXQNRZcg8pwtJeIuc0akgsYg1scJChHu0GPW38JfV"
+      },
+      {
+        "lockFlag": 1,
+        "vin": "LAAAAAAAAAAAAAAA1",
+        "plaintext": "{\"lockFlag\":1,\"vinNo\":\"LAAAAAAAAAAAAAAA1\"}",
+        "secret": "6o3EfAagqrc1o2QwlwBAPWtOXQNRZcg8pwtJeIuc0akgsYg1scJChHu0GPW38JfV"
+      },
+      {
+        "lockFlag": 0,
+        "vin": "123456789012345",
+        "plaintext": "{\"lockFlag\":0,\"vinNo\":\"123456789012345\"}",
+        "secret": "Bk6Agu/N1wVkkbaHJzIalGY3YeberLsE75OUQGrku6E4Aj+IV0PZXQqVjnGEOEav"
+      },
+      {
+        "lockFlag": 1,
+        "vin": "123456789012345",
+        "plaintext": "{\"lockFlag\":1,\"vinNo\":\"123456789012345\"}",
+        "secret": "6o3EfAagqrc1o2QwlwBAPWY3YeberLsE75OUQGrku6E4Aj+IV0PZXQqVjnGEOEav"
+      },
+      {
+        "lockFlag": 0,
+        "vin": "AAAAAAA",
+        "plaintext": "{\"lockFlag\":0,\"vinNo\":\"AAAAAAA\"}",
+        "secret": "Bk6Agu/N1wVkkbaHJzIalPZP8u9wHaXekpqq5HTtvDc0bz6R0awfg7v8SOo/FdOb"
+      },
+      {
+        "lockFlag": 1,
+        "vin": "AAAAAAA",
+        "plaintext": "{\"lockFlag\":1,\"vinNo\":\"AAAAAAA\"}",
+        "secret": "6o3EfAagqrc1o2QwlwBAPfZP8u9wHaXekpqq5HTtvDc0bz6R0awfg7v8SOo/FdOb"
+      }
+    ]
+  }
+}

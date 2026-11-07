@@ -8,13 +8,14 @@ export const cars = [
   { vinNo: VIN_B, vehicleName: '测试极核 B', vehicleType: 'AE6', licensePlate: '' },
 ];
 export interface Call { path: string; method: string; body: any; authorization: string }
-type CommandStage = 'prepare' | 'normal' | 'high';
+type CommandStage = 'prepare' | 'normal' | 'high' | 'unlock' | 'seat';
 export interface Mocks {
   calls: Call[]; external: string[]; listFailures: number; empty: boolean;
   expired: boolean; readFailure: boolean; batteryFailure: boolean;
   commandResults: Partial<Record<CommandStage, 'network' | 'false' | 'rejected' | 'expired'>>;
   holdList?: Promise<void>; holdCommand?: { stage: CommandStage; wait: Promise<void> };
   vehicleRows?: unknown[];
+  home?: Record<string, unknown>; battery?: Record<string, unknown>;
 }
 export const test = base.extend<{ mocks: Mocks }>({
   mocks: [async ({ context }, use) => {
@@ -37,14 +38,15 @@ export const test = base.extend<{ mocks: Mocks }>({
       if (call.path.includes('/vehicleHomePageV2/')) {
         if (state.expired) return reply(null, 401, 401);
         if (state.readFailure) return reply(null, 503, 50000);
-        return reply({ bmssoc: call.path.endsWith(VIN_B) ? 45 : 82, hmiRidableMile: 91, onlineStatus: 'ONLINE', chargeState: 0 });
+        return reply({ bmssoc: call.path.endsWith(VIN_B) ? 45 : 82, hmiRidableMile: 91, onlineStatus: 'ONLINE', chargeState: 0, ...state.home });
       }
       if (call.path.includes('/batteryInfo/')) {
         if (state.batteryFailure) return reply(null, 503, 50000);
-        return reply({ bmssoc: call.path.endsWith(VIN_B) ? 45 : 82, hmiRidableMile: 91, bmsVoltage: 76.4, chargeState: 0 });
+        return reply({ bmssoc: call.path.endsWith(VIN_B) ? 45 : 82, hmiRidableMile: 91, bmsVoltage: 76.4, chargeState: 0, ...state.battery });
       }
       const stage: CommandStage | null = call.path.endsWith('/dbpoint/send') ? 'prepare'
-        : call.path.includes('/vehicleInfo/control/') ? 'normal' : call.path.endsWith('/vehicleInfo/controlV2') ? 'high' : null;
+        : call.path.includes('/vehicleInfo/control/') ? 'normal' : call.path.endsWith('/vehicleInfo/controlV2') ? 'high'
+        : call.path.endsWith('/vehicleSet/network/unlock') ? 'unlock' : call.path.endsWith('/vehicleSet/propertyTwo/one') ? 'seat' : null;
       if (stage) {
         if (state.holdCommand?.stage === stage) await state.holdCommand.wait;
         const result = state.commandResults[stage];
