@@ -27,6 +27,7 @@ targetTemplates:
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         SWIFT_OBJC_BRIDGING_HEADER: Sources/Bridging.h
         GENERATE_INFOPLIST_FILE: NO
+        OTHER_LDFLAGS: $(inherited) -lz
 targets:
   GeometryPanel:
     templates: [MainApp]
