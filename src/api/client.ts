@@ -1,4 +1,4 @@
-import { sign } from './sign';
+import { sign, signH5 } from './sign';
 
 export type ApiErrorKind = 'expired' | 'network' | 'rejected' | 'format' | 'limit';
 export class ApiError extends Error {
@@ -24,16 +24,20 @@ export function messageFor(error: unknown): string {
 }
 
 type Options = {
-  method?: 'GET' | 'POST' | 'PUT'; token?: string; body?: unknown;
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; token?: string; body?: unknown;
   clientAuth?: boolean; appLike?: boolean; signal?: AbortSignal;
   query?: Record<string, string>;
+  service?: 'app' | 'h5';
 };
 
 export class CloudClient {
   constructor(private readonly fetcher: typeof fetch = (...args) => fetch(...args)) {}
 
   async request(path: string, options: Options = {}): Promise<unknown> {
-    if (!/^\/v1\.0\/[A-Za-z0-9/_-]+$/.test(path)) throw new ApiError('format');
+    const h5 = options.service === 'h5';
+    if (options.service && options.service !== 'app' && !h5) throw new ApiError('format');
+    if (h5 ? !/^\/cfmotoservermine\/H5\/signin(?:\/info|\/supplementPrize)?$/.test(path) || options.appLike || options.clientAuth
+      : !/^\/v1\.0\/[A-Za-z0-9/_-]+$/.test(path)) throw new ApiError('format');
     const query = options.query ?? {};
     if (!query || typeof query !== 'object' || Array.isArray(query) || Object.keys(query).length > 30
       || Object.entries(query).some(([key, value]) => !/^[A-Za-z][A-Za-z0-9_]{0,63}$/.test(key)
@@ -42,7 +46,7 @@ export class CloudClient {
     // Legacy query signing uses sorted, nonempty raw k=v pairs. These recovered
     // endpoints use bounded ASCII values without query delimiters, so wire and
     // signed text agree.
-    const signed = sign(body, query);
+    const signed = h5 ? signH5(body, query) : sign(body, query);
     const headers: Record<string, string> = {
       'Content-Type': 'application/json;charset=UTF-8', 'Accept-Language': 'zh-CN',
       interfaceversion: '2', 'cfmoto-x-param': signed.parameters,
@@ -64,7 +68,7 @@ export class CloudClient {
     if (options.signal?.aborted) cancel();
     const timeout = setTimeout(cancel, 20000);
     try {
-      const response = await this.fetcher(`https://tapi.zeehoev.com${path}${signed.canonical ? `?${signed.canonical}` : ''}`, {
+      const response = await this.fetcher(`${h5 ? 'https://h5.zeehoev.com' : 'https://tapi.zeehoev.com'}${path}${signed.canonical ? `?${signed.canonical}` : ''}`, {
         method: options.method ?? 'GET', headers, body: body || undefined,
         signal: controller.signal, credentials: 'omit', cache: 'no-store', redirect: 'error', referrerPolicy: 'no-referrer',
       });

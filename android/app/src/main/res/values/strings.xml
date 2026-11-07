@@ -1,4 +1,9 @@
 <resources>
+    <string name="action_refresh">刷新</string>
+    <string name="action_unlock">解锁</string>
+    <string name="action_lock">上锁</string>
+    <string name="action_horn">寻车</string>
+    <string name="action_seat">座桶</string>
     <string name="widget_description">显示本机最近一次读取的电量、续航和电压；点击打开面板</string>
     <string name="widget_title">几何面板</string>
     <string name="widget_empty">—</string>

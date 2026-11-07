@@ -38,17 +38,23 @@ import WidgetKit
         }
         let snapshot = WidgetSnapshot(vehicleLabel: String((params["vehicleLabel"] as? String ?? "我的极核").prefix(40)), soc: number("soc", max: 100), range: number("range", max: 1000), voltage: number("voltage", max: 300), receivedAt: time)
         // Only non-sensitive display values are shared. No token, VIN or position.
-        if let shared = WidgetSnapshot.sharedDefaults { shared.set(try JSONEncoder().encode(snapshot), forKey: "vehicle-snapshot.v1"); WidgetCenter.shared.reloadAllTimelines() }
+        var widgetUpdated = false
+        if let shared = WidgetSnapshot.sharedDefaults, shared.string(forKey: "widget.vehicle") == nil || shared.string(forKey: "widget.vehicle") == params["vehicleId"] as? String {
+            shared.set(try JSONEncoder().encode(snapshot), forKey: "vehicle-snapshot.v1"); WidgetCenter.shared.reloadAllTimelines(); widgetUpdated = true
+        }
         if enabled, Date().timeIntervalSince1970 * 1000 - time < 300000,
            let soc = snapshot.soc, soc <= lowBattery, lastLowBattery == nil || Date().timeIntervalSince(lastLowBattery!) > 3600 {
             lastLowBattery = Date(); notify("low-battery", title: "车辆电量提醒", body: "最近一次读取的电量已低于你设置的提醒值，出发前请确认电量。")
         }
-        return ["updated": widgetAvailable, "widgetAvailable": widgetAvailable]
+        return ["updated": widgetUpdated, "widgetAvailable": widgetAvailable]
     }
     func bluetoothDisconnected() { if proximityEnabled { notify("ble-disconnected", title: "车辆蓝牙连接已断开", body: "可能超出距离或车辆关闭了蓝牙；车辆锁定状态请现场确认。") } }
     func clear() {
         generation += 1
-        WidgetSnapshot.sharedDefaults?.removeObject(forKey: "vehicle-snapshot.v1"); WidgetCenter.shared.reloadAllTimelines()
+        if let shared = WidgetSnapshot.sharedDefaults {
+            let configured = shared.string(forKey: "widget.vehicle")
+            if configured == nil || NativeBackground.shared.accounts.vehicle(configured) == nil { shared.removeObject(forKey: "vehicle-snapshot.v1"); WidgetCenter.shared.reloadAllTimelines() }
+        }
         enabled = false; proximityEnabled = false; lastLowBattery = nil
         center.removePendingNotificationRequests(withIdentifiers: ["low-battery", "ble-disconnected"])
         center.removeDeliveredNotifications(withIdentifiers: ["low-battery", "ble-disconnected"])

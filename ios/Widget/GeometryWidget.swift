@@ -20,12 +20,20 @@ struct VehicleWidgetView: View {
                 Text(Date(timeIntervalSince1970: snapshot.receivedAt / 1000), style: .relative).font(.caption2).foregroundColor(.secondary)
                 Text("上次读取 · 打开面板刷新").font(.caption2).foregroundColor(.secondary)
             } else { Text("打开面板读取车况").font(.subheadline); Text("组件版需要有效 App Groups 签名").font(.caption2).foregroundColor(.secondary) }
-        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).padding(12).widgetURL(URL(string: "https://bedlatess.github.io/GeometryPanel/"))
+            if WidgetSnapshot.sharedDefaults?.bool(forKey: "widget.controls") == true, let id = WidgetSnapshot.sharedDefaults?.string(forKey: "widget.vehicle") {
+                HStack {
+                    Link("刷新", destination: URL(string: "geometrypanel://action?action=refresh&vehicleId=" + id)!)
+                    Link("寻车", destination: URL(string: "geometrypanel://action?action=horn&vehicleId=" + id)!)
+                    Link("座桶", destination: URL(string: "geometrypanel://action?action=seat&vehicleId=" + id)!)
+                }.font(.caption2)
+                Text("控制需打开面板确认").font(.caption2).foregroundColor(.secondary)
+            }
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading).padding(12).widgetURL(URL(string: "geometrypanel://action?action=refresh"))
     }
 }
 @main struct GeometryWidget: Widget {
     var body: some WidgetConfiguration {
         StaticConfiguration(kind: "GeometryVehicle", provider: VehicleProvider()) { entry in VehicleWidgetView(entry: entry) }
-            .configurationDisplayName("几何面板车况").description("显示本机最近读取的电量和续航；打开面板刷新。").supportedFamilies([.systemSmall, .systemMedium])
+            .configurationDisplayName("几何面板车况").description("显示最近车况；快捷操作打开面板确认，尺寸由系统决定。").supportedFamilies([.systemSmall, .systemMedium, .systemLarge])
     }
 }

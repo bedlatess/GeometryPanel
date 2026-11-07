@@ -29,12 +29,15 @@ final class NativeBridge {
                     if (released || !mainFrame || !"https://bedlatess.github.io".equals(origin.toString()) || !NavigationPolicy.isPanel(source.getUrl())) return;
                     if (message.getType() != androidx.webkit.WebMessageCompat.TYPE_STRING) return;
                     String raw = message.getData();
-                    if (raw == null || raw.length() > 24576) return;
+                    if (raw == null || raw.length() > 1572864) return;
                     try {
                         JSONObject request = new JSONObject(raw);
                         String id = NativeJson.string(request, "id", 100), method = NativeJson.string(request, "method", 40);
                         if (!BridgeContract.validId(id) || requests.size() >= 16 || !requests.add(id)) return;
                         JSONObject params = request.optJSONObject("params");
+                        boolean large = method.equals("accounts.sync") || method.equals("background.configure") || method.equals("tasks.configure");
+                        boolean image = method.equals("asset.export") && params != null && "panel".equals(params.optString("kind"));
+                        if (raw.length() > (image ? 1572864 : 262144) || params != null && params.toString().length() > (image ? 1572800 : large ? 262144 : 16384)) { requests.remove(id); return; }
                         int epoch = document;
                         NativeJson.Result reply = (result, error) -> activity.runOnUiThread(() -> {
                             requests.remove(id);
@@ -57,9 +60,56 @@ final class NativeBridge {
                     boolean ble = engine.ble.supported();
                     reply.finish(NativeJson.obj("platform", "android", "version", 1,
                             "features", NativeJson.obj("ble", ble, "proximity", ble, "notifications", true, "widget", true,
-                                    "meter", activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT)),
-                            "limitations", NativeJson.list("BLE 协议已按旧包恢复，仍需实车核对；BLE2/3 钥匙配对不支持。", "靠近服务只提醒，不自动开锁；云授权过期会停止。", "低电量通知来自本机新读取的云车况；未实车核对的蓝牙读数不触发低电量通知，不进行后台云端轮询。", "仪表 Wi-Fi / 投屏协议需匹配车型；视频不含音频或反向触控。")), null); return;
+                                    "meter", activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT), "background", true, "history", true, "multiAccount", true, "shortcuts", true, "tasks", true,
+                                    "scanner", true, "ota", true, "diagnostics", true, "updates", true, "officialLogin", true, "keepalive", true, "wallpaperZip", true),
+                            "limitations", NativeJson.list("BLE 协议已按旧包恢复，仍需实车核对；BLE2/3 钥匙配对不支持。", "靠近服务只提醒，不自动开锁；云授权过期会停止。", "后台监控需要明确开启并允许通知；系统省电和后台限制可能延后轮询或任务。", "仪表 Wi-Fi / 投屏协议需匹配车型；视频不含音频或反向触控。", "官方登录捕获需要系统 VPN 与本机 CA 信任；官方证书锁定可能阻止，届时使用面板验证码登录。")), null); return;
                 case "status": reply.finish(engine.status(), null); return;
+                case "accounts.sync": reply.finish(BackgroundMonitor.get(activity).sync(params), null); return;
+                case "accounts.remove": reply.finish(BackgroundMonitor.get(activity).remove(BackgroundConfig.id(params, "accountId")), null); return;
+                case "background.configure":
+                    String[] backgroundPermissions = params.optBoolean("enabled") && Build.VERSION.SDK_INT >= 33 ? new String[] { Manifest.permission.POST_NOTIFICATIONS } : new String[0];
+                    activity.nativePermission(backgroundPermissions, granted -> {
+                        if (!current(epoch)) return;
+                        try { reply.finish(BackgroundMonitor.get(activity).configure(params, granted), null); }
+                        catch (Exception error) { reply.finish(null, "background_configuration_failed"); }
+                    }); return;
+                case "background.status": reply.finish(BackgroundMonitor.get(activity).status(), null); return;
+                case "background.run":
+                    String target = params.has("vehicleId") ? BackgroundConfig.id(params, "vehicleId") : null;
+                    if (target != null && BackgroundMonitor.get(activity).binding(target) == null) { reply.finish(null, "vehicle_not_configured"); return; }
+                    BackgroundMonitor.get(activity).run(target, null); reply.finish(BackgroundMonitor.get(activity).status(), null); return;
+                case "background.history": reply.finish(BackgroundMonitor.get(activity).history(params), null); return;
+                case "history.clear": reply.finish(BackgroundMonitor.get(activity).clear(params), null); return;
+                case "widget.configure": reply.finish(PanelWidget.configure(activity, params), null); return;
+                case "widget.pin": reply.finish(PanelWidget.pin(activity, params.getString("style")), null); return;
+                case "shortcuts.configure": reply.finish(NativeActions.shortcuts(activity, params), null); return;
+                case "tasks.configure": reply.finish(NativeTasks.get(activity).configure(params), null); return;
+                case "tasks.status": reply.finish(NativeTasks.get(activity).status(), null); return;
+                case "tasks.run":
+                    NativeTasks.get(activity).run(params.has("accountId") ? BackgroundConfig.id(params, "accountId") : null, params.optBoolean("confirmed"), null);
+                    reply.finish(NativeTasks.get(activity).status(), null); return;
+                case "tools.open":
+                    String tool = params.optString("tool");
+                    if (!tool.matches("scanner|ota|wallpaperZip|diagnostics|updates")) throw new IllegalArgumentException("unsupported_tool");
+                    if (tool.equals("ota")) activity.startActivity(new Intent(activity, GeminiOtaActivity.class)); else NativeToolActivity.open(activity, tool, null);
+                    reply.finish(NativeJson.obj("opened", true), null); return;
+                case "diagnostics.export": NativeToolActivity.open(activity, "diagnostics", null); reply.finish(NativeJson.obj("opened", true), null); return;
+                case "keepalive.export": NativeToolActivity.open(activity, "keepalive", null); reply.finish(NativeJson.obj("opened", true), null); return;
+                case "updates.check":
+                    NativeToolActivity.JOBS.execute(() -> { try { reply.finish(NativeUpdates.check(), null); } catch (Exception error) { reply.finish(null, "update_check_failed"); } }); return;
+                case "updates.install": NativeToolActivity.open(activity, "updates", null); reply.finish(NativeJson.obj("opened", true), null); return;
+                case "officialLogin.start": NativeToolActivity.open(activity, "officialLogin", null); reply.finish(NativeJson.obj("opened", true), null); return;
+                case "officialLogin.stop": OfficialLogin.stop(activity); reply.finish(OfficialLogin.status(activity), null); return;
+                case "officialLogin.result":
+                    if (params.optBoolean("importToPanel", false)) OfficialLogin.importToPanel(activity,reply,() -> current(epoch)); else reply.finish(OfficialLogin.status(activity), null); return;
+                case "asset.export":
+                    if ("panel".equals(params.optString("kind"))) {
+                        if (!"geometry-status.png".equals(params.optString("fileName"))) throw new IllegalArgumentException("invalid_filename");
+                        NativeToolActivity.openPanelImage(activity, params.getString("data"), reply, () -> current(epoch)); return;
+                    }
+                    if (!"wallpaper".equals(params.optString("kind"))) throw new IllegalArgumentException("unsupported_asset");
+                    NativeDownloads.wallpaper(params.getString("url")); NativeDownloads.filename(params.optString("fileName", "wallpaper.zip"), ".zip");
+                    NativeToolActivity.open(activity, "asset", params); reply.finish(NativeJson.obj("opened", true), null); return;
                 case "bindVehicle": engine.bind(params); reply.finish(engine.status(), null); return;
                 case "forgetVehicle": engine.forget(); reply.finish(NativeJson.obj("forgotten", true), null); return;
                 case "ble.disconnect": engine.ble.disconnect("user_cancelled"); reply.finish(engine.status(), null); return;

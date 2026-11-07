@@ -100,7 +100,7 @@ export function vehicleAlerts(value: unknown, vin: string): { alerts: VehicleAle
   return { alerts, accountUnread: positive(raw.noRead), receivedCount: all.length };
 }
 
-export interface SettingDefinition { key: string; title: string; capability?: string; command?: string; version?: string; endpoint?: 'property' | 'sound' | 'moto'; choices?: ReadonlyArray<readonly [string, string]> }
+export interface SettingDefinition { key: string; title: string; capability?: string; command?: string; version?: string; endpoint?: 'property' | 'sound' | 'moto' | 'lowpower'; choices?: ReadonlyArray<readonly [string, string]>; guarded?: boolean }
 const binary = [['0', '关闭'], ['1', '开启']] as const;
 const def = (key: string, title: string, capability: string, command: string, choices: SettingDefinition['choices'] = binary, version = 'v2'): SettingDefinition => ({ key, title, capability, command, choices, version, endpoint: 'property' });
 export const settingDefinitions: readonly SettingDefinition[] = [
@@ -127,10 +127,17 @@ export const settingDefinitions: readonly SettingDefinition[] = [
   { key: 'soundEffectSetting.soundSize', title: '车机音量', endpoint: 'sound', choices: Array.from({ length: 11 }, (_, i) => [String(i * 10), String(i * 10)] as const) },
   { key: 'comeHomeWithYouTime', title: '伴我回家时长', command: '58', version: 'v2', endpoint: 'property', choices: [3, 10, 30, 60, 120, 180].map(n => [String(n), `${n} 秒`] as const) },
   { key: 'automaticShutdownTimeout', title: '超时关机时间', command: '108', version: 'v2', endpoint: 'property', choices: [5, 10, 20, 30, 60].map(n => [String(n), `${n} 分钟`] as const) },
+  { ...def('inductiveDistance', '感应解锁距离', '', '54', [['1', '更近'], ['3', '默认'], ['5', '更远']]), guarded: true },
+  { ...def('leaveOffTime', '离车关机时长', '', '33', [3, 5, 10, 30, 60, 120, 180].map(n => [String(n), `${n} 秒`] as const)), guarded: true },
+  { ...def('radarRcw', 'RCW 后碰撞预警', 'RADAR_RCW', '82', [['0', '关闭'], ['1', '标准'], ['2', '灵敏']]), guarded: true },
+  { ...def('cushionSensor', '座垫感应 1.0', 'E_CUSHION_SENSOR', '66'), guarded: true },
+  { ...def('ecushionSensor', '电子座垫感应 2.0', 'E_CUSHION_SENSOR', '66'), guarded: true },
+  { ...def('customButtonSingle', '自定义按键 · 单击', 'CUSTOM_KEY_SET', '142', [['31', '无操作'], ['1', 'Hello 音效'], ['19', '陡坡缓降设置'], ['3', '解锁座垫']]), guarded: true },
+  { key: 'lowPower', title: '车辆低电量提醒', capability: 'LOW_BATTERY_WARN', endpoint: 'lowpower', guarded: true, choices: [10, 15, 20, 25, 30, 35, 40, 45, 50].map(n => [String(n), `${n}%`] as const) },
 ];
 export interface VehicleSetting { key: string; title: string; value: string | null; display: string; writable: boolean; reason: string; choices: SettingDefinition['choices'] }
 const nested = (raw: Record<string, unknown>, key: string): unknown => key.split('.').reduce<unknown>((v, part) => obj(v)?.[part], raw);
-export function vehicleSettings(capabilities: unknown, info: unknown): VehicleSetting[] {
+export function vehicleSettings(capabilities: unknown, info: unknown, vehicleType = ''): VehicleSetting[] {
   const caps = rows(capabilities), raw = root(info), disabled = Array.isArray(raw.disabledContent) ? rows(raw.disabledContent) : [];
   const result: VehicleSetting[] = [];
   const inductive2 = flag(raw.inductiveUnlocking2), inductive1 = flag(raw.inductiveUnlocking);
@@ -142,7 +149,16 @@ export function vehicleSettings(capabilities: unknown, info: unknown): VehicleSe
       display: inductive === null ? '未知' : inductive ? '开启' : '关闭', writable: !reason, reason, choices: binary });
   }
   for (const definition of settingDefinitions) {
-    const capability = definition.capability ? caps.find(row => row.functionCode === definition.capability) : undefined;
+    const seat2 = Array.isArray(raw.rideFunctionVOList) && rows(raw.rideFunctionVOList).some(row => row.parentCode === 'E_CUSHION_SENSOR' && row.functionCode === '2.0');
+    if (definition.key === 'ecushionSensor' && !seat2 || definition.key === 'cushionSensor' && seat2) continue;
+    let capability = definition.capability ? caps.find(row => row.functionCode === definition.capability) : undefined;
+    if (definition.key === 'radarRcw') {
+      const blind = caps.find(row => row.functionCode === 'RADAR_BLIND_MONITOR');
+      const inherited = flag(blind?.isSupport) === true && Array.isArray(blind?.blueToothServiceCodeList)
+        && rows(blind.blueToothServiceCodeList).some(row => row.functionName === 'RADAR_RCW' && row.isSupportSetting !== false);
+      if (vehicleType.trim().toUpperCase() === 'AE5' || flag(capability?.isSupport) === false || flag(capability?.isSupport) !== true && !inherited) continue;
+      capability ??= blind;
+    }
     const received = nested(raw, definition.key), current = typeof received === 'boolean' ? received ? '1' : '0' : str(received);
     if (!capability && !current) continue;
     const value = definition.choices?.some(([n]) => n === current) ? current : null;
@@ -151,6 +167,17 @@ export function vehicleSettings(capabilities: unknown, info: unknown): VehicleSe
     const bleOnly = services.length > 0 && !services.some(row => { const code = positive(row.serviceCode); return code !== null && ((code >>> 24) & 255) === 16; });
     const reason = flag(capability?.isSupport) === false ? '当前车型不支持' : blocked ? str(blocked.content) || '车辆当前条件不允许修改' : bleOnly ? '此项只提供手机直连能力，网页暂不可改' : value === null ? '当前值未识别，暂不可修改' : '';
     result.push({ key: definition.key, title: definition.title, value, display: definition.choices?.find(([n]) => n === current)?.[1] ?? (current || '未知'), writable: !reason && !!definition.endpoint, reason, choices: definition.choices });
+  }
+  const readOnly = [
+    ['maximumSpeedLimit', '最高车速限制', 'km/h'], ['maximumSpeed', '限速档', ''], ['topSpeed', '整车上限', 'km/h'],
+    ['customButtonLongPress', '自定义按键 · 长按', ''], ['customButtonLeft', '自定义按键 · 左键', ''],
+    ['customButtonRight', '自定义按键 · 右键', ''], ['customButtonCombination', '自定义按键 · 组合键', ''],
+  ];
+  for (const [key, title, unit] of readOnly) {
+    const value = str(raw[key]);
+    if (!value) continue;
+    result.push({ key, title, value, display: `${value}${unit ? ` ${unit}` : ''}`, writable: false,
+      reason: key.startsWith('customButton') ? '旧版仅适配单击动作，其他按键保持只读' : '旧版未确认此项的完整修改协议，当前只读', choices: undefined });
   }
   for (const capability of caps) {
     const code = str(capability.functionCode);

@@ -1,8 +1,8 @@
-export const nativeMethods = ['capabilities', 'status', 'bindVehicle', 'forgetVehicle', 'ble.scan', 'ble.connect', 'ble.disconnect', 'ble.command', 'ble.proximity', 'notifications.configure', 'widget.update', 'meter.open'] as const;
+export const nativeMethods = ['capabilities', 'status', 'bindVehicle', 'forgetVehicle', 'ble.scan', 'ble.connect', 'ble.disconnect', 'ble.command', 'ble.proximity', 'notifications.configure', 'widget.update', 'meter.open', 'accounts.sync', 'accounts.remove', 'background.configure', 'background.status', 'background.run', 'background.history', 'history.clear', 'tasks.configure', 'tasks.run', 'tasks.status', 'widget.configure', 'widget.pin', 'shortcuts.configure', 'tools.open', 'diagnostics.export', 'updates.check', 'updates.install', 'keepalive.export', 'officialLogin.start', 'officialLogin.stop', 'officialLogin.result', 'asset.export'] as const;
 export type NativeMethod = typeof nativeMethods[number];
 export interface NativeCapabilities {
   platform: 'android' | 'ios'; version: 1;
-  features: { ble: boolean; proximity: boolean; notifications: boolean; widget: boolean; meter: boolean };
+  features: { ble: boolean; proximity: boolean; notifications: boolean; widget: boolean; meter: boolean; background?: boolean; history?: boolean; multiAccount?: boolean; tasks?: boolean; shortcuts?: boolean; scanner?: boolean; ota?: boolean; diagnostics?: boolean; updates?: boolean; officialLogin?: boolean; keepalive?: boolean; wallpaperZip?: boolean };
   limitations: string[];
 }
 export class NativeError extends Error {
@@ -24,7 +24,7 @@ export class NativeClient {
   get available() { return this.transport !== null; }
   call<T = unknown>(method: NativeMethod, params: object = {}, signal?: AbortSignal): Promise<T> {
     if (!this.transport) return Promise.reject(new NativeError('unavailable'));
-    if (!nativeMethods.includes(method) || !params || Array.isArray(params) || JSON.stringify(params).length > 16384) return Promise.reject(new NativeError('invalid_request'));
+    if (!nativeMethods.includes(method) || !params || Array.isArray(params) || JSON.stringify(params).length > (method === 'asset.export' && (params as any).kind === 'panel' ? 1500000 : ['accounts.sync', 'background.configure', 'tasks.configure'].includes(method) ? 262144 : 16384)) return Promise.reject(new NativeError('invalid_request'));
     if (signal?.aborted) return Promise.reject(new DOMException('Cancelled', 'AbortError'));
     if (this.pending.size >= 8) return Promise.reject(new NativeError('busy'));
     const id = `${this.nonce}:${++this.serial}`;
@@ -41,7 +41,7 @@ export class NativeClient {
   }
   receive(input: unknown) {
     let message: any;
-    try { message = typeof input === 'string' && input.length <= 65536 ? JSON.parse(input) : input; } catch { return; }
+    try { message = typeof input === 'string' && input.length <= 524288 ? JSON.parse(input) : input; } catch { return; }
     if (!message || typeof message !== 'object' || typeof message.id !== 'string' || typeof message.ok !== 'boolean') return;
     const request = this.pending.get(message.id);
     if (!request) return;

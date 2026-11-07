@@ -23,7 +23,24 @@ export function wallpaperSpec(value: unknown) {
   const wallpaperNum = text(meta.wallpaperNum ?? detail.wallpaperNum ?? detail.wallpaperNo);
   const displayWallpaperSet = text(meta.displayWallpaperSet ?? detail.displayWallpaperSet, 2048);
   if (!wallpaperNum || !displayWallpaperSet) throw new ApiError('format');
-  return { wallpaperNum, displayWallpaperSet };
+  for (const [value, maximum] of [[meta.url ?? meta.fileUrl, 4096], [meta.fileName, 200], [meta.md5, 32]] as const) {
+    if (value !== undefined && value !== null && (typeof value !== 'string' || value.length > maximum)) throw new ApiError('format');
+  }
+  const rawUrl = text(meta.url ?? meta.fileUrl, 4096), fileName = text(meta.fileName, 200);
+  const extra: { url?: string; fileName?: string; fileSize?: number; md5?: string } = {};
+  if (rawUrl) {
+    let url: URL; try { url = new URL(rawUrl); } catch { throw new ApiError('format'); }
+    if (url.protocol !== 'https:' || !['oss-cfmoto-private.zeehoev.com', 'zeeho-user.oss-cn-hangzhou.aliyuncs.com'].includes(url.hostname)
+      || url.username || url.password || url.hash || url.port && url.port !== '443' || !url.pathname.toLowerCase().endsWith('.zip')) throw new ApiError('format');
+    extra.url = url.href;
+  }
+  if (fileName) { if (!/^[^/\\\u0000-\u001f\u007f]+\.zip$/i.test(fileName) || fileName === '.zip') throw new ApiError('format'); extra.fileName = fileName; }
+  if (meta.fileSize !== undefined && meta.fileSize !== null) {
+    if (typeof meta.fileSize !== 'number' && !(typeof meta.fileSize === 'string' && /^\d+$/.test(meta.fileSize))) throw new ApiError('format');
+    const size = Number(meta.fileSize); if (!Number.isSafeInteger(size) || size <= 0 || size > 16 * 1024 * 1024) throw new ApiError('format'); extra.fileSize = size;
+  }
+  const md5 = text(meta.md5, 32); if (md5) { if (!/^[a-f0-9]{32}$/i.test(md5)) throw new ApiError('format'); extra.md5 = md5.toLowerCase(); }
+  return { wallpaperNum, displayWallpaperSet, ...extra };
 }
 export class MeterApi {
   constructor(private readonly cloud = new CloudClient()) {}

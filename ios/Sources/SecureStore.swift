@@ -10,9 +10,9 @@ enum SecureStore {
         guard SecItemCopyMatching(query as CFDictionary, &item) == errSecSuccess else { return nil }
         return item as? Data
     }
-    static func write(_ data: Data, name: String) throws {
+    static func write(_ data: Data, name: String, background: Bool = false) throws {
         let query: [String: Any] = [kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: service, kSecAttrAccount as String: name]
-        let values: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
+        let values: [String: Any] = [kSecValueData as String: data, kSecAttrAccessible as String: background ? kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly : kSecAttrAccessibleWhenUnlockedThisDeviceOnly]
         let status = SecItemUpdate(query as CFDictionary, values as CFDictionary)
         if status == errSecItemNotFound {
             var combined = query; values.forEach { combined[$0] = $1 }

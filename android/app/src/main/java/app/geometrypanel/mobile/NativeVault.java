@@ -19,7 +19,8 @@ import javax.crypto.spec.GCMParameterSpec;
 final class NativeVault {
     private final Context context;
     NativeVault(Context context) { this.context = context.getApplicationContext(); }
-    private SecretKey key() throws Exception {
+    private static final Object KEY_LOCK = new Object();
+    private SecretKey key() throws Exception { synchronized (KEY_LOCK) {
         KeyStore store = KeyStore.getInstance("AndroidKeyStore");
         store.load(null);
         String alias = "geometry_native_v1";
@@ -27,7 +28,7 @@ final class NativeVault {
         KeyGenerator generator = KeyGenerator.getInstance(KeyProperties.KEY_ALGORITHM_AES, "AndroidKeyStore");
         generator.init(new KeyGenParameterSpec.Builder(alias, KeyProperties.PURPOSE_ENCRYPT | KeyProperties.PURPOSE_DECRYPT)
                 .setKeySize(256).setBlockModes(KeyProperties.BLOCK_MODE_GCM).setEncryptionPaddings(KeyProperties.ENCRYPTION_PADDING_NONE).build());
-        return generator.generateKey();
+        return generator.generateKey(); }
     }
     private AtomicFile file(String name) {
         if (!name.matches("[a-z-]{1,32}")) throw new IllegalArgumentException("vault_name");
@@ -35,7 +36,7 @@ final class NativeVault {
     }
     void save(String name, String text) throws Exception {
         byte[] plain = text.getBytes(StandardCharsets.UTF_8);
-        if (plain.length > 16384) throw new IllegalArgumentException("vault_limit");
+        if (plain.length > limit(name)) throw new IllegalArgumentException("vault_limit");
         try {
             Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
             cipher.init(Cipher.ENCRYPT_MODE, key());
@@ -50,9 +51,9 @@ final class NativeVault {
     String read(String name) throws Exception {
         AtomicFile target = file(name);
         if (!target.getBaseFile().exists()) return null;
-        if (target.getBaseFile().length() > 16450) throw new IllegalArgumentException("vault_limit");
+        if (target.getBaseFile().length() > limit(name) + 64L) throw new IllegalArgumentException("vault_limit");
         byte[] raw = target.readFully();
-        if (raw.length < 30 || raw.length > 16450 || raw[0] != 1) throw new IllegalArgumentException("vault_format");
+        if (raw.length < 30 || raw.length > limit(name) + 64 || raw[0] != 1) throw new IllegalArgumentException("vault_format");
         Cipher cipher = Cipher.getInstance("AES/GCM/NoPadding");
         cipher.init(Cipher.DECRYPT_MODE, key(), new GCMParameterSpec(128, Arrays.copyOfRange(raw, 1, 13)));
         cipher.updateAAD(("geometry.v1:" + name).getBytes(StandardCharsets.UTF_8));
@@ -60,6 +61,7 @@ final class NativeVault {
         try { return new String(plain, StandardCharsets.UTF_8); } finally { Arrays.fill(plain, (byte) 0); }
     }
     void forget(String name) { file(name).delete(); }
+    private static int limit(String name) { return name.equals("background-state") ? 32 * 1024 * 1024 : name.startsWith("background-") ? 2 * 1024 * 1024 : name.startsWith("capture-") ? 65536 : 16384; }
     byte[] identity() throws Exception {
         String text = read("identity");
         if (text != null) return BleProtocol.hex(text, 8);

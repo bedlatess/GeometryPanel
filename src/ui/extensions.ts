@@ -3,6 +3,7 @@ import { ExtensionsApi } from '../api/extensions';
 import { NativeMaterialsApi } from '../api/native-materials';
 import type { Session } from '../core/model';
 import { navigationLinks } from '../core/navigation';
+import { roadTrack } from '../core/track-map';
 import { DAILY_STALE_AFTER_MS, DAILY_FUTURE_TOLERANCE_MS } from '../core/daily-model';
 import { chinaDay, rideMonth, rideTracks, tireReadings, vehicleAlerts, vehicleSettings, trackPath, settingDefinitions,
   type RideMonth, type RideTrack, type TireReading, type VehicleAlert, type VehicleSetting } from '../core/extensions-model';
@@ -27,6 +28,8 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
   let alerts: { alerts: VehicleAlert[]; accountUnread: number | null; receivedCount: number } | null = null;
   let settings: VehicleSetting[] | null = null;
   let confirmation: { setting: VehicleSetting; value: string; label: string } | null = null;
+  let messageConfirmation: 'read' | 'delete' | null = null;
+  const roadMaps = new Set<number>();
   const disabled = () => busy || expired ? 'disabled' : '';
 
   function expire() {
@@ -41,14 +44,19 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     const links = navigationLinks({ longitude: point.longitude, latitude: point.latitude, altitudeM: null, coordinateSystem: 'gcj02', coordinateSystemSource: 'legacy-default', address: null, reportedAt: null, reportState: 'unknown' });
     return links ? `<a class="secondary-link" href="${escape(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${escape(label)}</a>` : '';
   }
+  function trackDrawing(item: RideTrack, index: number): string {
+    const drawing = trackPath(item.points);
+    if (!drawing) return '<p class="fine-print">本次行程没有返回有效轨迹点。</p>';
+    const map = roadMaps.has(index) && !options.demo ? roadTrack(item.points) : null;
+    const start = map ? [map.start.x, map.start.y] : drawing.start.split(','), end = map ? [map.end.x, map.end.y] : drawing.end.split(',');
+    return `<svg viewBox="0 0 ${map ? '640 360' : '320 200'}" width="100%" role="img" aria-label="${map ? '历史轨迹与高德道路底图' : '本次行程轨迹示意，不含道路底图'}">${map ? map.tiles.map(tile => `<image data-road-tile href="${tile.url}" x="${tile.x}" y="${tile.y}" width="256" height="256"/>`).join('') : ''}<path d="${map?.path ?? drawing.path}" fill="none" stroke="${map ? '#126fdf' : 'currentColor'}" stroke-width="${map ? '4' : '2'}"/><circle cx="${start[0]}" cy="${start[1]}" r="${map ? '7' : '4'}" fill="${map ? '#168242' : 'currentColor'}"/><circle cx="${end[0]}" cy="${end[1]}" r="${map ? '8' : '5'}" fill="none" stroke="${map ? '#d13838' : 'currentColor'}" stroke-width="${map ? '4' : '2'}"/></svg><p class="fine-print" data-road-status>${map ? '© 高德地图 · 道路底图需联网加载，缺失路段不补画。' : `实心圆为起点，空心圆为终点。${item.points.length} 个有效位置点；当前为点列示意，缺失路段不补画。`}</p>${!map && !options.demo ? `<button class="text-button" data-ext="track-map" data-track-index="${index}">加载道路底图</button>` : ''}<div class="map-actions">${pointMap(item.points[0], '在地图查看起点')}${pointMap(item.points[item.points.length - 1], '在地图查看终点')}</div>`;
+  }
   function content(): string {
     if (expired) return '';
     if (!session && !options.demo) return '<p>连接车辆后可查看骑行记录、轨迹、胎压、告警与车辆设置。</p>';
     if (tab === 'ride' && monthly) return `<p>账号返回的累计骑行里程：${escape(number(monthly.totalMileageKm, 'km'))}</p>${monthly.days.length ? monthly.days.map(item => `<section class="settings-card"><h3>${escape(item.date || '日期未知')}</h3><dl class="details-list">${row('里程', number(item.mileageKm, 'km'))}${row('时长', number(item.minutes, '分钟'))}${row('最高速度', number(item.maxSpeedKmh, 'km/h'))}</dl>${item.day ? `<button class="text-button" data-ext="day-tracks" data-day="${escape(item.day)}" ${disabled()}>查看当天轨迹</button>` : ''}</section>`).join('') : '<p>这个月没有返回骑行记录。</p>'}`;
-    if (tab === 'tracks' && tracks) return `${tracks.tracks.length ? tracks.tracks.map(item => {
-      const drawing = trackPath(item.points);
-      const start = drawing?.start.split(',') ?? [], end = drawing?.end.split(',') ?? [];
-      return `<details class="settings-card"><summary>${escape(item.start || item.day || '时间未知')} · ${escape(number(item.mileageKm, 'km'))}</summary><p>${escape(item.from || '起点地址未知')} → ${escape(item.to || '终点地址未知')}</p><dl class="details-list">${row('开始', item.start || '未知')}${row('结束', item.end || '未知')}${row('时长', number(item.minutes, '分钟'))}${row('最高速度', number(item.maxSpeedKmh, 'km/h'))}</dl>${drawing ? `<svg viewBox="0 0 320 200" width="100%" role="img" aria-label="本次行程轨迹示意，不含道路底图"><path d="${drawing.path}" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="${start[0]}" cy="${start[1]}" r="4" fill="currentColor"/><circle cx="${end[0]}" cy="${end[1]}" r="5" fill="none" stroke="currentColor" stroke-width="2"/></svg><p class="fine-print">实心圆为起点，空心圆为终点。${item.points.length} 个有效位置点；此图只显示轨迹形状，不含道路底图。缺失路段不补画。</p><div class="map-actions">${pointMap(item.points[0], '在地图查看起点')}${pointMap(item.points[item.points.length - 1], '在地图查看终点')}</div>` : '<p class="fine-print">本次行程没有返回有效轨迹点。</p>'}</details>`;
+    if (tab === 'tracks' && tracks) return `${tracks.tracks.length ? tracks.tracks.map((item, index) => {
+      return `<details class="settings-card" ${roadMaps.has(index) ? 'open' : ''}><summary>${escape(item.start || item.day || '时间未知')} · ${escape(number(item.mileageKm, 'km'))}</summary><p>${escape(item.from || '起点地址未知')} → ${escape(item.to || '终点地址未知')}</p><dl class="details-list">${row('开始', item.start || '未知')}${row('结束', item.end || '未知')}${row('时长', number(item.minutes, '分钟'))}${row('最高速度', number(item.maxSpeedKmh, 'km/h'))}</dl>${trackDrawing(item, index)}</details>`;
     }).join('') : '<p>当天没有返回行程。可选择其他日期。</p>'}<div class="map-actions"><button class="text-button" data-ext="tracks-prev" ${busy || trackPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${trackPage} 页</span><button class="text-button" data-ext="tracks-next" ${busy || tracks.receivedCount < 20 || trackPage >= 500 ? 'disabled' : ''}>下一页</button></div><p class="fine-print">按旧版约定读取 GCJ-02 轨迹；地图入口由你点击后打开。</p>`;
     if (tab === 'tires' && tires) return `<p class="fine-print">汇总上报：${escape(stamp(tires.updatedAt))}。当前页面读取不代表传感器刚刚上报。</p>${tires.wheels.length ? tires.wheels.map(item => `<section class="settings-card"><h3>${item.position}</h3><dl class="details-list">${row('胎压', number(item.pressureBar, 'bar'))}${row('胎温', number(item.temperatureC, '℃'))}${row('设备告警', item.warningCode === null ? '未知' : item.warningCode > 0 ? `设备报告异常（代码 ${item.warningCode}），请检查轮胎` : '未上报告警')}</dl><p class="fine-print">${escape(stamp(item.reportedAt))}</p></section>`).join('') : '<p>没有返回胎压传感器读数；可能未安装、未绑定或尚未上报。</p>'}<p class="fine-print">这里显示传感器上报，不自行设定安全胎压；请按车辆手册和现场检查判断。</p>`;
     if (tab === 'alerts' && alerts) return `<p>账号未读车辆消息：${escape(number(alerts.accountUnread))}</p><p class="fine-print">仅显示本车及未注明车辆的账号消息；其他车辆的消息不会列在这里。此页为历史消息读取，不能代替即时防盗通知。</p>${alerts.alerts.length ? alerts.alerts.map(item => `<section class="settings-card"><h3>${escape(item.title)}${item.unread === true ? ' · 未读' : ''}</h3><p class="fine-print">${escape(item.time || '时间未知')}${!item.vin ? ' · 未注明车辆的账号消息' : ''}</p>${item.detail ? `<p>${escape(item.detail)}</p>` : ''}${item.address ? `<p>位置：${escape(item.address)}</p>` : ''}</section>`).join('') : '<p>这一页没有本车或未注明车辆的消息。</p>'}<div class="map-actions"><button class="text-button" data-ext="alerts-prev" ${busy || alertPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${alertPage} 页</span><button class="text-button" data-ext="alerts-next" ${busy || alerts.receivedCount < 20 || alertPage >= 500 ? 'disabled' : ''}>下一页</button></div>`;
@@ -58,6 +66,15 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
   function render() {
     if (!alive) return;
     host.innerHTML = `<div class="extensions"><p class="fine-print">${options.demo ? '演示模式 · 以下全部为合成数据，不能修改车辆设置。' : session ? `当前车辆：${escape(session.vehicle.name)}。数据仅在当前面板中展示。` : '尚未连接车辆。'}</p><nav class="control-grid" aria-label="扩展功能">${tabs.map(([id, name]) => `<button class="control-button" type="button" data-ext-tab="${id}" aria-pressed="${id === tab}" ${disabled()}>${name}</button>`).join('')}</nav>${tab === 'ride' || tab === 'tracks' ? `<form data-ext-filter><label>${tab === 'ride' ? '选择月份' : '选择日期'}<input name="period" type="${tab === 'ride' ? 'month' : 'date'}" required value="${tab === 'ride' ? month : day}" max="${tab === 'ride' ? chinaDay().slice(0, 7) : chinaDay()}" ${disabled()}></label><button class="text-button" ${disabled()}>读取${tab === 'ride' ? '本月记录' : '当天轨迹'}</button></form>` : ''}<button class="text-button" type="button" data-ext="refresh" ${busy || !session && !options.demo ? 'disabled' : ''}>${busy ? '正在读取…' : '刷新当前分类'}</button><div role="status" aria-live="polite">${busy ? '<p>正在处理，请稍候…</p>' : note ? `<p>${escape(note)}</p>` : ''}</div>${error ? `<p role="alert">${escape(error)}</p>` : ''}${confirmation ? `<section class="settings-card" aria-label="确认修改车辆设置"><h3>确认修改</h3><p>车辆：${escape(session?.vehicle.name)}</p><p>将“${escape(confirmation.setting.title)}”从“${escape(confirmation.setting.display)}”改为“${escape(confirmation.label)}”。</p><p>请确认车辆已停稳，修改不会影响当前骑行。保护、制动和钥匙相关设置请谨慎选择。</p><div class="map-actions"><button class="text-button" data-ext="cancel-setting">取消</button><button class="primary" data-ext="confirm-setting">确认发送修改</button></div></section>` : ''}<div aria-busy="${busy}">${content()}</div></div>`;
+    if (tab === 'alerts' && alerts) {
+      const toolbar = document.createElement('section'); toolbar.className = 'settings-card';
+      toolbar.innerHTML = `<h3>账号车辆消息管理</h3><p class="fine-print">以下操作会影响此账号全部车辆的消息，包含本页未显示的其他车辆消息。只查看页面不会改变已读状态。</p>${messageConfirmation ? `<p>${messageConfirmation === 'delete' ? '确定清除账号全部车辆消息？云端清除后不能从面板恢复。' : '确定把账号全部车辆消息标为已读？'}</p><button class="text-button" data-ext="cancel-message" ${disabled()}>取消</button><button class="primary" data-ext="confirm-message" ${disabled()}>${messageConfirmation === 'delete' ? '确认清除全部车辆消息' : '确认全部标为已读'}</button>` : `<button class="text-button" data-ext="read-messages" ${options.demo ? 'disabled' : disabled()}>全部标为已读</button><button class="text-button" data-ext="delete-messages" ${options.demo ? 'disabled' : disabled()}>清除全部车辆消息</button>`}`;
+      host.querySelector('[aria-busy]')?.prepend(toolbar);
+    }
+    for (const tile of host.querySelectorAll('[data-road-tile]')) tile.addEventListener('error', () => {
+      const status = tile.closest('details')?.querySelector('[data-road-status]');
+      if (status) status.textContent = '© 高德地图 · 部分道路底图加载失败，轨迹仍显示。可稍后重试或在地图查看起终点。';
+    }, { once: true });
   }
   function simulated() {
     if (tab === 'ride') monthly = rideMonth({ rideMileageTotal: 1256, rideRecordList: [{ date: `${month.replace('-', '.')}.06`, rideMileage: 12.4, ridingTimeDayUnitMinute: 28, maxSpeed: 39 }] });
@@ -67,6 +84,7 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     if (tab === 'settings') settings = vehicleSettings([{ functionCode: 'PRECISION_ENDURANCE', isSupport: true }], { precisionEndurance: 1, mileageUnit: 1, temperatureUnit: 1, timeFormat: 2, soundEffectSetting: { soundSize: 60 } });
   }
   async function load() {
+    messageConfirmation = null; roadMaps.clear();
     if (!alive || expired) return;
     confirmation = null; error = ''; note = '';
     request?.abort(); request = new AbortController();
@@ -93,6 +111,23 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
       if (failure instanceof ApiError && failure.kind === 'expired') expire();
       else error = messageFor(failure);
     } finally { if (alive && current === generation && !signal.aborted) { busy = false; render(); } }
+  }
+  async function updateMessages() {
+    if (!alive || expired || busy || options.demo || !session || !messageConfirmation) return;
+    const action = messageConfirmation; messageConfirmation = null; busy = true; writing = true; error = ''; note = ''; render();
+    request?.abort(); request = new AbortController(); const signal = request.signal;
+    let accepted = false;
+    try {
+      await api.updateAlerts(session, action, signal); accepted = true;
+      if (!alive || signal.aborted) return;
+      alertPage = 1; alerts = await api.alerts(session, 1, signal);
+      if (!alive || signal.aborted) return;
+      note = action === 'read' ? '服务已受理全部已读，并重新读取账号消息。' : '服务已受理清除，并重新读取账号消息。';
+    } catch (failure) {
+      if (!alive || signal.aborted) return;
+      if (failure instanceof ApiError && failure.kind === 'expired') expire();
+      else error = `${accepted ? '服务已受理，但刷新失败。' : '消息操作结果未确认，未自动重发。'}${messageFor(failure)}`;
+    } finally { writing = false; if (alive && !signal.aborted) { busy = false; render(); } }
   }
   async function write() {
     if (!alive || expired || busy || options.demo || !session || !confirmation?.setting.writable) return;
@@ -123,6 +158,10 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     const next = target.dataset.extTab;
     if (next && tabs.some(([id]) => id === next)) { tab = next as Tab; void load(); return; }
     const action = target.dataset.ext;
+    if (action === 'track-map') { const index = Number(target.dataset.trackIndex); if (!options.demo && Number.isInteger(index) && tracks?.tracks[index]) { roadMaps.add(index); render(); } return; }
+    if (action === 'read-messages' || action === 'delete-messages') { if (!options.demo) { messageConfirmation = action === 'read-messages' ? 'read' : 'delete'; render(); } return; }
+    if (action === 'cancel-message') { messageConfirmation = null; render(); return; }
+    if (action === 'confirm-message') { void updateMessages(); return; }
     if (action === 'cancel-setting') { confirmation = null; render(); return; }
     if (action === 'confirm-setting') { void write(); return; }
     if (action === 'day-tracks') { day = target.dataset.day!; tab = 'tracks'; trackPage = 1; }

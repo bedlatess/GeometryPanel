@@ -1,0 +1,2161 @@
+{
+  "schema": 1,
+  "reference": "授权旧版1.8.12，versionCode154；静态证据不等于实车通过",
+  "applicationBridgeEntries": 117,
+  "excludedSdkEntries": 2,
+  "scope": "功能实现/系统替代；UI另行优化",
+  "entries": [
+    {
+      "file": "defpackage/x8.java",
+      "line": 15,
+      "returns": "String",
+      "method": "beginCameraScan",
+      "parameters": "String str, String str2",
+      "category": "扫描",
+      "replacement": "tools.open scanner；打开、取消与权限由原生页面管理",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeToolActivity.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "defpackage/x8.java",
+      "line": 41,
+      "returns": "void",
+      "method": "cancelCameraScan",
+      "parameters": "String str, String str2",
+      "category": "扫描",
+      "replacement": "tools.open scanner；打开、取消与权限由原生页面管理",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeToolActivity.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "defpackage/yc.java",
+      "line": 99,
+      "returns": "String",
+      "method": "beginRequest",
+      "parameters": "String str",
+      "category": "云端请求事务",
+      "replacement": "固定官方服务的类型化 API，AbortSignal 和单次请求结果替代 begin/poll",
+      "implementation": [
+        "src/api/client.ts",
+        "src/api/sign.ts",
+        "src/api/zeeho.ts",
+        "src/api/tasks.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不对网页暴露任意URL原生代理；真实域名跨域沿用已验收来源。"
+    },
+    {
+      "file": "defpackage/yc.java",
+      "line": 409,
+      "returns": "String",
+      "method": "pollRequests",
+      "parameters": "",
+      "category": "云端请求事务",
+      "replacement": "固定官方服务的类型化 API，AbortSignal 和单次请求结果替代 begin/poll",
+      "implementation": [
+        "src/api/client.ts",
+        "src/api/sign.ts",
+        "src/api/zeeho.ts",
+        "src/api/tasks.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不对网页暴露任意URL原生代理；真实域名跨域沿用已验收来源。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 350,
+      "returns": "String",
+      "method": "available",
+      "parameters": "",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 375,
+      "returns": "String",
+      "method": "forgetProfile",
+      "parameters": "",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 384,
+      "returns": "String",
+      "method": "getDiagnostics",
+      "parameters": "String str",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 398,
+      "returns": "String",
+      "method": "getStatus",
+      "parameters": "",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 476,
+      "returns": "String",
+      "method": "pair",
+      "parameters": "String str",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 529,
+      "returns": "String",
+      "method": "requestProjection",
+      "parameters": "",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 546,
+      "returns": "String",
+      "method": "start",
+      "parameters": "String str",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/cast/ZeehoCastBridge.java",
+      "line": 639,
+      "returns": "String",
+      "method": "stop",
+      "parameters": "",
+      "category": "投屏",
+      "replacement": "meter.open 内的完整配对、采集授权、启动/停止/状态/诊断页面",
+      "implementation": [
+        "src/ui/native.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/MeterActivity.java",
+        "ios/Sources/MeterCoordinator.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "本应用画面采集与手动连接车辆热点",
+      "note": "原版未实现音频/反控；iOS不支持Android Wi-Fi Direct。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 464,
+      "returns": "String",
+      "method": "appLogSession",
+      "parameters": "",
+      "category": "诊断与应用日志",
+      "replacement": "系统保存/分享脱敏诊断和功能状态；命令/任务/提醒摘要",
+      "implementation": [
+        "src/core/command-report.ts",
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "命令/任务摘要可用",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不导出原始账户/密钥/请求响应；不恢复包含凭据的旧日志。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 475,
+      "returns": "String",
+      "method": "appVersion",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 486,
+      "returns": "void",
+      "method": "applyPanelUpdate",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 492,
+      "returns": "String",
+      "method": "autoTask",
+      "parameters": "",
+      "category": "签到与社区任务",
+      "replacement": "签到/积分/连签奖励及多账号任务；网页前台与原生调度共用合同",
+      "implementation": [
+        "src/api/tasks.ts",
+        "src/core/tasks-model.ts",
+        "src/ui/tasks.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeTasks.java",
+        "ios/Sources/NativeTasks.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "任务可用；定时受系统机会调度",
+      "note": "全部默认关闭；点赞旧语义单独确认；发帖内容独立确认，每日门闩和唯一证据清理；奖励动画为UI后置。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 512,
+      "returns": "String",
+      "method": "autoTaskScope",
+      "parameters": "String str",
+      "category": "签到与社区任务",
+      "replacement": "签到/积分/连签奖励及多账号任务；网页前台与原生调度共用合同",
+      "implementation": [
+        "src/api/tasks.ts",
+        "src/core/tasks-model.ts",
+        "src/ui/tasks.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeTasks.java",
+        "ios/Sources/NativeTasks.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "任务可用；定时受系统机会调度",
+      "note": "全部默认关闭；点赞旧语义单独确认；发帖内容独立确认，每日门闩和唯一证据清理；奖励动画为UI后置。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 530,
+      "returns": "boolean",
+      "method": "background",
+      "parameters": "",
+      "category": "后台监控",
+      "replacement": "background.configure/status/run；8类提醒和系统调度",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "仅打开期间记录",
+      "android": "已实现，待实机验收",
+      "ios": "前台及BGAppRefresh机会刷新",
+      "note": "Android前台服务60/150/300秒和15分钟后备；iOS不能保证持续或准点。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 537,
+      "returns": "String",
+      "method": "backgroundStatus",
+      "parameters": "",
+      "category": "后台监控",
+      "replacement": "background.configure/status/run；8类提醒和系统调度",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "仅打开期间记录",
+      "android": "已实现，待实机验收",
+      "ios": "前台及BGAppRefresh机会刷新",
+      "note": "Android前台服务60/150/300秒和15分钟后备；iOS不能保证持续或准点。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 627,
+      "returns": "String",
+      "method": "batteryHistory",
+      "parameters": "String str",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 633,
+      "returns": "String",
+      "method": "batterySpan",
+      "parameters": "long j, long j2",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 639,
+      "returns": "String",
+      "method": "beginAppLog",
+      "parameters": "String str, String str2",
+      "category": "诊断与应用日志",
+      "replacement": "系统保存/分享脱敏诊断和功能状态；命令/任务/提醒摘要",
+      "implementation": [
+        "src/core/command-report.ts",
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "命令/任务摘要可用",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不导出原始账户/密钥/请求响应；不恢复包含凭据的旧日志。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 644,
+      "returns": "void",
+      "method": "beginAppUpdate",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 650,
+      "returns": "void",
+      "method": "beginBatteryHistory",
+      "parameters": "String str",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 696,
+      "returns": "String",
+      "method": "beginBatterySpan",
+      "parameters": "final long j, final long j2",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 760,
+      "returns": "String",
+      "method": "beginCacheManagement",
+      "parameters": "String str, String str2",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 901,
+      "returns": "String",
+      "method": "beginChargeHistory",
+      "parameters": "String str",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 906,
+      "returns": "String",
+      "method": "beginClearChargeHistory",
+      "parameters": "String str",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 911,
+      "returns": "String",
+      "method": "beginDiagStore",
+      "parameters": "final String str, final String str2",
+      "category": "诊断与应用日志",
+      "replacement": "系统保存/分享脱敏诊断和功能状态；命令/任务/提醒摘要",
+      "implementation": [
+        "src/core/command-report.ts",
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "命令/任务摘要可用",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不导出原始账户/密钥/请求响应；不恢复包含凭据的旧日志。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 992,
+      "returns": "String",
+      "method": "beginImageExport",
+      "parameters": "String str, String str2",
+      "category": "车况图片导出",
+      "replacement": "Canvas绘制白名单车况；浏览器下载或原生asset.export panel",
+      "implementation": [
+        "src/core/panel-export.ts",
+        "src/main.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "PNG≤1MiB、边长≤2048；不是整页截图，不含账号/VIN/停车坐标。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1002,
+      "returns": "String",
+      "method": "beginKeepaliveSave",
+      "parameters": "String str",
+      "category": "Android保活模块",
+      "replacement": "针对本包名导出Magisk/KernelSU模块，不自动安装",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java"
+      ],
+      "web": "不适用",
+      "android": "已实现，待实机验收",
+      "ios": "不适用",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1010,
+      "returns": "String",
+      "method": "beginPageSync",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1044,
+      "returns": "void",
+      "method": "beginPageUpdate",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1073,
+      "returns": "String",
+      "method": "beginPanelLine",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1123,
+      "returns": "String",
+      "method": "beginWidgetPreview",
+      "parameters": "int i, String str",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1199,
+      "returns": "boolean",
+      "method": "cancelPanelLine",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1215,
+      "returns": "String",
+      "method": "captureDiag",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1220,
+      "returns": "String",
+      "method": "captureStatus",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1233,
+      "returns": "String",
+      "method": "chargeLog",
+      "parameters": "",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1258,
+      "returns": "String",
+      "method": "checkAppUpdate",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1291,
+      "returns": "String",
+      "method": "checkPageUpdate",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1340,
+      "returns": "void",
+      "method": "clearCapture",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1346,
+      "returns": "void",
+      "method": "clearCaptureDiag",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1352,
+      "returns": "void",
+      "method": "clearNotifyLog",
+      "parameters": "",
+      "category": "分类提醒与日志",
+      "replacement": "8类开关、系统通知权限、事件历史和分类清除",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeNotifications.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "需原生通知；可查看本机读数历史",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1388,
+      "returns": "void",
+      "method": "copyCaptureDiag",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1394,
+      "returns": "void",
+      "method": "downloadAppUpdate",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1400,
+      "returns": "String",
+      "method": "dynamicColors",
+      "parameters": "",
+      "category": "主题与安全区",
+      "replacement": "网页主题偏好、CSS安全区及共用原生主题",
+      "implementation": [
+        "src/core/preferences.ts",
+        "src/styles.css"
+      ],
+      "web": "基础偏好可用，视觉细节后置",
+      "android": "基础偏好可用，视觉细节后置",
+      "ios": "基础偏好可用，视觉细节后置",
+      "note": "按用户要求，完整配色、字体、布局和动态颜色细节留待UI阶段。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1443,
+      "returns": "String",
+      "method": "imageExportInfo",
+      "parameters": "",
+      "category": "车况图片导出",
+      "replacement": "Canvas绘制白名单车况；浏览器下载或原生asset.export panel",
+      "implementation": [
+        "src/core/panel-export.ts",
+        "src/main.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "PNG≤1MiB、边长≤2048；不是整页截图，不含账号/VIN/停车坐标。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1454,
+      "returns": "String",
+      "method": "inductiveCapabilities",
+      "parameters": "",
+      "category": "蓝牙钥匙",
+      "replacement": "准备车主资料、BLE1认证/遥测、2.0登记/查询、短时连接提醒",
+      "implementation": [
+        "src/ui/native.ts",
+        "src/api/native-materials.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BleClient.java",
+        "ios/Sources/BluetoothKey.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "旧版自身automaticUnlockVerified=false、supportedBle2=false；保持未验证标记，不猜成熟自动解锁或BLE2/3协议。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1463,
+      "returns": "String",
+      "method": "insets",
+      "parameters": "",
+      "category": "主题与安全区",
+      "replacement": "网页主题偏好、CSS安全区及共用原生主题",
+      "implementation": [
+        "src/core/preferences.ts",
+        "src/styles.css"
+      ],
+      "web": "基础偏好可用，视觉细节后置",
+      "android": "基础偏好可用，视觉细节后置",
+      "ios": "基础偏好可用，视觉细节后置",
+      "note": "按用户要求，完整配色、字体、布局和动态颜色细节留待UI阶段。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1487,
+      "returns": "String",
+      "method": "keepaliveModuleInfo",
+      "parameters": "",
+      "category": "Android保活模块",
+      "replacement": "针对本包名导出Magisk/KernelSU模块，不自动安装",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java"
+      ],
+      "web": "不适用",
+      "android": "已实现，待实机验收",
+      "ios": "不适用",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1499,
+      "returns": "String",
+      "method": "keepaliveStatus",
+      "parameters": "",
+      "category": "Android保活模块",
+      "replacement": "针对本包名导出Magisk/KernelSU模块，不自动安装",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java"
+      ],
+      "web": "不适用",
+      "android": "已实现，待实机验收",
+      "ios": "不适用",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1506,
+      "returns": "void",
+      "method": "launchOfficialApp",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1512,
+      "returns": "String",
+      "method": "notifyGroups",
+      "parameters": "",
+      "category": "分类提醒与日志",
+      "replacement": "8类开关、系统通知权限、事件历史和分类清除",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeNotifications.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "需原生通知；可查看本机读数历史",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1532,
+      "returns": "String",
+      "method": "notifyLog",
+      "parameters": "",
+      "category": "分类提醒与日志",
+      "replacement": "8类开关、系统通知权限、事件历史和分类清除",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeNotifications.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "需原生通知；可查看本机读数历史",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1550,
+      "returns": "void",
+      "method": "openInductive",
+      "parameters": "String str, long j, String str2",
+      "category": "蓝牙钥匙",
+      "replacement": "准备车主资料、BLE1认证/遥测、2.0登记/查询、短时连接提醒",
+      "implementation": [
+        "src/ui/native.ts",
+        "src/api/native-materials.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BleClient.java",
+        "ios/Sources/BluetoothKey.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "旧版自身automaticUnlockVerified=false、supportedBle2=false；保持未验证标记，不猜成熟自动解锁或BLE2/3协议。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1556,
+      "returns": "void",
+      "method": "openMeterOta",
+      "parameters": "String str",
+      "category": "仪表工具",
+      "replacement": "Gemini OTA、本地ZIP/两张图片/官方ZIP、预览和确认后传输",
+      "implementation": [
+        "src/api/meter.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/GeminiOtaActivity.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "手动连接车辆热点；协议端口和本机文件校验",
+      "note": "仅旧版AE5I 5寸Gemini固件流程，不附固件；最后ACK不等于实车刷写成功。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1562,
+      "returns": "void",
+      "method": "openOfficialApp",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1568,
+      "returns": "void",
+      "method": "openSettings",
+      "parameters": "String str",
+      "category": "平台设置",
+      "replacement": "按需系统权限与设置引导",
+      "implementation": [
+        "src/ui/native.ts",
+        "src/ui/background.ts",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "浏览器安装/权限说明",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1574,
+      "returns": "void",
+      "method": "openWallpaperTransfer",
+      "parameters": "String str, String str2, long j, String str3",
+      "category": "仪表工具",
+      "replacement": "Gemini OTA、本地ZIP/两张图片/官方ZIP、预览和确认后传输",
+      "implementation": [
+        "src/api/meter.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/GeminiOtaActivity.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "需安装包",
+      "android": "已实现，待实机验收",
+      "ios": "手动连接车辆热点；协议端口和本机文件校验",
+      "note": "仅旧版AE5I 5寸Gemini固件流程，不附固件；最后ACK不等于实车刷写成功。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1581,
+      "returns": "void",
+      "method": "pageReady",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1587,
+      "returns": "void",
+      "method": "pageReadyV2",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1597,
+      "returns": "String",
+      "method": "panelLineInfo",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1617,
+      "returns": "int",
+      "method": "panelLineVersion",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1622,
+      "returns": "String",
+      "method": "pendingPrize",
+      "parameters": "",
+      "category": "签到与社区任务",
+      "replacement": "签到/积分/连签奖励及多账号任务；网页前台与原生调度共用合同",
+      "implementation": [
+        "src/api/tasks.ts",
+        "src/core/tasks-model.ts",
+        "src/ui/tasks.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeTasks.java",
+        "ios/Sources/NativeTasks.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "任务可用；定时受系统机会调度",
+      "note": "全部默认关闭；点赞旧语义单独确认；发帖内容独立确认，每日门闩和唯一证据清理；奖励动画为UI后置。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1653,
+      "returns": "String",
+      "method": "pollAppLog",
+      "parameters": "String str",
+      "category": "诊断与应用日志",
+      "replacement": "系统保存/分享脱敏诊断和功能状态；命令/任务/提醒摘要",
+      "implementation": [
+        "src/core/command-report.ts",
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "命令/任务摘要可用",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不导出原始账户/密钥/请求响应；不恢复包含凭据的旧日志。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1658,
+      "returns": "String",
+      "method": "pollAppUpdate",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1683,
+      "returns": "String",
+      "method": "pollBatteryHistory",
+      "parameters": "",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1702,
+      "returns": "String",
+      "method": "pollBatterySpan",
+      "parameters": "String str",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1707,
+      "returns": "String",
+      "method": "pollCacheManagement",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1712,
+      "returns": "String",
+      "method": "pollChargeHistory",
+      "parameters": "String str",
+      "category": "电池与充电历史",
+      "replacement": "background.history/history.clear；时段、起止筛选、变化曲线、统计和CSV",
+      "implementation": [
+        "src/ui/background.ts",
+        "src/core/history.ts",
+        "src/core/history-store.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeHistory.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "只保存本机观测，缺测断段；无数据不补历史，不把100%猜作充满。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1717,
+      "returns": "String",
+      "method": "pollDiagStore",
+      "parameters": "String str",
+      "category": "诊断与应用日志",
+      "replacement": "系统保存/分享脱敏诊断和功能状态；命令/任务/提醒摘要",
+      "implementation": [
+        "src/core/command-report.ts",
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "命令/任务摘要可用",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "不导出原始账户/密钥/请求响应；不恢复包含凭据的旧日志。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1722,
+      "returns": "String",
+      "method": "pollImageExport",
+      "parameters": "String str",
+      "category": "车况图片导出",
+      "replacement": "Canvas绘制白名单车况；浏览器下载或原生asset.export panel",
+      "implementation": [
+        "src/core/panel-export.ts",
+        "src/main.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "PNG≤1MiB、边长≤2048；不是整页截图，不含账号/VIN/停车坐标。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1727,
+      "returns": "String",
+      "method": "pollKeepaliveSave",
+      "parameters": "String str",
+      "category": "Android保活模块",
+      "replacement": "针对本包名导出Magisk/KernelSU模块，不自动安装",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeExports.java"
+      ],
+      "web": "不适用",
+      "android": "已实现，待实机验收",
+      "ios": "不适用",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1732,
+      "returns": "String",
+      "method": "pollPageSync",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1744,
+      "returns": "String",
+      "method": "pollPageUpdate",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1771,
+      "returns": "String",
+      "method": "pollPanelLine",
+      "parameters": "String str",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1783,
+      "returns": "String",
+      "method": "pollWidgetPreview",
+      "parameters": "String str",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1814,
+      "returns": "void",
+      "method": "prizeCelebrated",
+      "parameters": "",
+      "category": "签到与社区任务",
+      "replacement": "签到/积分/连签奖励及多账号任务；网页前台与原生调度共用合同",
+      "implementation": [
+        "src/api/tasks.ts",
+        "src/core/tasks-model.ts",
+        "src/ui/tasks.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeTasks.java",
+        "ios/Sources/NativeTasks.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "任务可用；定时受系统机会调度",
+      "note": "全部默认关闭；点赞旧语义单独确认；发帖内容独立确认，每日门闩和唯一证据清理；奖励动画为UI后置。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1821,
+      "returns": "int",
+      "method": "releaseTrustVersion",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1826,
+      "returns": "String",
+      "method": "requestAddWidget",
+      "parameters": "String str",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1861,
+      "returns": "void",
+      "method": "requestNotifications",
+      "parameters": "",
+      "category": "分类提醒与日志",
+      "replacement": "8类开关、系统通知权限、事件历史和分类清除",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeNotifications.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "需原生通知；可查看本机读数历史",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1867,
+      "returns": "String",
+      "method": "resetWidgetSettings",
+      "parameters": "int i",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1897,
+      "returns": "boolean",
+      "method": "resignedUpdateException",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1902,
+      "returns": "void",
+      "method": "restartBackground",
+      "parameters": "",
+      "category": "后台监控",
+      "replacement": "background.configure/status/run；8类提醒和系统调度",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "仅打开期间记录",
+      "android": "已实现，待实机验收",
+      "ios": "前台及BGAppRefresh机会刷新",
+      "note": "Android前台服务60/150/300秒和15分钟后备；iOS不能保证持续或准点。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1908,
+      "returns": "void",
+      "method": "restartPage",
+      "parameters": "",
+      "category": "页面缓存与更新",
+      "replacement": "固定本项目正式来源；静态缓存、状态/清理、更新准备与显式切换；原生快照失败回退",
+      "implementation": [
+        "src/core/updates.ts",
+        "src/core/cache.ts",
+        "scripts/build-sw.mjs",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelCache.java"
+      ],
+      "web": "ServiceWorker静态离线和显式更新",
+      "android": "已实现，待实机验收",
+      "ios": "固定网站WKWebView/系统网页缓存",
+      "note": "不继续依赖原作者镜像线路；Safari和iOS平台缓存流程替代Android快照管理，不缓存官方API。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1914,
+      "returns": "void",
+      "method": "setAutoTask",
+      "parameters": "String str",
+      "category": "签到与社区任务",
+      "replacement": "签到/积分/连签奖励及多账号任务；网页前台与原生调度共用合同",
+      "implementation": [
+        "src/api/tasks.ts",
+        "src/core/tasks-model.ts",
+        "src/ui/tasks.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeTasks.java",
+        "ios/Sources/NativeTasks.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "任务可用；定时受系统机会调度",
+      "note": "全部默认关闭；点赞旧语义单独确认；发帖内容独立确认，每日门闩和唯一证据清理；奖励动画为UI后置。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1940,
+      "returns": "void",
+      "method": "setAutoTaskScope",
+      "parameters": "String str",
+      "category": "签到与社区任务",
+      "replacement": "签到/积分/连签奖励及多账号任务；网页前台与原生调度共用合同",
+      "implementation": [
+        "src/api/tasks.ts",
+        "src/core/tasks-model.ts",
+        "src/ui/tasks.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeTasks.java",
+        "ios/Sources/NativeTasks.swift"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "任务可用；定时受系统机会调度",
+      "note": "全部默认关闭；点赞旧语义单独确认；发帖内容独立确认，每日门闩和唯一证据清理；奖励动画为UI后置。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1962,
+      "returns": "void",
+      "method": "setBackground",
+      "parameters": "boolean z",
+      "category": "后台监控",
+      "replacement": "background.configure/status/run；8类提醒和系统调度",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/BackgroundMonitor.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "仅打开期间记录",
+      "android": "已实现，待实机验收",
+      "ios": "前台及BGAppRefresh机会刷新",
+      "note": "Android前台服务60/150/300秒和15分钟后备；iOS不能保证持续或准点。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1987,
+      "returns": "void",
+      "method": "setDark",
+      "parameters": "boolean z",
+      "category": "主题与安全区",
+      "replacement": "网页主题偏好、CSS安全区及共用原生主题",
+      "implementation": [
+        "src/core/preferences.ts",
+        "src/styles.css"
+      ],
+      "web": "基础偏好可用，视觉细节后置",
+      "android": "基础偏好可用，视觉细节后置",
+      "ios": "基础偏好可用，视觉细节后置",
+      "note": "按用户要求，完整配色、字体、布局和动态颜色细节留待UI阶段。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 1993,
+      "returns": "void",
+      "method": "setInductiveTheme",
+      "parameters": "String str",
+      "category": "主题与安全区",
+      "replacement": "网页主题偏好、CSS安全区及共用原生主题",
+      "implementation": [
+        "src/core/preferences.ts",
+        "src/styles.css"
+      ],
+      "web": "基础偏好可用，视觉细节后置",
+      "android": "基础偏好可用，视觉细节后置",
+      "ios": "基础偏好可用，视觉细节后置",
+      "note": "按用户要求，完整配色、字体、布局和动态颜色细节留待UI阶段。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2037,
+      "returns": "void",
+      "method": "setNotifyGroup",
+      "parameters": "String str, String str2",
+      "category": "分类提醒与日志",
+      "replacement": "8类开关、系统通知权限、事件历史和分类清除",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeNotifications.java",
+        "ios/Sources/NativeBackground.swift"
+      ],
+      "web": "需原生通知；可查看本机读数历史",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2187,
+      "returns": "void",
+      "method": "setThemeColors",
+      "parameters": "boolean z, String str",
+      "category": "主题与安全区",
+      "replacement": "网页主题偏好、CSS安全区及共用原生主题",
+      "implementation": [
+        "src/core/preferences.ts",
+        "src/styles.css"
+      ],
+      "web": "基础偏好可用，视觉细节后置",
+      "android": "基础偏好可用，视觉细节后置",
+      "ios": "基础偏好可用，视觉细节后置",
+      "note": "按用户要求，完整配色、字体、布局和动态颜色细节留待UI阶段。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2196,
+      "returns": "void",
+      "method": "setWidgetSetting",
+      "parameters": "String str, String str2",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2201,
+      "returns": "void",
+      "method": "setWidgetSettingFor",
+      "parameters": "int i, String str, String str2",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2230,
+      "returns": "boolean",
+      "method": "setWidgetStats",
+      "parameters": "int i, String str",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2258,
+      "returns": "boolean",
+      "method": "setWidgetStatsForSize",
+      "parameters": "int i, String str, String str2",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2304,
+      "returns": "void",
+      "method": "startCapture",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2310,
+      "returns": "void",
+      "method": "stopCapture",
+      "parameters": "",
+      "category": "官方登录连接",
+      "replacement": "用户手动开启的限定官方应用VPN；固定H5代理、本机加密与确认后的单次网页交接",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/OfficialCaptureService.java"
+      ],
+      "web": "短信登录替代",
+      "android": "已实现，待实机验收",
+      "ios": "短信登录替代；不提供官方应用VPN捕获",
+      "note": "开发未启用VPN或抓取真实流量，证书信任兼容性仍需设备验收。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2316,
+      "returns": "String",
+      "method": "storeAll",
+      "parameters": "",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2341,
+      "returns": "String",
+      "method": "storeBootstrap",
+      "parameters": "",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2374,
+      "returns": "boolean",
+      "method": "storeCommit",
+      "parameters": "String str",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2389,
+      "returns": "String",
+      "method": "storeCommitBegin",
+      "parameters": "String str",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2430,
+      "returns": "String",
+      "method": "storeCommitPoll",
+      "parameters": "String str",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2458,
+      "returns": "boolean",
+      "method": "storePut",
+      "parameters": "String str, String str2",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2463,
+      "returns": "boolean",
+      "method": "storeRemove",
+      "parameters": "String str",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2472,
+      "returns": "int",
+      "method": "storeVersion",
+      "parameters": "",
+      "category": "本机存储",
+      "replacement": "AES-GCM IndexedDB原子记录、写队列及跨标签锁，迁移旧会话",
+      "implementation": [
+        "src/core/vault.ts",
+        "src/core/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": ""
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2477,
+      "returns": "long",
+      "method": "syncSession",
+      "parameters": "String str, String str2, String str3, String str4",
+      "category": "账号作用域",
+      "replacement": "多账号/多车随机ID和epoch，显式授权后accounts.sync/remove",
+      "implementation": [
+        "src/core/accounts.ts",
+        "src/core/background.ts",
+        "src/ui/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "登录、换车、移除、失效与全部退出分开处理；无后台授权不交接凭据。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2531,
+      "returns": "long",
+      "method": "syncSessionV2",
+      "parameters": "String str",
+      "category": "账号作用域",
+      "replacement": "多账号/多车随机ID和epoch，显式授权后accounts.sync/remove",
+      "implementation": [
+        "src/core/accounts.ts",
+        "src/core/background.ts",
+        "src/ui/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "登录、换车、移除、失效与全部退出分开处理；无后台授权不交接凭据。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2542,
+      "returns": "void",
+      "method": "syncStatus",
+      "parameters": "String str",
+      "category": "账号作用域",
+      "replacement": "多账号/多车随机ID和epoch，显式授权后accounts.sync/remove",
+      "implementation": [
+        "src/core/accounts.ts",
+        "src/core/background.ts",
+        "src/ui/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "登录、换车、移除、失效与全部退出分开处理；无后台授权不交接凭据。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2591,
+      "returns": "int",
+      "method": "taskAccountParamsVersion",
+      "parameters": "",
+      "category": "账号作用域",
+      "replacement": "多账号/多车随机ID和epoch，显式授权后accounts.sync/remove",
+      "implementation": [
+        "src/core/accounts.ts",
+        "src/core/background.ts",
+        "src/ui/accounts.ts"
+      ],
+      "web": "已实现",
+      "android": "已实现，待实机验收",
+      "ios": "已实现，待实机验收",
+      "note": "登录、换车、移除、失效与全部退出分开处理；无后台授权不交接凭据。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2596,
+      "returns": "String",
+      "method": "updateStatus",
+      "parameters": "",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2613,
+      "returns": "String",
+      "method": "widgetAddStatus",
+      "parameters": "",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2618,
+      "returns": "String",
+      "method": "widgetSettings",
+      "parameters": "",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2623,
+      "returns": "String",
+      "method": "widgetSettingsFor",
+      "parameters": "int i",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2675,
+      "returns": "String",
+      "method": "widgetSettingsForSize",
+      "parameters": "int i, String str",
+      "category": "桌面组件与快捷入口",
+      "replacement": "4种组件尺寸、车辆/控制绑定、摘要预览、默认配置与系统添加；快捷指令单独配置",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/PanelWidget.java",
+        "ios/Widget/GeometryWidget.swift",
+        "ios/Sources/NativeShortcuts.swift"
+      ],
+      "web": "Safari添加到主屏幕",
+      "android": "已实现，待实机验收",
+      "ios": "可选WidgetKit组件、AppIntents/深链、前台确认",
+      "note": "颜色/字体/装饰样式UI后置；自签组件版需扩展和App Groups；每车读数与控制目标绑定。"
+    },
+    {
+      "file": "io/github/lswlc33/zeehowebnext/ShellBridge.java",
+      "line": 2715,
+      "returns": "void",
+      "method": "requestResignedUpdateException",
+      "parameters": "boolean z",
+      "category": "安装包更新",
+      "replacement": "版本显示、固定本仓库Release更新，Android验签安装、iOS下载并重新自签",
+      "implementation": [
+        "src/ui/background.ts",
+        "android/app/src/main/java/app/geometrypanel/mobile/NativeUpdates.java",
+        "ios/Sources/NativeTools.swift"
+      ],
+      "web": "网页更新或公开下载",
+      "android": "已实现，待实机验收",
+      "ios": "检查版本并打开自签安装说明",
+      "note": "Android用本项目稳定证书；不使用原作者包名/证书，也不绕过系统升级签名。"
+    }
+  ]
+}

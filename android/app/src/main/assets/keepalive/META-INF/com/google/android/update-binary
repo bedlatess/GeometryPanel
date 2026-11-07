@@ -1,0 +1,22 @@
+#!/sbin/sh
+#################
+# Initialization
+#################
+umask 022
+OUTFD=$2
+ZIPFILE=$3
+ui_print() { echo "$1"; }
+
+# Magisk 通用安装器；KernelSU 兼容同一 zip 格式。
+mount /data 2>/dev/null
+if [ -f /data/adb/magisk/util_functions.sh ]; then
+  . /data/adb/magisk/util_functions.sh
+  install_module
+  exit 0
+fi
+# KernelSU：管理器会自行处理 zip 内文件，走到这里说明是手动 flash，按约定把文件放到模块目录。
+MODPATH=/data/adb/modules/geometry_panel_alive
+mkdir -p "$MODPATH"
+cp -af "$ZIPFILE" "$MODPATH/.zip" 2>/dev/null
+ui_print "* 请用 KernelSU 管理器安装本模块（本 zip 亦兼容 Magisk）。"
+exit 0

@@ -50,6 +50,8 @@ public final class MainActivity extends Activity {
     private LinearLayout errorPanel;
     private ProgressBar progress;
     private boolean loadFailed;
+    private volatile boolean snapshotFallback;
+    private volatile PanelCache.Session snapshotSession;
     private NativeBridge nativeBridge;
     private java.util.function.Consumer<Boolean> permissionReply;
     private int permissionRequest, permissionCounter = 701;
@@ -103,6 +105,8 @@ public final class MainActivity extends Activity {
         retry.setOnClickListener(view -> {
             if (panel == null) createPanel();
             loadFailed = false;
+            snapshotFallback = false;
+            PanelCache.release(this,snapshotSession); snapshotSession = null;
             errorPanel.setVisibility(View.GONE);
             panel.setVisibility(View.VISIBLE);
             panel.loadUrl(BuildConfig.PANEL_URL);
@@ -115,6 +119,7 @@ public final class MainActivity extends Activity {
         if (Build.VERSION.SDK_INT >= 33) getOnBackInvokedDispatcher().registerOnBackInvokedCallback(
                 android.window.OnBackInvokedDispatcher.PRIORITY_DEFAULT, this::handleBack);
         panel.loadUrl(BuildConfig.PANEL_URL);
+        PanelCache.warm(this);
     }
 
     @SuppressLint("SetJavaScriptEnabled")
@@ -136,6 +141,9 @@ public final class MainActivity extends Activity {
         settings.setMediaPlaybackRequiresUserGesture(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(panel, false);
         panel.setWebViewClient(new WebViewClient() {
+            @Override public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                return snapshotFallback && "GET".equals(request.getMethod()) ? PanelCache.response(MainActivity.this,snapshotSession,request.getUrl().toString()) : null;
+            }
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 String url = request.getUrl().toString();
                 if (!request.isForMainFrame()) return !NavigationPolicy.isHttps(url);
@@ -228,6 +236,10 @@ public final class MainActivity extends Activity {
     }
 
     private void showLoadError() {
+        if (!snapshotFallback && panel != null) {
+            PanelCache.Session candidate = PanelCache.acquire(this);
+            if (candidate != null) { snapshotSession = candidate; snapshotFallback = true; loadFailed = false; panel.post(() -> { if (panel != null) { panel.loadUrl(BuildConfig.PANEL_URL); Toast.makeText(this,"正在使用正式站点的本机网页快照；联网后可重新打开更新。",Toast.LENGTH_LONG).show(); } }); return; }
+        }
         loadFailed = true;
         if (panel != null) panel.setVisibility(View.GONE);
         if (errorPanel != null) errorPanel.setVisibility(View.VISIBLE);
@@ -272,6 +284,7 @@ public final class MainActivity extends Activity {
     }
 
     @Override protected void onDestroy() {
+        PanelCache.release(this,snapshotSession); snapshotSession = null;
         if (nativeBridge != null) nativeBridge.close();
         if (panel != null) {
             root.removeView(panel);

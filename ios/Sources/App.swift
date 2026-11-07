@@ -5,9 +5,13 @@ import WebKit
     var window: UIWindow?
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
         let testing = ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] != nil || NSClassFromString("XCTestCase") != nil
+        if !testing { NativeBackground.shared.register(); NativeTasks.shared.register() }
         let window = UIWindow(frame: UIScreen.main.bounds); window.rootViewController = testing ? UIViewController() : PanelViewController(); window.makeKeyAndVisible(); self.window = window
         return true
     }
+    func applicationDidBecomeActive(_ application: UIApplication) { NativeBackground.shared.foreground(true); NativeTasks.shared.foreground(true) }
+    func applicationDidEnterBackground(_ application: UIApplication) { NativeBackground.shared.foreground(false); NativeTasks.shared.foreground(false) }
+    func application(_ app: UIApplication, open url: URL, options: [UIApplication.OpenURLOptionsKey: Any] = [:]) -> Bool { NativeShortcuts.handle(url) }
 }
 
 @MainActor final class PanelViewController: UIViewController, WKNavigationDelegate, WKUIDelegate, WKScriptMessageHandler {
@@ -15,10 +19,12 @@ import WebKit
     private let local = LocalServices()
     private let bluetooth = BluetoothKey()
     private lazy var meter = MeterCoordinator(host: self)
+    private lazy var tools = NativeTools(host: self)
     private var binding: VehicleBinding?
     private var pending: Set<String> = []
     private var epoch = 0
     private var retryButton: UIButton!
+    private var webReady = false, shortcutDelivering = false
     override func viewDidLoad() {
         super.viewDidLoad(); view.backgroundColor = .systemBackground
         let configuration = WKWebViewConfiguration()
@@ -33,11 +39,13 @@ import WebKit
         bluetooth.disconnected = { [weak self] in self?.local.bluetoothDisconnected() }
         web.load(URLRequest(url: TrustedPage.home))
         NotificationCenter.default.addObserver(self, selector: #selector(background), name: UIApplication.didEnterBackgroundNotification, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(deliverShortcut), name: NativeShortcuts.received, object: nil)
+        NotificationCenter.default.addObserver(self, selector: #selector(deliverShortcut), name: UIApplication.didBecomeActiveNotification, object: nil)
     }
     @objc private func retry() { retryButton.isHidden = true; web.load(URLRequest(url: TrustedPage.home)) }
-    @objc private func background() { meter.stop(); if !bluetooth.proximity { bluetooth.disconnect() } }
-    private func clear() {
-        epoch += 1; binding = nil; bluetooth.binding = nil; bluetooth.disconnect(); meter.stop(); local.clear(); SecureStore.delete("binding")
+    @objc private func background() { meter.stop(); tools.stop(); if !bluetooth.proximity { bluetooth.disconnect() } }
+    private func clear(advanceEpoch: Bool = true) {
+        if advanceEpoch { epoch += 1 }; binding = nil; bluetooth.binding = nil; bluetooth.disconnect(); meter.stop(); tools.stop(); local.clear(); SecureStore.delete("binding")
     }
     func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
         let origin = message.frameInfo.securityOrigin
@@ -45,8 +53,9 @@ import WebKit
               origin.port == 443 || origin.port == 0, TrustedPage.permits(web.url), TrustedPage.permits(message.frameInfo.request.url),
               let body = message.body as? [String: Any], let id = body["id"] as? String, !id.isEmpty, id.count <= 100,
               let method = body["method"] as? String, let params = body["params"] as? [String: Any], pending.count < 8, !pending.contains(id),
-              let serialized = try? JSONSerialization.data(withJSONObject: body), serialized.count <= 16384 else { return }
-        let methods: Set<String> = ["capabilities", "status", "bindVehicle", "forgetVehicle", "ble.scan", "ble.connect", "ble.disconnect", "ble.command", "ble.proximity", "notifications.configure", "widget.update", "meter.open"]
+              let serialized = try? JSONSerialization.data(withJSONObject: body), serialized.count <= 1572864,
+              serialized.count <= (method == "asset.export" && params["kind"] as? String == "panel" ? 1572864 : ["accounts.sync", "background.configure", "tasks.configure"].contains(method) ? 262144 : 16384) else { return }
+        let methods: Set<String> = ["capabilities", "status", "bindVehicle", "forgetVehicle", "ble.scan", "ble.connect", "ble.disconnect", "ble.command", "ble.proximity", "notifications.configure", "widget.update", "meter.open", "accounts.sync", "accounts.remove", "background.configure", "background.status", "background.run", "background.history", "history.clear", "tasks.configure", "tasks.run", "tasks.status", "widget.configure", "widget.pin", "shortcuts.configure", "tools.open", "diagnostics.export", "updates.check", "updates.install", "keepalive.export", "officialLogin.start", "officialLogin.stop", "officialLogin.result", "asset.export"]
         guard methods.contains(method) else { reply(id, failure: PanelError.unavailable("当前版本没有这个原生方法。")); return }
         pending.insert(id); let generation = epoch
         Task { [weak self] in
@@ -56,18 +65,20 @@ import WebKit
                 let result = try await self.call(method, params: params)
                 guard generation == self.epoch || method == "forgetVehicle" || method == "bindVehicle" else { return }
                 self.reply(id, result: result)
+                if method == "capabilities" { self.deliverShortcut() }
             } catch { if generation == self.epoch || method == "bindVehicle" { self.reply(id, failure: error) } }
         }
     }
     private func call(_ method: String, params: [String: Any]) async throws -> Any {
         switch method {
-        case "capabilities": return ["platform": "ios", "version": 1, "features": ["ble": true, "proximity": true, "notifications": true, "widget": local.widgetAvailable, "meter": true], "limitations": ["iOS 不能按蓝牙 MAC 直接选车：请在车旁扫描并确认设备。", "蓝牙连接提醒不代表靠近自动解锁；旧版没有已验证的自动解锁协议。", "后台不持续轮询云端；低电量提醒依据最近读取，组件显示上次车况。", "仪表需手动连接车辆 Wi-Fi；iOS 无通用 Wi-Fi Direct。投屏仅采集本应用画面，无音频和反控。", "组件版需要支持 App Groups 的自签资料；常规版不含组件。"]]
+        case "capabilities": return ["platform": "ios", "version": 1, "features": ["ble": true, "proximity": true, "notifications": true, "widget": local.widgetAvailable, "meter": true, "background": true, "history": true, "multiAccount": true, "tasks": true, "shortcuts": true, "scanner": true, "ota": true, "wallpaperZip": true, "diagnostics": true, "updates": true, "officialLogin": false, "keepalive": false], "limitations": ["iOS 不能按蓝牙 MAC 直接选车：请在车旁扫描并确认设备。", "蓝牙连接提醒不代表靠近自动解锁；旧版没有已验证的自动解锁协议。", "启用后前台每分钟监测；后台由系统机会调度，不承诺持续运行或自动任务准点执行。", "仪表需手动连接车辆 Wi-Fi；iOS 无通用 Wi-Fi Direct。投屏仅采集本应用画面，无音频和反控。", "组件版需要支持 App Groups 的自签资料；常规版不含组件。IPA 由使用者自签。"]]
         case "status": var status = bluetooth.status; status["bound"] = binding != nil; status["meter"] = meter.status; status["widgetAvailable"] = local.widgetAvailable; return status
         case "bindVehicle":
             let validated = try VehicleBinding(params)
             if binding?.vin != validated.vin || binding?.uid != validated.uid || binding?.credentialDigest != validated.credentialDigest { clear() }
             else if binding?.key != validated.key || binding?.encryptValue != validated.encryptValue || binding?.cloudEnabled != validated.cloudEnabled { bluetooth.disconnect() }
             try SecureStore.write(JSONEncoder().encode(validated), name: "binding"); binding = validated; bluetooth.binding = validated
+            try NativeBackground.shared.accounts.cache(validated)
             return ["bound": true]
         case "forgetVehicle": clear(); return ["forgotten": true]
         case "ble.scan": return try await bluetooth.scan()
@@ -91,6 +102,35 @@ import WebKit
             return ["enabled": enabled, "automaticUnlockVerified": false]
         case "notifications.configure": return try await local.configure(params)
         case "widget.update": return try local.update(params)
+        case "accounts.sync":
+            let result = try NativeBackground.shared.sync(params)
+            if let binding, !NativeBackground.shared.accounts.permits(binding) { clear(advanceEpoch: false) }; return result
+        case "accounts.remove":
+            guard let id = params["accountId"] as? String else { throw PanelError.invalid("账号标识无效。") }; let result = try NativeBackground.shared.remove(id)
+            if let binding, !NativeBackground.shared.accounts.permits(binding) { clear(advanceEpoch: false) }; return result
+        case "background.configure":
+            let generation = epoch; return try await NativeBackground.shared.configure(params, validate: { [weak self] in self?.epoch == generation })
+        case "background.status": return NativeBackground.shared.status()
+        case "background.run": try NativeBackground.shared.run(vehicleId: params["vehicleId"] as? String); return NativeBackground.shared.status()
+        case "background.history": return try NativeBackground.shared.history(params)
+        case "history.clear": return try NativeBackground.shared.history(params, clear: true)
+        case "tasks.configure": return try NativeTasks.shared.configure(params)
+        case "tasks.status": return NativeTasks.shared.status()
+        case "tasks.run":
+            guard params["confirmed"] as? Bool == true else { throw PanelError.invalid("请先确认执行已配置的自动任务。") }
+            try NativeTasks.shared.run(accountId: params["accountId"] as? String); return NativeTasks.shared.status()
+        case "widget.configure": return try NativeShortcuts.widget(params)
+        case "widget.pin":
+            try await confirm("添加几何面板组件", "请回到 iPhone 主屏幕，长按空白处，点击添加组件并搜索“几何面板”。组件尺寸由 iOS 提供；带控制入口的操作会打开面板确认。组件版需要支持 App Groups 的自签资料。")
+            return ["opened": true, "systemInstructions": true]
+        case "shortcuts.configure": return try NativeShortcuts.configure(params)
+        case "tools.open": guard let tool = params["tool"] as? String else { throw PanelError.invalid("工具无效。") }; return try tools.open(tool)
+        case "diagnostics.export": return try tools.exportDiagnostics()
+        case "updates.check": return try await tools.checkUpdate()
+        case "updates.install": return try tools.installUpdate()
+        case "asset.export": let generation = epoch; return try await tools.asset(params, validate: { [weak self] in self?.epoch == generation })
+        case "keepalive.export": throw PanelError.unavailable("iOS 不支持 Android Magisk / KernelSU 保活模块。")
+        case "officialLogin.start", "officialLogin.stop", "officialLogin.result": throw PanelError.unavailable("iOS 不提供 Android 本地 VPN 官方登录捕获，请使用当前短信登录。")
         case "meter.open":
             guard let binding else { throw PanelError.invalid("请先刷新当前车辆资料。") }; try binding.requireFresh()
             guard let mode = params["mode"] as? String, ["wallpaper", "cast"].contains(mode) else { throw PanelError.invalid("仪表功能无效。") }
@@ -101,6 +141,17 @@ import WebKit
                 try binding.requireFresh()
             }); return ["opened": true]
         default: throw PanelError.unavailable("没有这个原生方法。")
+        }
+    }
+    @objc private func deliverShortcut() { tryDeliverShortcut(attempt: 0) }
+    private func tryDeliverShortcut(attempt: Int) {
+        guard webReady, !shortcutDelivering, UIApplication.shared.applicationState == .active, TrustedPage.permits(web.url), let value = NativeShortcuts.peek(), let data = try? JSONSerialization.data(withJSONObject: value), let json = String(data: data, encoding: .utf8) else { return }
+        shortcutDelivering = true; let generation = epoch
+        web.evaluateJavaScript("(() => { if (window.__geometryNativeShortcutReady !== true) return false; window.dispatchEvent(new CustomEvent('geometry:native-shortcut', {detail: \(json)})); return true; })()") { [weak self] result, error in
+            guard let self else { return }; self.shortcutDelivering = false
+            guard self.epoch == generation else { return }
+            if error == nil, result as? Bool == true { NativeShortcuts.acknowledge(value) }
+            else if attempt < 20 { DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in self?.tryDeliverShortcut(attempt: attempt + 1) } }
         }
     }
     func confirm(_ title: String, _ message: String) async throws {
@@ -129,8 +180,8 @@ import WebKit
     func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration, for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
         if let url = navigationAction.request.url, url.scheme == "https", url.user == nil, url.password == nil { UIApplication.shared.open(url) }; return nil
     }
-    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) { epoch += 1; pending.removeAll(); bluetooth.disconnect(); meter.stop() }
-    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { retryButton.isHidden = true }
+    func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) { epoch += 1; webReady = false; pending.removeAll(); bluetooth.disconnect(); meter.stop(); tools.stop() }
+    func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { retryButton.isHidden = true; webReady = true; deliverShortcut() }
     func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { if (error as NSError).code != NSURLErrorCancelled { retryButton.isHidden = false } }
     func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { retryButton.isHidden = false }
     func webViewWebContentProcessDidTerminate(_ webView: WKWebView) { bluetooth.disconnect(); meter.stop(); retryButton.isHidden = false }

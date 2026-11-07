@@ -56,6 +56,25 @@ test('separate project paths do not share sessions or preferences', async ({ pag
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
 });
 
+test('cache management keeps the active shell, other projects and encrypted login', async ({ page }) => {
+  await open(page); await login(page);
+  await page.evaluate(async () => { await navigator.serviceWorker.ready; });
+  await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
+  await page.evaluate(async () => {
+    await caches.open('zeeho-shell:http://127.0.0.1:4174/panel/:synthetic-unused');
+    await caches.open('zeeho-shell:http://127.0.0.1:4174/other/:synthetic-unused');
+  });
+  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await page.getByRole('button', { name: '查看离线缓存', exact: true }).click();
+  await expect(page.locator('.notice')).toContainText('离线页面完整，共 7 个静态文件。');
+  await page.getByRole('button', { name: '清理旧页面缓存', exact: true }).click();
+  await expect(page.locator('.notice')).toContainText('已清理 1 份旧页面缓存。');
+  const names = await page.evaluate(() => caches.keys());
+  expect(names).not.toContain('zeeho-shell:http://127.0.0.1:4174/panel/:synthetic-unused');
+  expect(names).toContain('zeeho-shell:http://127.0.0.1:4174/other/:synthetic-unused');
+  await page.reload(); await expect(page.getByRole('heading', { name: '测试极核 A', exact: true })).toBeVisible();
+});
+
 test('waiting updates require an explicit idle action and preserve login', async ({ page, request }, testInfo) => {
   const scope = `/isolated/waiting-${testInfo.project.name}-${testInfo.workerIndex}-${Date.now().toString(36)}/`;
   await page.goto(`http://127.0.0.1:4174${scope}`);

@@ -21,6 +21,13 @@ final class MeterOptions {
                 if (!Double.isFinite(width) || !Double.isFinite(height) || width != (int) width || height != (int) height
                         || width < 1 || height < 1 || width > 8192 || height > 8192 || width * height > 16777216) throw new IllegalArgumentException("wallpaper_resolution_invalid");
                 result.put("wallpaperNum", number); result.put("displayWallpaperSet", display); result.put("width", (int) width); result.put("height", (int) height);
+                if (input.has("url")) {
+                    try { String url = NativeJson.string(input,"url",4096); NativeDownloads.wallpaper(url); result.put("url",url);
+                        result.put("fileName",NativeDownloads.filename(input.optString("fileName","wallpaper.zip"),".zip"));
+                        if (input.has("md5")) { String md5 = input.getString("md5"); if (!md5.matches("[a-fA-F0-9]{32}")) throw new IllegalArgumentException("invalid_asset_metadata"); result.put("md5",md5); }
+                        if (input.has("fileSize")) { Object size = input.get("fileSize"); if (!(size instanceof Number) || ((Number)size).doubleValue() != ((Number)size).longValue() || ((Number)size).longValue() < 1 || ((Number)size).longValue() > WallpaperArchive.MAX) throw new IllegalArgumentException("invalid_asset_metadata"); result.put("fileSize",size); }
+                    } catch (Exception error) { throw new IllegalArgumentException("invalid_asset_metadata"); }
+                }
             }
         } catch (org.json.JSONException error) { throw new IllegalArgumentException("meter_options_invalid"); }
         return result;

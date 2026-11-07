@@ -69,27 +69,51 @@ test('allowlisted settings produce exact recovered commands, fields and versions
   assert.deepEqual(calls[2].body, { size: 60, vcu: session.vehicle.vin }); assert.ok(calls[2].path.endsWith('/soundSize'));
   assert.deepEqual(calls[3].body, { vinNo: session.vehicle.vin, motoPlay: 1 });
 });
-test('all 23 writable setting contracts match an independently recovered inert AST ledger', async () => {
+test('all 30 writable setting contracts match an independently recovered inert AST ledger', async () => {
   const contract = JSON.parse(readFileSync(new URL('../../verification/extensions-contract.json', import.meta.url), 'utf8')).settings as {
     key: string; kind: string; endpoint: string; command: string | null; version: string | null; choices: string[];
   }[];
-  assert.equal(contract.length, 23);
+  assert.equal(contract.length, 30);
   assert.deepEqual(settingDefinitions.map(row => row.key).sort(), contract.map(row => row.key).sort());
   for (const recovered of contract) {
     const definition = settingDefinitions.find(row => row.key === recovered.key)!;
     assert.deepEqual(definition.choices?.map(([value]) => value), recovered.choices, recovered.key);
     let expectedValue = '';
     const api = new ExtensionsApi(new CloudClient(async (input, init) => {
-      const path = recovered.endpoint === 'set_sound_size' ? 'soundSize' : recovered.endpoint === 'set_motoPlay' ? 'motoPlay/one' : 'propertyOne/one';
+      const actual = new URL(String(input)).pathname;
+      if (actual.endsWith('/items')) return reply(settingDefinitions.filter(row => row.capability).map(row => ({ functionCode: row.capability, isSupport: true })));
+      if (actual.includes('/vehicleSetInfo/')) return reply({ ...Object.fromEntries(settingDefinitions.map(row => [row.key, row.choices?.[0][0]])), rideFunctionVOList: recovered.key === 'ecushionSensor' ? [{ parentCode: 'E_CUSHION_SENSOR', functionCode: '2.0' }] : [] });
+      const path = recovered.endpoint === 'set_sound_size' ? 'soundSize' : recovered.endpoint === 'set_motoPlay' ? 'motoPlay/one' : recovered.endpoint === 'set_lowpower' ? 'lowPowerRule/one' : 'propertyOne/one';
       assert.equal(new URL(String(input)).pathname, `/v1.0/app/cfmotoserverapp/vehicleSet/${path}`, recovered.key);
       const body = JSON.parse(String(init?.body));
       if (recovered.kind === 'commond') assert.deepEqual(body, { commond: recovered.command, commondParam: expectedValue, relatedFunctions: null, vcu: session.vehicle.vin, version: recovered.version ?? '' }, recovered.key);
       else if (recovered.kind === 'soundSize') assert.deepEqual(body, { size: Number(expectedValue), vcu: session.vehicle.vin });
+      else if (recovered.kind === 'lowPower') assert.deepEqual(body, { ruleId: '', value: expectedValue, vcu: session.vehicle.vin });
       else assert.deepEqual(body, { vinNo: session.vehicle.vin, motoPlay: Number(expectedValue) });
       return reply(null);
     }));
     for (const value of recovered.choices) { expectedValue = value; await api.writeSetting(session, recovered.key, value); }
   }
+});
+
+test('account-wide message writes preserve recovered GET contract and never attach a vehicle selector', async () => {
+  const calls: URL[] = [];
+  const api = new ExtensionsApi(new CloudClient(async (input, init) => { assert.equal(init?.method, 'GET'); calls.push(new URL(String(input))); return reply(null); }));
+  await api.updateAlerts(session, 'read'); await api.updateAlerts(session, 'delete');
+  assert.deepEqual(calls.map(url => url.pathname.split('/').at(-1)), ['read', 'delete']);
+  for (const url of calls) assert.equal(url.search, '?messageKind=3');
+});
+
+test('complex settings reread generation and capability; stale seat generation and unsupported RCW never write', async () => {
+  let writes = 0;
+  const api = new ExtensionsApi(new CloudClient(async (input, init) => {
+    if (init?.method === 'PUT') { writes++; return reply(null); }
+    return new URL(String(input)).pathname.endsWith('/items') ? reply([{ functionCode: 'E_CUSHION_SENSOR', isSupport: true }])
+      : reply({ cushionSensor: 1, ecushionSensor: 0, radarRcw: 1, rideFunctionVOList: [{ parentCode: 'E_CUSHION_SENSOR', functionCode: '2.0' }] });
+  }));
+  await assert.rejects(api.writeSetting(session, 'cushionSensor', '0'));
+  await assert.rejects(api.writeSetting(session, 'radarRcw', '0'));
+  await api.writeSetting(session, 'ecushionSensor', '1'); assert.equal(writes, 1);
 });
 test('unknown setting keys, values and invalid dates never issue requests', async () => {
   let calls = 0; const api = new ExtensionsApi(new CloudClient(async () => { calls++; return reply(null); }));

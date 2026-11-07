@@ -21,6 +21,21 @@ const CACHE = PREFIX + ${JSON.stringify(cache)};
 const FILES = ${JSON.stringify(files)}.map(path => new URL(path, self.registration.scope).href);
 self.addEventListener('install', event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(FILES.map(url => new Request(url, { cache: 'reload' }))))));
 self.addEventListener('message', event => { if (event.data?.type === 'SKIP_WAITING') self.skipWaiting(); });
+self.addEventListener('message', event => {
+  if (!['CACHE_STATUS', 'CLEAR_UNUSED_CACHES'].includes(event.data?.type) || !event.ports[0]) return;
+  event.waitUntil((async () => {
+    try {
+      let removed = 0;
+      if (event.data.type === 'CLEAR_UNUSED_CACHES') {
+        if (self.registration.installing || self.registration.waiting) { event.ports[0].postMessage({ busy: true }); return; }
+        const names = (await caches.keys()).filter(key => key.startsWith(PREFIX) && key !== CACHE);
+        for (const name of names) { if (self.registration.installing || self.registration.waiting) break; if (await caches.delete(name)) removed++; }
+      }
+      const cache = await caches.open(CACHE), requests = await cache.keys();
+      event.ports[0].postMessage({ ready: FILES.every(url => requests.some(request => request.url === url)), files: requests.length, removed });
+    } catch { event.ports[0].postMessage({ failed: true }); }
+  })());
+});
 self.addEventListener('activate', event => event.waitUntil((async () => {
   await Promise.all((await caches.keys()).filter(key => key.startsWith(PREFIX) && key !== CACHE).map(key => caches.delete(key)));
   await self.clients.claim();

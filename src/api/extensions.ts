@@ -38,15 +38,26 @@ export class ExtensionsApi {
       this.cloud.request(`${APP}/vehicleSet/vehicleSetInfo/${session.vehicle.vin}`, { token: session.token, signal }),
     ]);
     signal?.throwIfAborted();
-    return vehicleSettings(caps, info);
+    return vehicleSettings(caps, info, session.vehicle.type);
+  }
+  async updateAlerts(session: Session, action: 'read' | 'delete', signal?: AbortSignal): Promise<void> {
+    this.binding(session);
+    if (action !== 'read' && action !== 'delete') throw new ApiError('format');
+    signal?.throwIfAborted();
+    const data = await this.cloud.request(`/v1.0/mine/cfmotoservermine/app/Message/${action}`, {
+      token: session.token, signal, query: { messageKind: '3' },
+    });
+    if (data === false) throw new ApiError('rejected', undefined, '10000');
   }
   async writeSetting(session: Session, key: string, value: string, signal?: AbortSignal): Promise<void> {
     this.binding(session);
     const definition = settingDefinitions.find(row => row.key === key);
     if (!definition?.endpoint || !definition.choices?.some(([n]) => n === value)) throw new ApiError('format');
-    const path = definition.endpoint === 'sound' ? 'soundSize' : definition.endpoint === 'moto' ? 'motoPlay/one' : 'propertyOne/one';
+    if (definition.guarded && !(await this.settings(session, signal)).some(row => row.key === key && row.writable && row.choices?.some(([n]) => n === value))) throw new ApiError('rejected');
+    const path = definition.endpoint === 'sound' ? 'soundSize' : definition.endpoint === 'moto' ? 'motoPlay/one' : definition.endpoint === 'lowpower' ? 'lowPowerRule/one' : 'propertyOne/one';
     const body = definition.endpoint === 'sound' ? { size: Number(value), vcu: session.vehicle.vin }
       : definition.endpoint === 'moto' ? { vinNo: session.vehicle.vin, motoPlay: Number(value) }
+      : definition.endpoint === 'lowpower' ? { ruleId: '', value, vcu: session.vehicle.vin }
       : { commond: definition.command, commondParam: value, relatedFunctions: null, vcu: session.vehicle.vin, version: definition.version ?? '' };
     signal?.throwIfAborted();
     const data = await this.cloud.request(`${APP}/vehicleSet/${path}`, { method: 'PUT', token: session.token, signal, body });

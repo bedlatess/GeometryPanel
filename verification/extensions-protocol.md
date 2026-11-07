@@ -45,7 +45,7 @@
 
 ## 车辆设置写入
 
-23 个普通设置使用旧 `_0x3387fd`（约 3400–3609 行）、`_0x3c3a28`（3610–3635 行）与元数据枚举。`verification/extensions-contract.json` 由 TypeScript AST 只解析旧文件的字面量生成，包含其源文件 SHA-256；未 eval、未运行旧 JS。测试独立对照该账本验证全部 23 项的键、枚举、端点、请求字段、命令码和版本。
+23 个普通设置加7个扩展设置使用旧 `_0x3387fd`（约 3400–3609 行）、`_0x3c3a28`（3610–3635 行）与元数据枚举。`verification/extensions-contract.json` 由 TypeScript AST 只解析旧文件的字面量生成，包含其源文件 SHA-256；未 eval、未运行旧 JS。测试独立对照该账本验证全部30项的键、枚举、端点、请求字段、命令码和版本。
 
 | 设置 | propertyOne `commond`；版本 |
 | --- | --- |
@@ -59,13 +59,28 @@
 
 以上是 PUT `APP/vehicleSet/propertyOne/one`，body 精确为 `commond,commondParam,relatedFunctions:null,vcu,version`，不把 `commond` 改成别的拼写。车机音量 PUT `APP/vehicleSet/soundSize`，`{size,vcu}`，只开放恢复的 0–100 每十档枚举；投屏开关 PUT `APP/vehicleSet/motoPlay/one`，`{vinNo,motoPlay:0|1}`。端点方法依据 `inline-10` 1420–1445 行。
 
-当前值须能匹配已恢复枚举才开放修改；显式 `isSupport=false`、对应 `disabledContent` 原因、仅提供蓝牙服务的能力项均保留限制。其他未知能力仅展示名称与未适配说明。没有为限速、快捷按键复杂选项、坐垫传感器代际差异、未知命令映射添加猜测写入。
+当前值须能匹配已恢复枚举才开放修改；显式 `isSupport=false`、对应 `disabledContent` 原因、仅提供蓝牙服务的能力项均保留限制。其他未知能力仅展示名称与未适配说明。
+
+### 0.5.0 扩展设置与原版自身限制
+
+- 感应距离command54，1/3/5；离车关机时长command33，3/5/10/30/60/120/180秒；RCW后碰撞command82，0/1/2；均v2。RCW保留AE5排除，以及RADAR_RCW显式支持或RADAR_BLIND_MONITOR子服务RADAR_RCW且isSupportSetting非false的条件，不能凭存在radarRcw字段就写。
+- 座垫感应command66、v2、0/1，按 `rideFunctionVOList` 中parentCode=E_CUSHION_SENSOR/functionCode="2.0"选择ecushionSensor，否则cushionSensor。依据inline12:3900起。每次提交前重读能力与设置，拒绝已变化的代际、禁用状态或未知当前值。
+- 单击自定义按键command142、v2，枚举31无操作、1 Hello音效、19陡坡缓降设置、3解锁座垫。依据inline12:2889–2894的 `_0x576c8a`、2982起CUSTOM_KEY_SET与写映射。保留 `relatedFunctions:null`，不推演成多键合并请求。
+- 低电量阈值PUT `APP/vehicleSet/lowPowerRule/one`，body精确 `{ruleId:"",value:String(value),vcu}`，10..50每5档，依据inline12:3178起元数据、3607写映射与3624构造器。
+- **最高车速只读是旧版自身限制**：inline12:2896–2908，MAXIMUM_SPEED为kind="value"，主字段maximumSpeedLimit，子字段maximumSpeed/topSpeed；obs原文“71到底改的是哪个设置还没定案，所以先不给写”。完整写映射没有这几项。不能把一次官方App观察到的command71/param1移植成任意km/h写入。
+- **多种复杂按键旧版本身未适配**：inline12:3992起 `_0x527375` 找CUSTOM_KEY_SET后直接删除subs，并注明“单键动作可改；长按/左键/右键/组合键暂未适配”。当前这些字段显示只读，单击142已迁移，不宣称原版也支持完整多键改写。
 
 ### 车辆感应钥匙云开关
 
-这是第 24 个独立设置，调用主任务提供的 `NativeMaterialsApi.configureInductive`，不使用 propertyOne。依据原生 `jadx/sources/defpackage/y6.java` 的 `B(boolean)` 约 228–266 行、`t5.c(3)` 与 `b6.h`：POST `APP/app/inductiveUnlock/airLock/setting`，body 为 `{inductiveUnlockType:"",openStatus:0|1,uniqueIdentify:"",vinNo}`。
+这是30个静态写合同之外的独立设置，调用主任务提供的 `NativeMaterialsApi.configureInductive`，不使用 propertyOne。依据原生 `jadx/sources/defpackage/y6.java` 的 `B(boolean)` 约 228–266 行、`t5.c(3)` 与 `b6.h`：POST `APP/app/inductiveUnlock/airLock/setting`，body 为 `{inductiveUnlockType:"",openStatus:0|1,uniqueIdentify:"",vinNo}`。
 
 修改前由该服务核对账号、车辆与车主绑定；修改后重新读取 settings，先看 `inductiveUnlocking2`，无明确值才看 `inductiveUnlocking`。面板再刷新设置，并根据 confirmed 与刷新值提示已核实或尚未确认。设备注册的 `/airLock/save` 使用 `inductiveUnlockType:"2.0"` 和设备 identity，二者不能混用。网页云开关不意味着 Safari 具备后台蓝牙感应能力。
+
+## 0.5.0 消息管理与道路底图
+
+消息read/delete均沿旧接口默认GET，固定query messageKind="3"。来源inline10:1171/1178端点目录、inline16:3844默认GET，以及inline28的msgread/msgclear调用。二者都是**账号全部车辆消息**，没有VIN参数；页面单独确认并明确包含未显示的其他车辆消息，不实现没有证据的单消息删除。仅打开消息页不会标已读；受理后重新读取，失败不自动重发。
+
+道路底图沿inline18的 `_0x51d5a8.amap`：固定webrd01..04.is.autonavi.com/appmaptile，lang=zh_cn,size=1,scale=1,style=8，x/y/z按Web Mercator切片。使用与旧版轨迹相同的GCJ-02输入，不把WGS84瓦片直接盖上去。每条行程只有点击“加载道路底图”才联网取瓦片，演示禁用真实地图。道路与轨迹在同一投影/缩放下绘制，断点不补线；加载失败明确提示，保留轨迹和起终点地图入口。地图署名保留©高德地图，不缓存车辆轨迹或远程瓦片为PWA离线发布物。
 
 ## 验证
 
@@ -74,3 +89,5 @@
 - `tests/extensions.spec.ts` 的 8 类流程在系统 Chrome 与 Playwright WebKit 共 16 项分别通过：月份/日期查询、轨迹、胎压/告警、确认与取消、设置读后核实、写入失败不重试、关闭取消、演示禁写、感应云开关、认证失效及写入中关闭的未知结果提示。最后 2 项在父页面接上 `onUncertain` 后重建再测通过。使用测试夹具的请求前 fetch 替换与本地主机 CSP，不连接真实上游；主任务发布前再统一执行完整回归。
 
 未静态确认：当前服务端是否继续提供每个端点、跨域响应、账号/车型能力完整性、消息实时性与车辆执行时机。真实车辆不支持某项时保留服务器错误或能力说明，不按模拟结果承诺实车通过。
+
+0.5.0新增独立账本已扩至30个写合同；API测试覆盖复杂设置提交前的代际/能力复读和账号级消息精确GET。轨迹几何单测覆盖同系瓦片、缩放和断点。扩展与任务两套浏览器合计32项（Chrome/WebKit）已通过，瓦片全部stub、API全部前置模拟。另补复杂单击写入/座垫代际变化阻断场景，交主任务最终全量回归执行。旧版自身只读限速和未适配多键保留精确证据，不作为已经恢复的写入能力。

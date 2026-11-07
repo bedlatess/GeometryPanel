@@ -4,4 +4,11 @@
     <TextView android:id="@+id/widget_soc" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_empty" android:textColor="#FFFFFF" android:textSize="30sp" />
     <TextView android:id="@+id/widget_details" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_empty_details" android:textColor="#D5E7DC" android:textSize="12sp" />
     <TextView android:id="@+id/widget_time" android:layout_width="match_parent" android:layout_height="wrap_content" android:text="@string/widget_open_hint" android:textColor="#D5E7DC" android:textSize="11sp" />
+    <LinearLayout android:id="@+id/widget_actions" android:layout_width="match_parent" android:layout_height="wrap_content" android:orientation="horizontal">
+        <Button android:id="@+id/widget_refresh" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:padding="0dp" android:text="@string/action_refresh" android:textSize="10sp" />
+        <Button android:id="@+id/widget_unlock" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:padding="0dp" android:text="@string/action_unlock" android:textSize="10sp" />
+        <Button android:id="@+id/widget_lock" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:padding="0dp" android:text="@string/action_lock" android:textSize="10sp" />
+        <Button android:id="@+id/widget_horn" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:padding="0dp" android:text="@string/action_horn" android:textSize="10sp" />
+        <Button android:id="@+id/widget_seat" android:layout_width="0dp" android:layout_weight="1" android:layout_height="48dp" android:padding="0dp" android:text="@string/action_seat" android:textSize="10sp" />
+    </LinearLayout>
 </LinearLayout>

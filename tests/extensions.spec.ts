@@ -31,7 +31,28 @@ test('extensions load month records and actual track geometry with exact recover
   expect(mocks.calls.find(call => call.path.endsWith('/ridetrack_v2'))?.query).toEqual({ page: '1', pageSize: '20', startDateTime: '2026-10-06', startTime: '2026-10', vinNo: VIN_A });
   await expect(panel(page).getByRole('link', { name: '在地图查看起点' })).toHaveAttribute('rel', 'noopener noreferrer');
   expect(mocks.maps).toEqual([]); expect(writes(mocks.calls)).toEqual([]);
+  expect(mocks.roadTiles).toEqual([]);
+  await panel(page).getByRole('button', { name: '加载道路底图', exact: true }).click();
+  await expect(panel(page).getByRole('img', { name: '历史轨迹与高德道路底图' })).toBeVisible();
+  await expect.poll(() => mocks.roadTiles.length).toBeGreaterThan(0);
+  expect((await panel(page).locator('svg path').getAttribute('d'))?.split('M').length).toBe(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
+});
+
+test('account-wide message actions require scope confirmation and never run merely by viewing', async ({ page, mocks }) => {
+  mocks.extensions = sample(); await open(page); await login(page); await show(page);
+  await panel(page).getByRole('button', { name: '车辆告警', exact: true }).click();
+  const messageWrites = () => mocks.calls.filter(call => /\/Message\/(read|delete)$/.test(call.path));
+  await expect(panel(page)).toContainText('此账号全部车辆'); expect(messageWrites()).toEqual([]);
+  await panel(page).getByRole('button', { name: '全部标为已读', exact: true }).click(); expect(messageWrites()).toEqual([]);
+  await panel(page).getByRole('button', { name: '确认全部标为已读', exact: true }).click();
+  await expect(panel(page)).toContainText('服务已受理全部已读');
+  expect(messageWrites()[0].query).toEqual({ messageKind: '3' });
+  await panel(page).getByRole('button', { name: '清除全部车辆消息', exact: true }).click();
+  await expect(panel(page)).toContainText('云端清除后不能从面板恢复');
+  await panel(page).getByRole('button', { name: '确认清除全部车辆消息', exact: true }).click();
+  await expect(panel(page)).toContainText('服务已受理清除');
+  expect(messageWrites()).toHaveLength(2);
 });
 
 test('tires, scoped alerts and failed categories retain clear states and escape upstream text', async ({ page, mocks }) => {
@@ -71,6 +92,28 @@ test('settings require explicit confirmation, respect capability blocks and rere
   expect(writes(mocks.calls)[0].body).toEqual({ commond: '55', commondParam: '0', relatedFunctions: null, vcu: VIN_A, version: '' });
   await expect(panel(page).getByLabel('精准续航目标设置', { exact: true })).toHaveValue('0');
   expect(await panel(page).textContent()).not.toContain('synthetic-token');
+});
+
+test('custom single-key actions use recovered choices while a changed cushion generation blocks stale writes', async ({ page, mocks }) => {
+  mocks.extensions = sample();
+  mocks.extensions.capabilities = [{ functionCode: 'CUSTOM_KEY_SET', isSupport: true }, { functionCode: 'E_CUSHION_SENSOR', isSupport: true }];
+  mocks.extensions.settings = { customButtonSingle: 31, cushionSensor: 0, ecushionSensor: 0, maximumSpeedLimit: 45,
+    rideFunctionVOList: [{ parentCode: 'E_CUSHION_SENSOR', functionCode: '2.0' }] };
+  await open(page); await login(page); await show(page);
+  await panel(page).getByRole('button', { name: '车辆设置', exact: true }).click();
+  await expect(panel(page)).toContainText('旧版未确认此项的完整修改协议');
+  await expect(panel(page).getByLabel('座垫感应 1.0目标设置', { exact: true })).toHaveCount(0);
+  await panel(page).getByLabel('自定义按键 · 单击目标设置', { exact: true }).selectOption('3');
+  await panel(page).getByRole('button', { name: '修改自定义按键 · 单击', exact: true }).click();
+  await panel(page).getByRole('button', { name: '确认发送修改', exact: true }).click();
+  await expect(panel(page).getByLabel('自定义按键 · 单击目标设置', { exact: true })).toHaveValue('3');
+  expect(writes(mocks.calls)[0].body).toEqual({ commond: '142', commondParam: '3', relatedFunctions: null, vcu: VIN_A, version: 'v2' });
+  await panel(page).getByLabel('电子座垫感应 2.0目标设置', { exact: true }).selectOption('1');
+  await panel(page).getByRole('button', { name: '修改电子座垫感应 2.0', exact: true }).click();
+  mocks.extensions.settings.rideFunctionVOList = [];
+  await panel(page).getByRole('button', { name: '确认发送修改', exact: true }).click();
+  await expect(panel(page).getByRole('alert')).toContainText('服务端未接受');
+  expect(writes(mocks.calls)).toHaveLength(1);
 });
 
 test('uncertain setting failure never retries and closing aborts a pending read', async ({ page, mocks }) => {

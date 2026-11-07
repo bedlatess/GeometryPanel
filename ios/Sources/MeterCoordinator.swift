@@ -28,11 +28,15 @@ import ImageIO
         controller?.navigationController?.dismiss(animated: true); controller = nil
     }
     func beginWallpaper(first: Data, second: Data, params: [String: Any], validate: @escaping () throws -> Void) throws {
+        try beginArchive(MeterWire.wallpaperArchive(first: first, second: second), params: params, validate: validate)
+    }
+    func beginArchive(_ archive: Data, params: [String: Any], validate: @escaping () throws -> Void) throws {
         try validate()
+        try WallpaperArchive.validate(archive)
         guard task == nil, cast.state == "idle" || cast.state == "failed" else { throw PanelError.coded("busy", "请先停止当前投屏或仪表操作。") }
         guard let number = params["wallpaperNum"] as? String, !number.isEmpty, number.utf8.count <= 4096,
               let display = params["displayWallpaperSet"] as? String, !display.isEmpty, display.utf8.count <= 4096 else { throw PanelError.invalid("缺少所选壁纸模板的编号或显示配置，请返回网页重新读取模板。") }
-        let archive = try MeterWire.wallpaperArchive(first: first, second: second), epoch = generation
+        let epoch = generation
         activeMode = "wallpaper"; state = "preparing"; changed("正在连接车辆热点的 192.168.0.1:10950…")
         task = Task { [weak self] in
             guard let self else { return }; var began = false
@@ -91,15 +95,18 @@ import ImageIO
     private let validate: () throws -> Void
     private unowned let coordinator: MeterCoordinator
     private let output = UILabel()
-    private var first: Data?, second: Data?, choosing = 1
+    private var first: Data?, second: Data?, archive: Data?, choosing = 1
+    private var download: Task<Void, Never>?
     private var firstButton: UIButton!, secondButton: UIButton!, startButton: UIButton!
     init(mode: String, params: [String: Any], coordinator: MeterCoordinator, validate: @escaping () throws -> Void) { self.mode = mode; self.params = params; self.coordinator = coordinator; self.validate = validate; super.init(nibName: nil, bundle: nil) }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func viewDidLoad() {
         super.viewDidLoad(); title = mode == "wallpaper" ? "仪表壁纸" : "仪表投屏"; view.backgroundColor = .systemBackground
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "关闭", style: .done, target: self, action: #selector(closePanel))
-        let stack = UIStackView(); stack.axis = .vertical; stack.spacing = 16; stack.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(stack)
-        NSLayoutConstraint.activate([stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 24), stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24), stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24)])
+        let scroll = UIScrollView(); scroll.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(scroll)
+        NSLayoutConstraint.activate([scroll.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor), scroll.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor), scroll.leadingAnchor.constraint(equalTo: view.leadingAnchor), scroll.trailingAnchor.constraint(equalTo: view.trailingAnchor)])
+        let stack = UIStackView(); stack.axis = .vertical; stack.spacing = 16; stack.translatesAutoresizingMaskIntoConstraints = false; scroll.addSubview(stack)
+        NSLayoutConstraint.activate([stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 24), stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24), stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: 24), stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -24), stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -48)])
         let guide = UILabel(); guide.numberOfLines = 0; guide.font = .preferredFont(forTextStyle: .body); guide.adjustsFontForContentSizeCategory = true
         guide.text = "先在 iPhone 系统设置中手动连接车辆热点。当前仅连接该 Wi-Fi 下的 192.168.0.1，不能通过 VIN 证明热点身份；请在自己的车辆旁确认。iOS 不支持通用 Wi-Fi Direct。"
         stack.addArrangedSubview(guide)
@@ -116,6 +123,8 @@ import ImageIO
             stack.addArrangedSubview(detail)
             firstButton = button("选择第一张壁纸") { [weak self] in self?.choose(1) }; secondButton = button("选择第二张壁纸") { [weak self] in self?.choose(2) }
             stack.addArrangedSubview(firstButton); stack.addArrangedSubview(secondButton)
+            stack.addArrangedSubview(button("或选择本地壁纸 ZIP") { [weak self] in self?.choose(3) })
+            if let text = params["url"] as? String, let url = URL(string: text), NativeAsset.permitted(url) { stack.addArrangedSubview(button("下载并检查所选官方 ZIP") { [weak self] in self?.downloadOfficial(url) }) }
         } else {
             let detail = UILabel(); detail.numberOfLines = 0; detail.font = .preferredFont(forTextStyle: .footnote); detail.text = "系统会请求录屏授权。本版本只传输几何面板自身画面；没有音频和触摸反控。切到后台立即停止。支持情况取决于仪表是否接受 iOS 协议握手。"; stack.addArrangedSubview(detail)
         }
@@ -128,16 +137,30 @@ import ImageIO
         let button = UIButton(type: .system); var configuration = UIButton.Configuration.filled(); configuration.title = title; button.configuration = configuration
         button.addAction(UIAction { _ in action() }, for: .touchUpInside); return button
     }
-    private func choose(_ index: Int) { choosing = index; let picker = UIDocumentPickerViewController(forOpeningContentTypes: [.image], asCopy: true); picker.delegate = self; present(picker, animated: true) }
+    private func choose(_ index: Int) { choosing = index; let picker = UIDocumentPickerViewController(forOpeningContentTypes: index == 3 ? [.zip] : [.image], asCopy: true); picker.delegate = self; present(picker, animated: true) }
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let url = urls.first else { return }
         let allowed = url.startAccessingSecurityScopedResource(); defer { if allowed { url.stopAccessingSecurityScopedResource() } }
         do {
             let values = try url.resourceValues(forKeys: [.fileSizeKey]); guard let size = values.fileSize, size > 0, size <= 16 * 1024 * 1024 else { throw PanelError.invalid("原图片须小于 16 MiB。") }
-            let data = try Data(contentsOf: url, options: [.mappedIfSafe]), image = try normalizedPNG(data)
+            let data = try Data(contentsOf: url, options: [.mappedIfSafe])
+            if choosing == 3 { try WallpaperArchive.validate(data); try validate(); archive = data; output.text = "本地 ZIP / PNG 校验通过，将优先推送此 ZIP。选择图片可切回两图方式。"; return }
+            archive = nil; let image = try normalizedPNG(data)
             if choosing == 1 { first = image; firstButton.setTitle("第一张已选择，点击更换", for: .normal) } else { second = image; secondButton.setTitle("第二张已选择，点击更换", for: .normal) }
             output.text = "已在本机重新编码，大小 \(image.count / 1024) KiB。"
         } catch { output.text = (error as? PanelError)?.errorDescription ?? "图片读取失败，请换一张图片。" }
+    }
+    private func downloadOfficial(_ url: URL) {
+        guard download == nil else { return }
+        download = Task { [weak self] in
+            guard let self else { return }; defer { self.download = nil }
+            do {
+                try self.validate(); let data = try await NativeAsset.download(url); try Task.checkCancellation(); try self.validate()
+                if let digest = self.params["md5"] as? String, !digest.isEmpty, digest.lowercased() != MeterWire.md5(data) { throw PanelError.invalid("官方 ZIP 的 MD5 不符。") }
+                if let size = NativeCloud.number(self.params["fileSize"], range: 1...Double(16 * 1024 * 1024)), Int(size) != data.count { throw PanelError.invalid("官方 ZIP 长度不符。") }
+                try WallpaperArchive.validate(data); self.archive = data; self.output.text = "官方 ZIP 下载 / 校验通过，确认车辆热点后可推送。"
+            } catch { self.output.text = (error as? PanelError)?.errorDescription ?? "官方 ZIP 下载未完成。" }
+        }
     }
     private func dimension(_ key: String) -> Int? { guard let value = params[key] as? Int, (1...8192).contains(value) else { return nil }; return value }
     private func normalizedPNG(_ data: Data) throws -> Data {
@@ -156,16 +179,17 @@ import ImageIO
         guard output.count <= 16 * 1024 * 1024 else { throw PanelError.invalid("重新编码后的 PNG 过大，请选择更小的图片。") }; return output
     }
     private func start() {
-        if mode == "wallpaper", first == nil || second == nil { output.text = "请先选择两张图片。"; return }
+        if mode == "wallpaper", archive == nil, first == nil || second == nil { output.text = "请先选择两张图片或有效的壁纸 ZIP。"; return }
         let alert = UIAlertController(title: "确认当前车辆热点", message: mode == "wallpaper" ? "确认当前 Wi-Fi 是自己的仪表热点，车辆停稳且供电正常。推送后请查看仪表；中断时结果可能未知。" : "确认当前 Wi-Fi 是自己的仪表热点。系统授权后只采集本应用画面，可随时点击红色按钮停止。", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "取消", style: .cancel)); alert.addAction(UIAlertAction(title: "确认", style: .default) { [weak self] _ in
             guard let self else { return }
-            do { try self.validate(); if self.mode == "wallpaper", let first = self.first, let second = self.second { try self.coordinator.beginWallpaper(first: first, second: second, params: self.params, validate: self.validate) } else { try self.coordinator.beginCast(validate: self.validate) } }
+            do { try self.validate(); if self.mode == "wallpaper", let archive = self.archive { try self.coordinator.beginArchive(archive, params: self.params, validate: self.validate) } else if self.mode == "wallpaper", let first = self.first, let second = self.second { try self.coordinator.beginWallpaper(first: first, second: second, params: self.params, validate: self.validate) } else { try self.coordinator.beginCast(validate: self.validate) } }
             catch { self.output.text = (error as? PanelError)?.errorDescription ?? "仪表操作未完成。" }
         }); present(alert, animated: true)
     }
     @objc private func closePanel() {
         if coordinator.state == "transferring" { output.text = "正在传输，若要中止请点“停止当前仪表操作”；中止后结果可能未知。"; return }
-        dismiss(animated: true)
+        download?.cancel(); download = nil; dismiss(animated: true)
     }
+    override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); if navigationController?.isBeingDismissed == true || isBeingDismissed { download?.cancel(); download = nil } }
 }

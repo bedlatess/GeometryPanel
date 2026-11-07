@@ -53,6 +53,9 @@ android {
 
 dependencies {
     implementation("androidx.webkit:webkit:1.14.0")
+    implementation("androidx.core:core:1.16.0")
+    implementation("com.google.zxing:core:3.5.3")
+    implementation("org.bouncycastle:bcpkix-jdk18on:1.80")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
 }

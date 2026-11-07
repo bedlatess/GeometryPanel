@@ -1,0 +1,6 @@
+id=geometry_panel_alive
+name=Geometry Panel Alive
+version=0.5.0
+versionCode=5000
+author=GeometryPanel contributors; original implementation lswlc33
+description=User-installed background helper; app switch controls polling and original policy restoration is retained.

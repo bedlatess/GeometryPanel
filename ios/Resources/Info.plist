@@ -13,7 +13,10 @@
   <key>UISupportedInterfaceOrientations</key><array><string>UIInterfaceOrientationPortrait</string><string>UIInterfaceOrientationLandscapeLeft</string><string>UIInterfaceOrientationLandscapeRight</string></array>
   <key>NSBluetoothAlwaysUsageDescription</key><string>连接你选择的极核车辆，认证蓝牙钥匙并读取近距离车况。</string>
   <key>NSLocalNetworkUsageDescription</key><string>通过你手动连接的车辆 Wi-Fi 传输仪表壁纸和本应用画面。</string>
-  <key>UIBackgroundModes</key><array><string>bluetooth-central</string></array>
+  <key>UIBackgroundModes</key><array><string>bluetooth-central</string><string>fetch</string></array>
+  <key>BGTaskSchedulerPermittedIdentifiers</key><array><string>app.geometrypanel.mobile.cloud-refresh</string><string>app.geometrypanel.mobile.daily-tasks</string></array>
+  <key>NSCameraUsageDescription</key><string>扫描你选择的二维码或条码，仅在本机显示结果供复制。</string>
+  <key>CFBundleURLTypes</key><array><dict><key>CFBundleURLName</key><string>app.geometrypanel.mobile</string><key>CFBundleURLSchemes</key><array><string>geometrypanel</string></array></dict></array>
   <key>NSAppTransportSecurity</key><dict><key>NSAllowsLocalNetworking</key><true/></dict>
   <key>GeometryAppGroup</key><string>group.app.geometrypanel.mobile</string>
 </dict></plist>

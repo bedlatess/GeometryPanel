@@ -40,6 +40,7 @@ test('native snapshot contains only display data and logout clears native vehicl
   await expect.poll(() => page.evaluate(() => (window as any).__nativeCalls.some((call: any) => call.method === 'widget.update'))).toBe(true);
   const snapshots = await page.evaluate(() => (window as any).__nativeCalls.filter((call: any) => call.method === 'widget.update').map((call: any) => call.params));
   expect(snapshots[0]).toMatchObject({ vehicleLabel: '测试极核 A', soc: 82, range: 91, voltage: 76.4 });
+  expect(snapshots[0].vehicleId).toMatch(/^[A-Za-z0-9_-]{1,80}$/);
   expect(JSON.stringify(snapshots)).not.toContain('synthetic-token');
   expect(JSON.stringify(snapshots)).not.toContain('LAAAAAAAAAAAAAAA1');
   await page.getByRole('button', { name: '设置', exact: true }).click();

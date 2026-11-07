@@ -76,6 +76,7 @@ public final class MeterActivity extends Activity {
             text(content, validTemplate() ? "模板分辨率 " + width + " × " + height + "。选择两张照片，将居中裁切并生成仪表要求的 1.png / 2.png。" : "车辆未提供完整模板编号、显示配置或分辨率。请返回网页选择当前车型的壁纸模板后重开。", 16);
             button(content, "选择两张照片并生成壁纸", () -> choose(711));
             button(content, "选择已有仪表 ZIP", () -> choose(712));
+            if (options.has("url")) button(content,"下载此模板的原始壁纸 ZIP",this::downloadOriginal);
             button(content, "连接车辆并发送壁纸", this::confirmWallpaper);
             button(content, "停止本次传输", () -> cancelTransfer(true));
         } else {
@@ -122,6 +123,15 @@ public final class MeterActivity extends Activity {
         Intent input = new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType(code == 711 ? "image/*" : "application/zip");
         if (code == 711) input.putExtra(Intent.EXTRA_ALLOW_MULTIPLE, true);
         startActivityForResult(input, code);
+    }
+    private void downloadOriginal() {
+        if (busy || !validTemplate()) return; busy = true; setStatus("正在下载原始模板 ZIP 并校验，没有连接或发送仪表。");
+        worker.execute(() -> { File next = null; try {
+            next = File.createTempFile("geometry-original-", ".zip",getCacheDir());
+            String digest = NativeDownloads.copy(options.getString("url"),next,WallpaperArchive.MAX,true,() -> { if (!current() || Thread.currentThread().isInterrupted()) throw new java.io.IOException("cancelled"); });
+            NativeDownloads.validateAsset(options,next,digest); WallpaperArchive.validate(next,options.optInt("width"),options.optInt("height")); File ready = next;
+            runOnUiThread(() -> { busy = false; if (!current()) { ready.delete(); return; } if (archive != null) archive.delete(); archive = ready; setStatus("原始模板 ZIP 校验通过。可继续连接并手动确认发送，尚未写入仪表。"); });
+        } catch (Exception error) { if (next != null) next.delete(); runOnUiThread(() -> { busy = false; setStatus("原始 ZIP 下载或校验失败，没有发送仪表请求。"); }); } });
     }
     private void wifiPermission(Runnable action) {
         if (permissionContinuation != null) { setStatus("请先完成当前系统权限提示。"); return; }
