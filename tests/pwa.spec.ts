@@ -47,13 +47,13 @@ test('offline shell loads at a repository subpath and never caches API data', as
 test('separate project paths do not share sessions or preferences', async ({ page }) => {
   await open(page); await login(page);
   await page.getByRole('button', { name: '外观', exact: true }).click();
-  await page.getByRole('button', { name: '深色', exact: true }).click();
+  await page.getByRole('button', { name: '浅色', exact: true }).click();
   await page.goto('http://127.0.0.1:4174/other/');
   await expect(page.getByRole('button', { name: '连接我的极核', exact: true })).toBeEnabled();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
   await page.goto('./');
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
 });
 
 test('cache management keeps the active shell, other projects and encrypted login', async ({ page }) => {

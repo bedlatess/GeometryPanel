@@ -104,7 +104,7 @@ test('demo and offline daily views never enable commands or navigation', async (
   await page.getByRole('button', { name: '先体验面板' }).click(); await daily(page);
   await expect(page.getByText('演示数据 · 不会连接或控制车辆')).toBeVisible();
   for (const button of await page.locator('.control-grid button').all()) await expect(button).toBeDisabled();
-  expect(await page.getByRole('link').count()).toBe(0);
+  expect(await page.locator('a[href]:not([href^="#"])').count()).toBe(0);
   expect(mocks.calls).toHaveLength(0);
   await page.getByRole('button', { name: '车辆', exact: true }).click();
   await page.getByRole('button', { name: '退出演示', exact: true }).click();
@@ -112,7 +112,7 @@ test('demo and offline daily views never enable commands or navigation', async (
   await login(page); await daily(page);
   await context.setOffline(true);
   for (const button of await page.locator('.control-grid button').all()) await expect(button).toBeDisabled();
-  expect(await page.getByRole('link').count()).toBe(0);
+  expect(await page.locator('a[href]:not([href^="#"])').count()).toBe(0);
   expect(commands(mocks.calls)).toHaveLength(0);
 });
 

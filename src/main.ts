@@ -1,4 +1,7 @@
 import './styles.css';
+import { renderHome } from './ui/home';
+import { icon, type Icon } from './ui/icons';
+import { mountDesignLab } from './ui/design-lab';
 import { ApiError, messageFor } from './api/client';
 import { ZeehoApi } from './api/zeeho';
 import { VehicleControls, type VehicleAction } from './api/controls';
@@ -29,13 +32,14 @@ import { mountNative, widgetSnapshot } from './ui/native';
 import { mountExtensions } from './ui/extensions';
 
 const app = document.querySelector<HTMLDivElement>('#app')!;
-app.innerHTML = '<div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
+app.innerHTML = '<a class="skip-link" href="#main-content">跳到主要内容</a><div id="content"></div><dialog id="modal" aria-labelledby="modal-title"></dialog>';
 const content = document.querySelector<HTMLDivElement>('#content')!;
 const modal = document.querySelector<HTMLDialogElement>('#modal')!;
 const api = new ZeehoApi();
 const controls = new VehicleControls();
 const native = connectNative(window);
 let disposePanel: (() => void) | undefined;
+let modalReturnFocus: { action: string; value?: string } | null = null;
 let session: Session | null = null;
 let accountBook: AccountBook = emptyAccounts();
 let nativeSyncPending = false;
@@ -59,43 +63,27 @@ let preferences = readPreferences(`${storagePrefix}preferences`);
 function applyPreferences(save = true) {
   document.documentElement.dataset.theme = preferences.theme;
   document.documentElement.dataset.accent = preferences.accent;
+  const dark = preferences.theme === 'dark' || preferences.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches;
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#101516' : '#f1f5f2');
   if (save && !writePreferences(preferences, `${storagePrefix}preferences`)) notice = '配置已在当前页面生效，但本机保存未完成，重开后可能恢复原配置。';
 }
 const escape = (value: unknown) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
-const display = (value: number | null | undefined, unit = '') => value == null ? '—' : `${Number.isInteger(value) ? value : value.toFixed(1)}${unit}`;
 const vehicle = () => preview ? demoVehicle : session?.vehicle;
 const isHorn = (mode: CommandMode) => mode === 'normal' || mode === 'high';
 const reportButton = () => lastCommandReport ? `<button class="text-button" data-action="command-report">查看${isHorn(lastCommandReport.mode) ? '寻车' : '车控'}结果</button>` : '';
 
 function render() {
+  const focused = document.activeElement instanceof HTMLButtonElement && content.contains(document.activeElement) ? { action: document.activeElement.dataset.action, value: document.activeElement.dataset.value } : null;
   const car = vehicle();
   const data = preview ? demoSnapshot : reading;
   const locked = busy || booting || updating;
-  const enabled = session && !locked && !expired && navigator.onLine;
-  const shortcut = preferences.shortcut;
-  const shortcutEnabled = shortcut === 'daily' ? !locked : enabled && (shortcut !== 'seat' || data?.daily.capabilities.seatOpen !== false);
+  const enabled = !preview && session && !locked && !expired && navigator.onLine;
   let body = '';
-  if (tab === 'vehicle') body = `
-    <div class="page-heading"><div><span class="eyebrow">我的车库</span><h1>${escape(car?.name ?? '几何面板')}</h1></div>
-      <button class="round-button" data-action="${session && !expired ? 'refresh' : 'connect'}" aria-label="${session && !expired ? '刷新车况' : '连接车辆'}" ${locked || !navigator.onLine ? 'disabled' : ''}>${session && !expired ? '刷新' : '连接'}</button></div>
-    <p class="subheading">${preview ? '演示车辆 · 当前显示示例数据' : car ? `车辆尾号 ${escape(car.vin.slice(-6))}` : '让每一次出发，都更合心意。'}</p>
-    <section class="battery-card" aria-label="车辆电量">
-      <div class="battery-top"><span>剩余电量</span><span class="status ${data?.online === true ? 'online' : ''}">${data?.online === true ? '车辆在线' : data?.online === false ? '车辆离线' : '等待车况'}</span></div>
-      <div class="battery-number">${display(data?.soc)}<span>%</span></div>
-      <div class="battery-bars" aria-hidden="true">${Array.from({ length: 20 }, (_, index) => `<i class="${data?.soc != null && index < Math.ceil(data.soc / 5) ? 'filled' : ''}"></i>`).join('')}</div>
-      <div class="battery-bottom"><span>${escape(data?.charging ?? '等待首次读取')}</span><span>READY FOR YOUR NEXT RIDE</span></div>
-    </section>
-    <div class="metrics">${preferences.range ? `<section class="metric"><span>预计续航</span><strong>${display(data?.range)}<small>km</small></strong></section>` : ''}
-      ${preferences.voltage ? `<section class="metric"><span>电池电压</span><strong>${display(data?.voltage)}<small>V</small></strong></section>` : ''}</div>
-    <section class="section"><div class="section-heading"><h2>快捷操作</h2><span>随时掌握</span></div>
-      <button class="action-card" aria-label="${shortcut === 'horn' ? '鸣笛寻车' : shortcut === 'seat' ? '打开座桶' : '日常用车'}" data-action="${shortcut === 'horn' ? 'horn' : shortcut === 'seat' ? 'vehicle-action' : 'tab'}" ${shortcut === 'seat' ? 'data-value="seat"' : shortcut === 'daily' ? 'data-value="daily"' : ''} ${shortcutEnabled ? '' : 'disabled'}><span class="action-symbol" aria-hidden="true">${shortcut === 'horn' ? ')))' : '→'}</span><span><strong>${shortcut === 'horn' ? '鸣笛寻车' : shortcut === 'seat' ? '打开座桶' : '日常用车'}</strong><small>${shortcut === 'horn' ? '让爱车回应你' : shortcut === 'seat' ? '确认后发送开启请求' : '查看车况、位置与车控'}</small></span><span class="arrow" aria-hidden="true">→</span></button>
-      <button class="text-button block" data-action="tab" data-value="daily">查看日常用车、位置与更多车控 →</button>
-    </section>
-    <div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>
-    ${reportButton()}
-    ${data?.receivedAt ? `<p class="timestamp">上次读取 ${new Date(data.receivedAt).toLocaleString('zh-CN')} · 以车辆上报状态为准</p>` : ''}
-    ${expired ? '<button class="primary block" data-action="connect">重新登录</button>' : ''}
-    ${!session ? `<div class="welcome-actions"><button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>连接我的极核</button><button class="text-button" data-action="preview" ${locked ? 'disabled' : ''}>${preview ? '退出演示' : '先体验面板'}</button></div>` : ''}`;
+  if (tab === 'vehicle') body = renderHome({ car, data, preferences, enabled: Boolean(enabled), locked, busy, control: activeControl, expired, online: navigator.onLine, demo: preview, message: notice })
+    + reportButton()
+    + (expired ? '<button class="primary block" data-action="connect">重新登录</button>' : '')
+    + (!session ? `<div class="welcome-actions">${preview ? '<button class="primary" data-action="connect">连接我的极核</button>' : ''}<button class="text-button" data-action="preview" ${locked ? 'disabled' : ''}>${preview ? '退出演示' : '先体验面板'}</button></div>` : '')
+    + (preview ? '<details class="preview-tools"><summary>设计预览与状态模拟</summary><p class="fine-print">独立演示环境，可切换平台形态、主题与异常状态。</p><button class="control-button" data-action="design-lab">打开状态模拟器</button></details>' : '');
   if (tab === 'daily') body = renderDaily({ car, data, demo: preview, enabled: Boolean(enabled), locked, online: navigator.onLine })
     + `<section class="settings-card"><h2>更多用车功能</h2><div class="module-links"><button class="control-button" data-action="extensions" ${locked ? 'disabled' : ''}>骑行记录、胎压与车辆设置</button><button class="control-button" data-action="native" ${locked ? 'disabled' : ''}>蓝牙、提醒与仪表工具</button><button class="control-button" data-action="background" ${locked ? 'disabled' : ''}>后台监控、充电记录与桌面控制</button><button class="control-button" data-action="tasks" ${locked ? 'disabled' : ''}>签到、积分与自动任务</button></div></section>`
     + `<div class="notice ${expired ? 'error' : ''}" role="status" aria-live="polite">${escape(notice)}</div>${reportButton()}`
@@ -112,21 +100,28 @@ function render() {
       ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
     <section class="settings-card"><h2>多账号与后台</h2><p>已保存 ${accountBook.accounts.length} 个账号。账号和车辆分别绑定，切换不必重复登录。</p><button class="text-button" data-action="accounts" ${locked ? 'disabled' : ''}>管理本机账号</button><button class="text-button" data-action="background" ${locked ? 'disabled' : ''}>后台监控与本机记录</button><button class="text-button" data-action="tasks" ${locked ? 'disabled' : ''}>签到与自动任务</button></section>
     <section class="settings-card"><h2>iPhone 与离线使用</h2><p>${currentInstallContext() === 'installed' ? '当前从主屏幕图标独立运行' : '当前在浏览器中运行'}</p><p>${cacheReady ? '离线页面已准备好；车辆数据和控制需要联网。' : '联网后准备离线页面；车辆数据和控制需要联网。'}</p><button class="setting-row" data-action="install"><span>${currentInstallContext() === 'installed' ? '查看主屏幕使用说明' : '添加到 iPhone 主屏幕'}</span><span aria-hidden="true">→</span></button><button class="text-button" data-action="check-update" ${locked || checkingUpdate || !navigator.onLine ? 'disabled' : ''}>${checkingUpdate ? '正在检查更新…' : '检查新版本'}</button><button class="text-button" data-action="cache-status" ${locked ? 'disabled' : ''}>查看离线缓存</button><button class="text-button" data-action="cache-clear" ${locked ? 'disabled' : ''}>清理旧页面缓存</button></section>
+    <section class="settings-card"><h2>设计预览</h2><p>独立模拟界面状态，保留真实车辆和本机偏好。</p><button class="text-button" data-action="design-lab">打开状态模拟器</button></section>
     <section class="settings-card"><h2>车况分享</h2><p>只导出电量、续航、电压和状态读数。</p><button class="text-button" data-action="status-export" ${locked || !(preview || reading) ? 'disabled' : ''}>导出车况图片</button></section>
     ${renderUsagePreferences(preferences)}
     <section class="settings-card"><h2>几何面板</h2><p>${native.available ? '原生容器' : '网页版'} · ${escape(version)} 验收版</p><p class="muted">车况、骑行、车辆设置与原生工具，集中在“用车”页。</p><button class="text-button" data-action="native" ${locked ? 'disabled' : ''}>查看系统能力与安装包</button></section>
     ${lastCommandReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看操作结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
     <div class="notice" role="status">${escape(notice)}</div>`;
-  content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">Z.</span><span>几何面板<small>YOUR RIDE. YOUR WAY.</small></span><span class="platform-label">WEB</span></header>
+  content.innerHTML = `<div class="shell"><header class="brand"><span class="brand-mark" aria-hidden="true">${icon('vehicle')}</span><span>几何面板<small>GEOMETRY / ZEEHO</small></span><span class="platform-label">${native.available ? 'APP' : currentInstallContext() === 'installed' ? 'PWA' : 'WEB'}</span></header>
     ${booting ? '<p class="connection-banner" role="status">正在恢复本机连接…</p>' : ''}
     ${!navigator.onLine ? '<p class="connection-banner" role="status">网络已断开，显示内容不会更新。联网后可重新读取。</p>' : ''}
     ${nativeSyncPending ? '<p class="connection-banner" role="status">网页账号已保存，原生后台资料尚未同步。请在后台监控中重新保存配置。</p>' : ''}
     ${updateReady ? `<div class="connection-banner" role="status"><span>新版本已准备好</span><button class="text-button" data-action="update" ${locked || modal.open || !navigator.onLine ? 'disabled' : ''}>${updating ? '正在更新…' : '更新并重新打开'}</button></div>` : ''}
-    <main>${body}</main>
-    <nav class="bottom-nav" aria-label="主导航">${(['vehicle', 'daily', 'appearance', 'settings'] as const).map((page, i) => `<button data-action="tab" data-value="${page}" ${tab === page ? 'aria-current="page"' : ''}>${['车辆', '用车', '外观', '设置'][i]}</button>`).join('')}</nav></div>`;
+    <main id="main-content" tabindex="-1">${body}</main>
+    <nav class="bottom-nav" aria-label="主导航">${(['vehicle', 'daily', 'appearance', 'settings'] as const).map((page, i) => `<button data-action="tab" data-value="${page}" ${tab === page ? 'aria-current="page"' : ''}>${icon((['vehicle','grid','palette','settings'] as Icon[])[i])}<span>${['车辆', '用车', '外观', '设置'][i]}</span></button>`).join('')}</nav></div>`;
+  if (!modal.open && focused?.action) Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(button => button.dataset.action === focused.action && button.dataset.value === focused.value && !button.disabled)?.focus({ preventScroll: true });
 }
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyPreferences(false));
 
 function show(title: string, body: string) {
+  if (!modal.open) {
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement.closest<HTMLButtonElement>('button[data-action]') : null;
+    modalReturnFocus = opener?.dataset.action ? { action: opener.dataset.action, value: opener.dataset.value } : null;
+  }
   disposePanel?.(); disposePanel = undefined;
   commandTarget = null; commandIntent = null;
   modal.innerHTML = `<div class="modal-heading"><h2 id="modal-title">${escape(title)}</h2><button class="text-button" data-action="close" aria-label="关闭">关闭</button></div>${body}<p id="modal-message" class="form-message" role="status" aria-live="polite"></p>`;
@@ -143,6 +138,13 @@ function close() {
     activeControl = false;
   }
   pending = null; commandTarget = null; commandIntent = null; modal.close(); modal.replaceChildren(); render();
+  const target = modalReturnFocus; modalReturnFocus = null;
+  const restoreFocus = () => {
+    if (target && !modal.open) Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(button => button.dataset.action === target.action && button.dataset.value === target.value && !button.disabled)?.focus({ preventScroll: true });
+  };
+  restoreFocus();
+  // WebKit may finish its native dialog focus restoration after cancel dispatch.
+  requestAnimationFrame(restoreFocus);
 }
 async function run(task: (signal: AbortSignal, current: () => boolean) => Promise<void>, options: { bound?: Session; control?: boolean } = {}) {
   if (busy || booting || updating) return;
@@ -387,6 +389,13 @@ content.addEventListener('click', event => {
   if (booting || updating) return;
   if (action === 'tab') { tab = button.dataset.value as typeof tab; render(); window.scrollTo(0, 0); }
   if (action === 'preview') { preview = !preview; notice = preview ? '当前为演示数据，所有车辆控制均已停用。' : '连接你的极核，开启自己的面板。'; render(); }
+  if (action === 'design-lab' && !busy) {
+    show('界面与状态演示', '<div id="design-lab"></div>');
+    modal.classList.add('design-lab-modal');
+    const destroy = mountDesignLab(modal.querySelector<HTMLElement>('#design-lab')!);
+    disposePanel = () => { destroy(); modal.classList.remove('design-lab-modal'); };
+  }
+  if (action === 'vehicle-info') show('车辆信息', `<p>${escape(vehicle()?.name ?? '尚未连接车辆')}</p><p class="muted">${escape(vehicle()?.type ?? '')}</p>${session && !preview ? '<button class="primary block" data-action="open-accounts">管理账号与车辆</button>' : '<p class="fine-print">演示车辆，不对应真实车型。</p>'}`);
   if (action === 'connect' && !busy) showPhone();
   if (action === 'status-export' && !busy && (preview || reading)) {
     try {
@@ -470,11 +479,24 @@ content.addEventListener('change', event => {
   else return;
   applyPreferences(); render();
 });
+modal.addEventListener('keydown', event => {
+  if (event.key !== 'Tab' || !modal.open) return;
+  const items = Array.from(modal.querySelectorAll<HTMLElement>('button,a[href],input,select,textarea,[tabindex]'))
+    .filter(element => element.tabIndex >= 0 && !element.matches(':disabled,[hidden]') && element.getClientRects().length > 0);
+  const first = items[0], last = items.at(-1);
+  if (!first) { event.preventDefault(); modal.focus(); return; }
+  if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+  else if (!event.shiftKey && document.activeElement === last || !modal.contains(document.activeElement)) { event.preventDefault(); first.focus(); }
+});
 modal.addEventListener('cancel', event => { event.preventDefault(); close(); });
 modal.addEventListener('click', event => {
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   if (button.dataset.action === 'close') close();
+  if (button.dataset.action === 'open-accounts' && !busy) {
+    show('本机账号管理', '<div id="accounts-panel"></div>');
+    disposePanel = mountAccounts(modal.querySelector<HTMLElement>('#accounts-panel')!, { book: structuredClone(accountBook), onSelect: activateSavedVehicle, onRemove: forgetSavedAccount, onChange: changeSavedAccounts, onAdd: showPhone });
+  }
   if (busy) return;
   if (button.dataset.action === 'confirm-reset-preferences') { preferences = { ...defaultPreferences }; notice = '已恢复默认配置，车辆连接保持。'; applyPreferences(); close(); }
   if (button.dataset.action === 'copy-preferences') {
@@ -550,6 +572,7 @@ void loadAccounts().then(async book => {
 setInterval(updateCooldown, 1000);
 function foreground() {
   if (document.visibilityState !== 'visible') return;
+  render(); // Re-evaluate report age even when foreground refresh is disabled.
   if (navigator.onLine && Date.now() - lastUpdateCheck > 60000) { lastUpdateCheck = Date.now(); void updates?.check(); }
   if (preferences.foregroundRefresh && !busy && !booting && !modal.open && navigator.onLine && Date.now() - lastReadAttempt > 60000) void refresh();
 }

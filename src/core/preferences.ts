@@ -8,7 +8,7 @@ export interface Preferences {
   shortcut: 'horn' | 'seat' | 'daily';
 }
 export const defaultPreferences: Readonly<Preferences> = Object.freeze({
-  theme: 'system', accent: 'green', voltage: true, range: true,
+  theme: 'dark', accent: 'green', voltage: true, range: true,
   startPage: 'vehicle', foregroundRefresh: true, shortcut: 'horn',
 });
 const choices = {

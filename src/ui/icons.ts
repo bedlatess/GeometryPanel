@@ -1,0 +1,23 @@
+/** One outline icon family; decorative by default, controls keep visible labels. */
+const paths = {
+  vehicle: '<path d="M4 16h13l-3-7h-4l-2 7M14 9l-1-5h4M6 13H3"/><circle cx="5" cy="18" r="3"/><circle cx="18" cy="18" r="3"/>',
+  refresh: '<path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1"/>',
+  lock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3M12 14v3"/>',
+  unlock: '<rect x="5" y="10" width="14" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 7.5-2M12 14v3"/>',
+  horn: '<path d="M4 10h4l6-4v14l-6-4H4zM18 8a7 7 0 0 1 0 10M17 11a3 3 0 0 1 0 4"/>',
+  seat: '<path d="M4 9h11a4 4 0 0 1 4 4H4zM6 13v6h11v-6M7 6l10-2"/>',
+  pin: '<path d="M19 10c0 5-7 11-7 11S5 15 5 10a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.5"/>',
+  arrow: '<path d="m9 5 7 7-7 7"/>',
+  grid: '<rect x="4" y="4" width="6" height="6" rx="1.5"/><rect x="14" y="4" width="6" height="6" rx="1.5"/><rect x="4" y="14" width="6" height="6" rx="1.5"/><rect x="14" y="14" width="6" height="6" rx="1.5"/>',
+  palette: '<circle cx="12" cy="12" r="8"/><path d="M12 4v16M4 12h16M6 6l12 12"/>',
+  settings: '<path d="M4 7h16M4 17h16"/><circle cx="9" cy="7" r="3"/><circle cx="15" cy="17" r="3"/>',
+  cloud: '<path d="M7 18a5 5 0 0 1-1-10 6 6 0 0 1 11-1 5.5 5.5 0 0 1 0 11H7Z"/>',
+  bolt: '<path d="m13 2-9 12h7l-1 8 10-13h-7z"/>',
+  check: '<path d="m5 12 4 4L19 6"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7h.01"/>',
+  network: '<path d="M3 9a15 15 0 0 1 18 0M6 13a10 10 0 0 1 12 0M9 17a5 5 0 0 1 6 0M12 20h.01"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  lab: '<path d="M9 3h6M10 3v6L4 19a1.3 1.3 0 0 0 1 2h14a1.3 1.3 0 0 0 1-2L14 9V3M7 15h10"/>',
+} as const;
+export type Icon = keyof typeof paths;
+export const icon = (name: Icon) => `<svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name]}</svg>`;
