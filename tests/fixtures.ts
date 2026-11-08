@@ -665,20 +665,22 @@ export async function navigate(page: Page, path: string) {
   // A preceding link click resolves before Ionic finishes entering its page.
   // Serialize against that route as well as against our own push below.
   await expect
-    .poll(() =>
-      page.evaluate(() => {
-        const app = (document.querySelector('#app') as any).__vue_app__;
-        const path = app.config.globalProperties.$router.currentRoute.value.path;
-        const active = Array.from(
-          document.querySelectorAll(
-            '[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)',
-          ),
-          (element) => element.getAttribute('data-page'),
-        );
-        return active.length === 1 && active[0] === path;
-      }),
+    .poll(
+      () =>
+        page.evaluate(() => {
+          const app = (document.querySelector('#app') as any).__vue_app__;
+          const path = app.config.globalProperties.$router.currentRoute.value.path;
+          const active = Array.from(
+            document.querySelectorAll(
+              '[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)',
+            ),
+            (element) => element.getAttribute('data-page'),
+          );
+          return { path, active, settled: active.length === 1 && active[0] === path };
+        }),
+      { timeout: 20000, message: 'Wait for the preceding Ionic navigation to finish' },
     )
-    .toBe(true);
+    .toMatchObject({ settled: true });
   await page.evaluate(async (value) => {
     const app = (document.querySelector('#app') as any).__vue_app__;
     await app.config.globalProperties.$router.push(value);

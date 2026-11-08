@@ -384,7 +384,25 @@ for (const theme of ['light', 'dark'])
     await shot('01-首页-车辆离线');
     await page.context().setOffline(true);
     await shot('01-首页-网络不可用');
+    await page.evaluate(() => {
+      (window as any).__testOnlineObserved = false;
+      window.addEventListener('online', () => ((window as any).__testOnlineObserved = true), {
+        once: true,
+      });
+    });
     await page.context().setOffline(false);
+    await expect.poll(() => page.evaluate(() => (window as any).__testOnlineObserved)).toBe(true);
+    // Restoring the network can finish a synthetic refresh after this call.
+    // Its normal result toast must finish before capturing a static demo scene.
+    await expect
+      .poll(() =>
+        page.evaluate(() => {
+          const app = (document.querySelector('#app') as any).__vue_app__;
+          return app.config.globalProperties.$pinia._s.get('session').state.busy;
+        }),
+      )
+      .toBe(false);
+    await expect(page.locator('.notice')).not.toBeVisible();
     await state(page, original);
     await state(page, { preview: true });
     // Only this static scene fixes Date; timers and animation frames keep ticking.
