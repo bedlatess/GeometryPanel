@@ -157,7 +157,7 @@ import WidgetKit
         if let soc = sample.soc, soc <= configuration.lowBatteryThreshold, prior?.soc == nil || prior!.soc! > configuration.lowBatteryThreshold { emit("lowBattery", "车辆电量提醒", "电量 \(Int(soc))%，请及时充电") }
         if sample.online == false, prior?.online == true { emit("offline", "车辆离线提醒", "车辆离线") }
         if sample.tireWarning == true, prior?.tireWarning != true { emit("tire", "胎压状态提醒", "胎压异常，请检查轮胎") }
-        if let old = messages[vehicle.id], !result.messageIds.subtracting(old).isEmpty { emit("message", "车辆有新消息", "收到车辆消息") }
+        if let old = messages[vehicle.id], !result.messageIds.subtracting(old).isEmpty { emit("message", "车辆有新消息", result.fenceMessageIds.subtracting(old).isEmpty ? "收到车辆消息" : "电子围栏有新提醒") }
         messages[vehicle.id] = result.messageIds
     }
     private func updateWidget(_ vehicle: NativeVehicle, _ sample: NativeHistorySample) {

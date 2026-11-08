@@ -169,20 +169,32 @@ export function vehicleSettings(capabilities: unknown, info: unknown, vehicleTyp
     result.push({ key: definition.key, title: definition.title, value, display: definition.choices?.find(([n]) => n === current)?.[1] ?? (current || '未知'), writable: !reason && !!definition.endpoint, reason, choices: definition.choices });
   }
   const readOnly = [
+    ['themeName','仪表主题',''],['language','语言',''],['soundEffectStatus','节日音效',''],
+    ['withdrawalStartTime','撤防开始时间',''],['withdrawalEndTime','撤防结束时间',''],
+    ['ecoMaxSpeed','节能档极速','km/h'],['streetMaxSpeed','街道档极速','km/h'],['sportMaxSpeed','运动档极速','km/h'],
+    ['powerMode','驾驶模式',''],['energyRecoveryEco','节能档动能回收',''],['energyRecoverySport','运动档动能回收',''],['energyRecoveryStreet','街道档动能回收',''],
+    ['steepSlopeDescent','陡坡缓降',''],['easyReadyGo','简易骑行',''],['radarFcw','前碰撞预警',''],
     ['maximumSpeedLimit', '最高车速限制', 'km/h'], ['maximumSpeed', '限速档', ''], ['topSpeed', '整车上限', 'km/h'],
     ['customButtonLongPress', '自定义按键 · 长按', ''], ['customButtonLeft', '自定义按键 · 左键', ''],
     ['customButtonRight', '自定义按键 · 右键', ''], ['customButtonCombination', '自定义按键 · 组合键', ''],
   ];
   for (const [key, title, unit] of readOnly) {
     const value = str(raw[key]);
-    if (!value) continue;
-    result.push({ key, title, value, display: `${value}${unit ? ` ${unit}` : ''}`, writable: false,
-      reason: key.startsWith('customButton') ? '旧版仅适配单击动作，其他按键保持只读' : '旧版未确认此项的完整修改协议，当前只读', choices: undefined });
+    if (!value || key === 'radarFcw' && caps.some(c => c.functionCode === 'RADAR_ASSISTED_FCW' && (c.isSupport === true || c.isSupport === 1 || c.isSupport === '1'))) continue;
+    const display = key === 'radarFcw' ? ({'1':'关闭','2':'标准','4':'灵敏'} as Record<string,string>)[value] ?? '—' : `${value}${unit ? ` ${unit}` : ''}`;
+    result.push({ key, title, value, display, writable: false,
+      reason: key.startsWith('customButton') ? '当前不可修改' : '当前不可修改', choices: undefined });
   }
+  const nestedReadOnly:[string,string,string][]=[
+    ['lightEffectSetting','chargingDynamicEffect','充电灯效'],['lightEffectSetting','cyclingDynamicEffect','骑行灯效'],['lightEffectSetting','parkingDynamicEffect','停车灯效'],
+    ['lightEffectSetting','lowBeamLight','近光灯'],['lightEffectSetting','positionLight','位置灯'],['lightEffectSetting','pixelLight','像素灯'],['lightEffectSetting','projectionLight','投影灯'],['lightEffectSetting','longDistanceLighting','远光灯'],
+    ['drivingRecorderSetting','privacyMode','记录仪隐私'],['drivingRecorderSetting','resolution','记录仪分辨率'],['drivingRecorderSetting','sentryMode','哨兵模式'],['drivingRecorderSetting','impactSnapshot','碰撞抓拍'],['drivingRecorderSetting','videoWatermark','视频水印'],
+  ];
+  for(const [key,field,title]of nestedReadOnly){const v=obj(raw[key])?.[field];if(typeof v!=='string'&&typeof v!=='number'&&typeof v!=='boolean')continue;const value=String(v);result.push({key:key+'.'+field,title,value,display:value,writable:false,reason:'',choices:undefined});}
   for (const capability of caps) {
     const code = str(capability.functionCode);
-    if (!code || code === 'INDUCTIVE_UNLOCKING_2' || settingDefinitions.some(definition => definition.capability === code)) continue;
-    result.push({ key: code, title: str(capability.functionName) || code, value: null, display: flag(capability.isSupport) === false ? '不支持' : '仅显示能力', writable: false, reason: '此项尚无完整的网页修改契约', choices: undefined });
+    if (!code || ['AUTOMATIC_LOCK','RADAR_ASSISTED_FCW','PASSWORD_UNLOCKING'].includes(code) || code === 'INDUCTIVE_UNLOCKING_2' || settingDefinitions.some(definition => definition.capability === code)) continue;
+    result.push({ key: code, title: str(capability.functionName) || '其他功能', value: null, display: flag(capability.isSupport) === false ? '不支持' : '—', writable: false, reason: '当前不可修改', choices: undefined });
   }
   return result;
 }

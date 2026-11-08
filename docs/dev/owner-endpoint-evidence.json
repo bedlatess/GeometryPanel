@@ -1,0 +1,1526 @@
+{
+  "prefixEvidence": [
+    "AppConfig.java:128-132",
+    "ApiManager.java:66,101"
+  ],
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/analyse/analyse",
+      "params": [
+        "Query month",
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 167,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/DriveAnalyseRsp;>;>;",
+      "declarationLine": 168,
+      "declaration": "Observable<BaseDataResponse<DriveAnalyseRsp>> analyse(@Header(\"Authorization\") String str, @Query(\"month\") String str2, @Query(BleConstant.vinNo) String str3);",
+      "returnType": "DriveAnalyseRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/batteryChargings",
+      "params": [
+        "Query month",
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 173,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/BatteryChargeRsp;>;>;",
+      "declarationLine": 174,
+      "declaration": "Observable<BaseDataResponse<BatteryChargeRsp>> batteryChargings(@Header(\"Authorization\") String str, @Query(\"month\") String str2, @Query(BleConstant.vinNo) String str3);",
+      "returnType": "BatteryChargeRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/batteryUsings",
+      "params": [
+        "Query month",
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 176,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/BatteryUseRsp;>;>;",
+      "declarationLine": 177,
+      "declaration": "Observable<BaseDataResponse<BatteryUseRsp>> batteryUsings(@Header(\"Authorization\") String str, @Query(\"month\") String str2, @Query(BleConstant.vinNo) String str3);",
+      "returnType": "BatteryUseRsp"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1.0/app/cfmotoserverapp/carShare/{vinNo}",
+      "params": [
+        "Path vinNo",
+        "Query sharedUserId"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 194,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 195,
+      "declaration": "Observable<BaseDataResponse<Boolean>> cancelShare(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2, @Query(\"sharedUserId\") String str3);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1.0/app/cfmotoserverapp/vehicle/tempShare",
+      "params": [
+        "Body TemShareCarReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 197,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/TemShareCarReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/reqest/ShareCarReq;>;>;",
+      "declarationLine": 198,
+      "declaration": "Observable<BaseDataResponse<ShareCarReq>> cancelTemShare(@Header(\"Authorization\") String str, @Body TemShareCarReq temShareCarReq);",
+      "returnType": "ShareCarReq"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1.0/app/cfmotoserverapp/chargePlan/one",
+      "params": [
+        "Body CreatePlanReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 203,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/CreatePlanReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/String;>;>;",
+      "declarationLine": 204,
+      "declaration": "Observable<BaseDataResponse<String>> changePlan(@Header(\"Authorization\") String str, @Body CreatePlanReq createPlanReq);",
+      "returnType": "String"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1.0/app/cfmotoserverapp/chargePlan/one/use",
+      "params": [
+        "Body PlanUseReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 206,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/PlanUseReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 207,
+      "declaration": "Observable<BaseDataResponse<Boolean>> changePlanUse(@Header(\"Authorization\") String str, @Body PlanUseReq planUseReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/electricFence/one",
+      "params": [
+        "Body CreateFenceReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 224,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/CreateFenceReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 225,
+      "declaration": "Observable<BaseDataResponse<Boolean>> createFence(@Header(\"Authorization\") String str, @Body CreateFenceReq createFenceReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/chargePlan/one",
+      "params": [
+        "Body CreatePlanReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 227,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/CreatePlanReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/String;>;>;",
+      "declarationLine": 228,
+      "declaration": "Observable<BaseDataResponse<String>> createPlan(@Header(\"Authorization\") String str, @Body CreatePlanReq createPlanReq);",
+      "returnType": "String"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1.0/app/cfmotoserverapp/electricFence/one",
+      "params": [
+        "Query id"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 230,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 231,
+      "declaration": "Observable<BaseDataResponse<Boolean>> deleteFence(@Header(\"Authorization\") String str, @Query(\"id\") String str2);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1.0/app/cfmotoserverapp/app/inductiveUnlock/airLock/remove/{id}",
+      "params": [
+        "Path id"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 233,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 234,
+      "declaration": "Observable<BaseDataResponse<Boolean>> deletePairedDevice(@Header(\"Authorization\") String str, @Path(\"id\") String str2);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "DELETE",
+      "path": "/v1.0/app/cfmotoserverapp/vehicle/tempShare",
+      "params": [
+        "Body ArrayList"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 242,
+      "signature": "(Ljava/lang/String;Ljava/util/ArrayList<Ljava/lang/String;>;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/String;>;>;",
+      "declarationLine": 243,
+      "declaration": "Observable<BaseDataResponse<String>> deleteTemShare(@Header(\"Authorization\") String str, @Body ArrayList<String> arrayList);",
+      "returnType": "String"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/vehicle/abnormal/{vinNo}",
+      "params": [
+        "Path vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 254,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/MotoExaRsp;>;>;",
+      "declarationLine": 255,
+      "declaration": "Observable<BaseDataResponse<MotoExaRsp>> examination(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2);",
+      "returnType": "MotoExaRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/batteryInfo/detail/{vinNo}",
+      "params": [
+        "Path vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 263,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/BatteryDetailRsp;>;>;",
+      "declarationLine": 264,
+      "declaration": "Observable<BaseDataResponse<BatteryDetailRsp>> getBatteryDetail(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2);",
+      "returnType": "BatteryDetailRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/batteryAnalyse",
+      "params": [
+        "Query vinNo",
+        "Query month"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 269,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/BatteryScoreRsp;>;>;",
+      "declarationLine": 270,
+      "declaration": "Observable<BaseDataResponse<BatteryScoreRsp>> getBatteryScroce(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2, @Query(\"month\") String str3);",
+      "returnType": "BatteryScoreRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/chargePlan/list/{vinNo}",
+      "params": [
+        "Path vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 281,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/List<Lcom/cfmoto/bean/response/ChargePlanRsp;>;>;>;",
+      "declarationLine": 282,
+      "declaration": "Observable<BaseDataResponse<List<ChargePlanRsp>>> getChargePlan(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2);",
+      "returnType": "List<ChargePlanRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/electricFence/list/{vinNo}",
+      "params": [
+        "Path vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 293,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/List<Lcom/cfmoto/bean/response/FenceRsp;>;>;>;",
+      "declarationLine": 294,
+      "declaration": "Observable<BaseDataResponse<List<FenceRsp>>> getFenceList(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2);",
+      "returnType": "List<FenceRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/keepmileage/{vinNo}",
+      "params": [
+        "Path vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 317,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/KeepMileageResp;>;>;",
+      "declarationLine": 318,
+      "declaration": "Observable<BaseDataResponse<KeepMileageResp>> getKeepmileage(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2);",
+      "returnType": "KeepMileageResp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/vehicleSet/nfc/list",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 332,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/ArrayList<Lcom/cfmoto/bean/response/NfcListItemRsp;>;>;>;",
+      "declarationLine": 333,
+      "declaration": "Observable<BaseDataResponse<ArrayList<NfcListItemRsp>>> getNfcList(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "ArrayList<NfcListItemRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/app/inductiveUnlock/airLock/list",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 350,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/ArrayList<Lcom/cfmoto/bean/response/PairedDeviceRsp;>;>;>;",
+      "declarationLine": 351,
+      "declaration": "Observable<BaseDataResponse<ArrayList<PairedDeviceRsp>>> getPairedDeviceList(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "ArrayList<PairedDeviceRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/app/service/recharge/vehicle/detail",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 359,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/CarRechargeListRsp$CarRechargeRsp;>;>;",
+      "declarationLine": 360,
+      "declaration": "Observable<BaseDataResponse<CarRechargeListRsp$CarRechargeRsp>> getRechargeCarDetail(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "CarRechargeListRsp$CarRechargeRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/getRechargeEndDate",
+      "params": [
+        "Query frameNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 365,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/ui/bean/RechargeServiceTimeBean;>;>;",
+      "declarationLine": 366,
+      "declaration": "Observable<BaseDataResponse<RechargeServiceTimeBean>> getRechargeServiceTime(@Header(\"Authorization\") String str, @Query(\"frameNo\") String str2);",
+      "returnType": "RechargeServiceTimeBean"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/carShare/{vinNo}",
+      "params": [
+        "Path vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 377,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/List<Lcom/cfmoto/bean/reqest/ShareCarReq;>;>;>;",
+      "declarationLine": 378,
+      "declaration": "Observable<BaseDataResponse<List<ShareCarReq>>> getShareCar(@Header(\"Authorization\") String str, @Path(BleConstant.vinNo) String str2);",
+      "returnType": "List<ShareCarReq"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/vehicle/tempShare/timeOpts",
+      "params": [],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 380,
+      "signature": "(Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/List<Lcom/cfmoto/bean/reqest/TimeOptsResp;>;>;>;",
+      "declarationLine": 381,
+      "declaration": "Observable<BaseDataResponse<List<TimeOptsResp>>> getShareTimeOpts(@Header(\"Authorization\") String str);",
+      "returnType": "List<TimeOptsResp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/aggregate/vehicle/{vcu}",
+      "params": [
+        "Path vcu"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 383,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/SimDataRsp;>;>;",
+      "declarationLine": 384,
+      "declaration": "Observable<BaseDataResponse<SimDataRsp>> getSimData(@Header(\"Authorization\") String str, @Path(\"vcu\") String str2);",
+      "returnType": "SimDataRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/vehicle/tempShare/list",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 395,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/List<Lcom/cfmoto/bean/reqest/ShareCarReq;>;>;>;",
+      "declarationLine": 396,
+      "declaration": "Observable<BaseDataResponse<List<ShareCarReq>>> getTemShareList(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "List<ShareCarReq"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/vehicleSet/lowPowerPhoneReminder",
+      "params": [
+        "Body BattrtyLowPowerReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 461,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/BattrtyLowPowerReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 462,
+      "declaration": "Observable<BaseDataResponse<Boolean>> lowPowerPhoneReminder(@Header(\"Authorization\") String str, @Body lowPowerPhoneReq lowpowerphonereq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/vehicleSet/lowPowerPhoneReminder",
+      "params": [
+        "Body lowPowerPhoneReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 461,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/lowPowerPhoneReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 462,
+      "declaration": "Observable<BaseDataResponse<Boolean>> lowPowerPhoneReminder(@Header(\"Authorization\") String str, @Body lowPowerPhoneReq lowpowerphonereq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/vehicleSet/nfc/rename",
+      "params": [
+        "Body NfcRenameReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 473,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/NfcRenameReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 474,
+      "declaration": "Observable<BaseDataResponse<Boolean>> nfcRename(@Header(\"Authorization\") String str, @Body NfcRenameReq nfcRenameReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/redPoint",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 500,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Integer;>;>;",
+      "declarationLine": 501,
+      "declaration": "Observable<BaseDataResponse<Integer>> otaCheck(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "Integer"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/otaDetail",
+      "params": [
+        "Query id",
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 509,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/ota/OtaUpRsp;>;>;",
+      "declarationLine": 510,
+      "declaration": "Observable<BaseDataResponse<OtaUpRsp>> otaDetail(@Header(\"Authorization\") String str, @Query(\"id\") String str2, @Query(BleConstant.vinNo) String str3);",
+      "returnType": "OtaUpRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/otaRecord",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 518,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/List<Lcom/cfmoto/bean/response/ota/OtaListItemRsp;>;>;>;",
+      "declarationLine": 519,
+      "declaration": "Observable<BaseDataResponse<List<OtaListItemRsp>>> otaRecord(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "List<OtaListItemRsp"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/upstatus",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 521,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/ota/OtaUpstatus;>;>;",
+      "declarationLine": 522,
+      "declaration": "Observable<BaseDataResponse<OtaUpstatus>> otaStatus(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "OtaUpstatus"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/ota/list",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 524,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/util/ArrayList<Lcom/cfmoto/ota/bean/OTATaskBean;>;>;>;",
+      "declarationLine": 525,
+      "declaration": "Observable<BaseDataResponse<ArrayList<OTATaskBean>>> otaTasks(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "ArrayList<OTATaskBean"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/vehicle/tempShare",
+      "params": [
+        "Body TemShareCarReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 545,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/TemShareCarReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/reqest/ShareCarReq;>;>;",
+      "declarationLine": 546,
+      "declaration": "Observable<BaseDataResponse<ShareCarReq>> postShareTem(@Header(\"Authorization\") String str, @Body TemShareCarReq temShareCarReq);",
+      "returnType": "ShareCarReq"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/app/inductiveUnlock/ble/status",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 552,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/BleStatusVO;>;>;",
+      "declarationLine": 553,
+      "declaration": "Observable<BaseDataResponse<BleStatusVO>> queryBleStatus(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "BleStatusVO"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/ota/redPointType",
+      "params": [
+        "Query vinNo"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 573,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Integer;>;>;",
+      "declarationLine": 574,
+      "declaration": "Observable<BaseDataResponse<Integer>> redPointType(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2);",
+      "returnType": "Integer"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/keepmileage/reset",
+      "params": [
+        "Body ResetKeepmileageReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 576,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/ResetKeepmileageReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 577,
+      "declaration": "Observable<BaseDataResponse<Boolean>> resetKeepmileage(@Header(\"Authorization\") String str, @Body ResetKeepmileageReq resetKeepmileageReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/app/cfmotoserverapp/rideDayInfo",
+      "params": [
+        "Query vinNo",
+        "Query date"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 579,
+      "signature": "(Ljava/lang/String;Ljava/lang/String;Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Lcom/cfmoto/bean/response/RideDayInfoRsp;>;>;",
+      "declarationLine": 580,
+      "declaration": "Observable<BaseDataResponse<RideDayInfoRsp>> rideDayInfo(@Header(\"Authorization\") String str, @Query(BleConstant.vinNo) String str2, @Query(\"date\") String str3);",
+      "returnType": "RideDayInfoRsp"
+    },
+    {
+      "method": "POST",
+      "path": "/v1.0/app/cfmotoserverapp/carShare",
+      "params": [
+        "Body ShareCarReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 628,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/ShareCarReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 629,
+      "declaration": "Observable<BaseDataResponse<Boolean>> shareCar(@Header(\"Authorization\") String str, @Body ShareCarReq shareCarReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1.0/app/cfmotoserverapp/electricFence/one",
+      "params": [
+        "Body CreateFenceReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 640,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/CreateFenceReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 641,
+      "declaration": "Observable<BaseDataResponse<Boolean>> updateFence(@Header(\"Authorization\") String str, @Body CreateFenceReq createFenceReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "PUT",
+      "path": "/v1.0/app/cfmotoserverapp/electricFence/one/use",
+      "params": [
+        "Body FenceUseReq"
+      ],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IHmService.java",
+      "line": 643,
+      "signature": "(Ljava/lang/String;Lcom/cfmoto/bean/reqest/FenceUseReq;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Boolean;>;>;",
+      "declarationLine": 644,
+      "declaration": "Observable<BaseDataResponse<Boolean>> updateFenceUse(@Header(\"Authorization\") String str, @Body FenceUseReq fenceUseReq);",
+      "returnType": "Boolean"
+    },
+    {
+      "method": "GET",
+      "path": "/v1.0/mine/cfmotoservermine/app/Message/allUnRead",
+      "params": [],
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/network/service/IPsService.java",
+      "line": 118,
+      "signature": "(Ljava/lang/String;)Lio/reactivex/Observable<Lcom/zeeho/constant/net/BaseDataResponse<Ljava/lang/Integer;>;>;",
+      "declarationLine": 119,
+      "declaration": "Observable<BaseDataResponse<Integer>> getAllUnRead(@Header(\"Authorization\") String str);",
+      "returnType": "Integer"
+    }
+  ],
+  "models": [
+    {
+      "model": "com/cfmoto/bean/reqest/BattrtyLowPowerReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/BattrtyLowPowerReq.java",
+      "fields": [
+        [
+          11,
+          "private final int lowPowerPhoneReminder;"
+        ],
+        [
+          12,
+          "private final String lowPowerPhoneReminderEndTime;"
+        ],
+        [
+          13,
+          "private final String lowPowerPhoneReminderStartTime;"
+        ],
+        [
+          14,
+          "private final String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/CreateFenceReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/CreateFenceReq.java",
+      "fields": [
+        [
+          5,
+          "private String addrPosition;"
+        ],
+        [
+          6,
+          "private String addrPositionName;"
+        ],
+        [
+          7,
+          "private String id;"
+        ],
+        [
+          8,
+          "private String radius;"
+        ],
+        [
+          9,
+          "private String rideRangeName;"
+        ],
+        [
+          10,
+          "private String rideRangeRule;"
+        ],
+        [
+          11,
+          "private String scalingRatio;"
+        ],
+        [
+          12,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/CreatePlanReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/CreatePlanReq.java",
+      "fields": [
+        [
+          5,
+          "private String endTime;"
+        ],
+        [
+          6,
+          "private String id;"
+        ],
+        [
+          7,
+          "private String startTime;"
+        ],
+        [
+          8,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/FenceUseReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/FenceUseReq.java",
+      "fields": [
+        [
+          5,
+          "private String delFlag;"
+        ],
+        [
+          6,
+          "private String id;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/NfcRenameReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/NfcRenameReq.java",
+      "fields": [
+        [
+          11,
+          "private String nfcId;"
+        ],
+        [
+          12,
+          "private String nfcName;"
+        ],
+        [
+          13,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/PlanUseReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/PlanUseReq.java",
+      "fields": [
+        [
+          5,
+          "private String delFlag;"
+        ],
+        [
+          6,
+          "private String id;"
+        ],
+        [
+          7,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/ResetKeepmileageReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/ResetKeepmileageReq.java",
+      "fields": [
+        [
+          5,
+          "public String vcu;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/ShareCarReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/ShareCarReq.java",
+      "fields": [
+        [
+          8,
+          "private String abnormalRideRule;"
+        ],
+        [
+          9,
+          "private String abnormalRideStatus;"
+        ],
+        [
+          10,
+          "private String addrPosition;"
+        ],
+        [
+          11,
+          "private String beforeSetUserFlag;"
+        ],
+        [
+          12,
+          "private String carUserId;"
+        ],
+        [
+          13,
+          "private String eco;"
+        ],
+        [
+          14,
+          "private String endTime;"
+        ],
+        [
+          15,
+          "private String endTimestamp;"
+        ],
+        [
+          16,
+          "private String id;"
+        ],
+        [
+          17,
+          "private String isOrNotContinue;"
+        ],
+        [
+          18,
+          "private String naturalMode;"
+        ],
+        [
+          19,
+          "private String radius;"
+        ],
+        [
+          20,
+          "private Boolean registered;"
+        ],
+        [
+          21,
+          "private int residualSeconds;"
+        ],
+        [
+          22,
+          "private String rideRangeName;"
+        ],
+        [
+          23,
+          "private String rideRangeRule;"
+        ],
+        [
+          24,
+          "private String rideRangeStatus;"
+        ],
+        [
+          25,
+          "private String rideTimeFrom;"
+        ],
+        [
+          26,
+          "private String rideTimeTo;"
+        ],
+        [
+          27,
+          "private BigDecimal scalingRatio;"
+        ],
+        [
+          28,
+          "private int shareHours;"
+        ],
+        [
+          29,
+          "private String shareName;"
+        ],
+        [
+          30,
+          "private String sharePhone;"
+        ],
+        [
+          31,
+          "private String shareUserId;"
+        ],
+        [
+          32,
+          "private String sport;"
+        ],
+        [
+          33,
+          "private String userAvatar;"
+        ],
+        [
+          34,
+          "private String userName;"
+        ],
+        [
+          35,
+          "private String userPhone;"
+        ],
+        [
+          36,
+          "private String vehicleName;"
+        ],
+        [
+          37,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/TemShareCarReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/TemShareCarReq.java",
+      "fields": [
+        [
+          7,
+          "private String fullName;"
+        ],
+        [
+          8,
+          "private String id;"
+        ],
+        [
+          9,
+          "private String phone;"
+        ],
+        [
+          10,
+          "private int shareHours;"
+        ],
+        [
+          11,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/TimeOptsResp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/TimeOptsResp.java",
+      "fields": [
+        [
+          7,
+          "private int count;"
+        ],
+        [
+          8,
+          "private int hours;"
+        ],
+        [
+          9,
+          "private String unit;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/reqest/lowPowerPhoneReq",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/reqest/lowPowerPhoneReq.java",
+      "fields": [
+        [
+          10,
+          "private Integer lowPowerPhoneReminder;"
+        ],
+        [
+          11,
+          "private String lowPowerPhoneReminderEndTime;"
+        ],
+        [
+          12,
+          "private String lowPowerPhoneReminderStartTime;"
+        ],
+        [
+          13,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/BatteryChargeRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/BatteryChargeRsp.java",
+      "fields": [
+        [
+          7,
+          "private List<BatteryChargeRsp$ChargeListBean> chargeList;"
+        ],
+        [
+          8,
+          "private String powerChargeMonth;"
+        ],
+        [
+          9,
+          "private String powerChargeToday;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/BatteryDetailRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/BatteryDetailRsp.java",
+      "fields": [
+        [
+          5,
+          "private String bmsCurrent;"
+        ],
+        [
+          6,
+          "private String bmsVoltage;"
+        ],
+        [
+          7,
+          "private String chargeState;"
+        ],
+        [
+          8,
+          "private String fullChargeTime;"
+        ],
+        [
+          9,
+          "private String fullChargeTimeUnitMinute;"
+        ],
+        [
+          10,
+          "private String power;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/BatteryScoreRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/BatteryScoreRsp.java",
+      "fields": [
+        [
+          7,
+          "private List<BatteryScoreRsp$BatteryDeductListBean> batteryDeductList;"
+        ],
+        [
+          8,
+          "private String comment;"
+        ],
+        [
+          9,
+          "private String month;"
+        ],
+        [
+          10,
+          "private String score;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/BatteryUseRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/BatteryUseRsp.java",
+      "fields": [
+        [
+          7,
+          "private String powerUseMonth;"
+        ],
+        [
+          8,
+          "private String powerUseToday;"
+        ],
+        [
+          9,
+          "private List<BatteryUseRsp$UseListBean> useList;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/BleStatusVO",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/BleStatusVO.java",
+      "fields": [
+        [
+          10,
+          "public int btMacEnable;"
+        ],
+        [
+          11,
+          "public int hmiBleMacEnable;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/CarRechargeListRsp$CarRechargeRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/CarRechargeListRsp$CarRechargeRsp.java",
+      "fields": [
+        [
+          5,
+          "private boolean isSelected = false;"
+        ],
+        [
+          6,
+          "private int lastUseDate;"
+        ],
+        [
+          7,
+          "private String rechargeEndDate;"
+        ],
+        [
+          8,
+          "private String rechargeEndTime;"
+        ],
+        [
+          9,
+          "private String serviceRechargeStatus;"
+        ],
+        [
+          10,
+          "private String vehicleName;"
+        ],
+        [
+          11,
+          "private String vehiclePicUrl;"
+        ],
+        [
+          12,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/ChargePlanRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/ChargePlanRsp.java",
+      "fields": [
+        [
+          5,
+          "private String delFlag;"
+        ],
+        [
+          6,
+          "private String endTime;"
+        ],
+        [
+          7,
+          "private String id;"
+        ],
+        [
+          8,
+          "private String startTime;"
+        ],
+        [
+          9,
+          "private String userId;"
+        ],
+        [
+          10,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/DriveAnalyseRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/DriveAnalyseRsp.java",
+      "fields": [
+        [
+          5,
+          "private String accelerationTimes;"
+        ],
+        [
+          6,
+          "private String accelerationTimesPercent;"
+        ],
+        [
+          7,
+          "private String bendingTimes;"
+        ],
+        [
+          8,
+          "private String bendingTimesPercent;"
+        ],
+        [
+          9,
+          "private String brakesTimes;"
+        ],
+        [
+          10,
+          "private String brakesTimesPercent;"
+        ],
+        [
+          11,
+          "private String extremeSpeedNumber;"
+        ],
+        [
+          12,
+          "private String extremeSpeedNumberPercent;"
+        ],
+        [
+          13,
+          "private String longDrive;"
+        ],
+        [
+          14,
+          "private String maxSpeed;"
+        ],
+        [
+          15,
+          "private String maxSpeedPercent;"
+        ],
+        [
+          16,
+          "private String nightRide;"
+        ],
+        [
+          17,
+          "private String offLight;"
+        ],
+        [
+          18,
+          "private String offTurnLight;"
+        ],
+        [
+          19,
+          "private String rideMileage;"
+        ],
+        [
+          20,
+          "private String rideMileagePercent;"
+        ],
+        [
+          21,
+          "private String ridingTime;"
+        ],
+        [
+          22,
+          "private String ridingTimePercent;"
+        ],
+        [
+          23,
+          "private String ridingTimeUnitMinute;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/FenceRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/FenceRsp.java",
+      "fields": [
+        [
+          7,
+          "private String addrPosition;"
+        ],
+        [
+          8,
+          "private String addrPositionName;"
+        ],
+        [
+          9,
+          "private String delFlag;"
+        ],
+        [
+          10,
+          "private String id;"
+        ],
+        [
+          11,
+          "private boolean isLoading;"
+        ],
+        [
+          12,
+          "private String radius;"
+        ],
+        [
+          13,
+          "private String rideRangeName;"
+        ],
+        [
+          14,
+          "private String rideRangeRule;"
+        ],
+        [
+          15,
+          "private String scalingRatio;"
+        ],
+        [
+          16,
+          "private String userId;"
+        ],
+        [
+          17,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/KeepMileageResp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/KeepMileageResp.java",
+      "fields": [
+        [
+          11,
+          "private String keepMileage;"
+        ],
+        [
+          12,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/MotoExaRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/MotoExaRsp.java",
+      "fields": [
+        [
+          8,
+          "private int deductScore;"
+        ],
+        [
+          9,
+          "private int heteroconstant;"
+        ],
+        [
+          10,
+          "private List<MotoExaRsp$SystemBean> systemList;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/NfcListItemRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/NfcListItemRsp.java",
+      "fields": [
+        [
+          11,
+          "private final String createDate;"
+        ],
+        [
+          12,
+          "private final String id;"
+        ],
+        [
+          13,
+          "private String nfcName;"
+        ],
+        [
+          14,
+          "private String nfcNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/PairedDeviceRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/PairedDeviceRsp.java",
+      "fields": [
+        [
+          11,
+          "private ArrayList<PairedDeviceRsp> inductiveUnlockVOList;"
+        ],
+        [
+          12,
+          "private String carOwnerFlag = \"\";"
+        ],
+        [
+          13,
+          "private String deviceFlag = \"\";"
+        ],
+        [
+          14,
+          "private String id = \"\";"
+        ],
+        [
+          15,
+          "private String ipAddress = \"\";"
+        ],
+        [
+          16,
+          "private String modifyTime = \"\";"
+        ],
+        [
+          17,
+          "private String parseAddress = \"\";"
+        ],
+        [
+          18,
+          "private String phoneName = \"\";"
+        ],
+        [
+          19,
+          "private String uniqueIdentify = \"\";"
+        ],
+        [
+          20,
+          "private String vinNo = \"\";"
+        ],
+        [
+          21,
+          "private String userNickname = \"\";"
+        ],
+        [
+          22,
+          "private String relationType = \"\";"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/RideDayInfoRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/RideDayInfoRsp.java",
+      "fields": [
+        [
+          5,
+          "private String accelerationTimesDay;"
+        ],
+        [
+          6,
+          "private String bendingTimesDay;"
+        ],
+        [
+          7,
+          "private String brakesTimesDay;"
+        ],
+        [
+          8,
+          "private String greenContributionDay;"
+        ],
+        [
+          9,
+          "private String maxSpeed;"
+        ],
+        [
+          10,
+          "private String powerConsumptionDay;"
+        ],
+        [
+          11,
+          "private String rideMileageDay;"
+        ],
+        [
+          12,
+          "private String ridingTimeDay;"
+        ],
+        [
+          13,
+          "private String ridingTimeDayUnitMinute;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/SimDataRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/SimDataRsp.java",
+      "fields": [
+        [
+          7,
+          "private List<SimDataRsp$AggregateBean> aggregate;"
+        ],
+        [
+          8,
+          "private int lastUseDate;"
+        ],
+        [
+          9,
+          "private String simStatus;"
+        ],
+        [
+          10,
+          "private String vinNo;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/ota/OtaListItemRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/ota/OtaListItemRsp.java",
+      "fields": [
+        [
+          5,
+          "private String id;"
+        ],
+        [
+          6,
+          "private String otaVersion;"
+        ],
+        [
+          7,
+          "private String updateDate;"
+        ],
+        [
+          8,
+          "private String upgradeStatus;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/ota/OtaUpRsp",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/ota/OtaUpRsp.java",
+      "fields": [
+        [
+          10,
+          "private String estimatedTimeDescribe;"
+        ],
+        [
+          11,
+          "private String lastlyVersion;"
+        ],
+        [
+          12,
+          "private String nowVersion;"
+        ],
+        [
+          13,
+          "private String updateDate;"
+        ],
+        [
+          14,
+          "private final String vehiclePicUrl;"
+        ],
+        [
+          15,
+          "private String vehicleType;"
+        ],
+        [
+          16,
+          "private String versionDesc;"
+        ],
+        [
+          17,
+          "private int upgradeStatus = -1;"
+        ],
+        [
+          18,
+          "private String errDesc = \"\";"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/bean/response/ota/OtaUpstatus",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/bean/response/ota/OtaUpstatus.java",
+      "fields": [
+        [
+          10,
+          "public String errCode;"
+        ],
+        [
+          13,
+          "public String errDesc;"
+        ],
+        [
+          16,
+          "public int status;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/ota/bean/OTATaskBean",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/ota/bean/OTATaskBean.java",
+      "fields": [
+        [
+          9,
+          "private final String iotTaskId;"
+        ],
+        [
+          10,
+          "private final Integer isWifiTransmission;"
+        ],
+        [
+          11,
+          "private final String otaDescContent;"
+        ],
+        [
+          12,
+          "private final String otaDescUrl;"
+        ],
+        [
+          13,
+          "private final String otaVersion;"
+        ],
+        [
+          14,
+          "private final String partName;"
+        ],
+        [
+          15,
+          "private final String partType;"
+        ]
+      ]
+    },
+    {
+      "model": "com/cfmoto/ui/bean/RechargeServiceTimeBean",
+      "source": "analysis/official-apk-static/jadx-owner-combined/sources/com/cfmoto/ui/bean/RechargeServiceTimeBean.java",
+      "fields": [
+        [
+          11,
+          "private final String frameNo;"
+        ],
+        [
+          12,
+          "private final String phone;"
+        ],
+        [
+          13,
+          "private final String rechargeEndDate;"
+        ],
+        [
+          14,
+          "private final Boolean result;"
+        ],
+        [
+          15,
+          "private final String serviceRechargeStatus;"
+        ],
+        [
+          16,
+          "private final String vehicleTypeName;"
+        ]
+      ]
+    }
+  ]
+}

@@ -72,7 +72,7 @@ import WebKit
     private func call(_ method: String, params: [String: Any]) async throws -> Any {
         switch method {
         case "capabilities": return ["platform": "ios", "version": 1, "features": ["ble": true, "proximity": true, "notifications": true, "widget": local.widgetAvailable, "meter": true, "background": true, "history": true, "multiAccount": true, "tasks": true, "shortcuts": true, "scanner": true, "ota": true, "wallpaperZip": true, "diagnostics": true, "updates": true, "officialLogin": false, "keepalive": false], "limitations": ["iOS 不能按蓝牙 MAC 直接选车：请在车旁扫描并确认设备。", "蓝牙连接提醒不代表靠近自动解锁；旧版没有已验证的自动解锁协议。", "启用后前台每分钟监测；后台由系统机会调度，不承诺持续运行或自动任务准点执行。", "仪表需手动连接车辆 Wi-Fi；iOS 无通用 Wi-Fi Direct。投屏仅采集本应用画面，无音频和反控。", "组件版需要支持 App Groups 的自签资料；常规版不含组件。IPA 由使用者自签。"]]
-        case "status": var status = bluetooth.status; status["bound"] = binding != nil; status["meter"] = meter.status; status["widgetAvailable"] = local.widgetAvailable; return status
+        case "status": var status = bluetooth.status; status["uniqueIdentify"] = try SecureStore.identity().hex; status["bound"] = binding != nil; status["meter"] = meter.status; status["widgetAvailable"] = local.widgetAvailable; return status
         case "bindVehicle":
             let validated = try VehicleBinding(params)
             if binding?.vin != validated.vin || binding?.uid != validated.uid || binding?.credentialDigest != validated.credentialDigest { clear() }

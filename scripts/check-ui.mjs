@@ -16,7 +16,7 @@ function rgba(value, palette) {
 }
 function over(color, base) { return color.slice(0,3).map((v,i)=>v*(color[3]??1)+base[i]*(1-(color[3]??1))); }
 function lum(rgb) { const c=rgb.map(v=>v/255).map(v=>v<=.04045?v/12.92:((v+.055)/1.055)**2.4);return c[0]*.2126+c[1]*.7152+c[2]*.0722; }
-const pairs = [['t1','bg',4.5],['t1','card',4.5],['t1','fill',4.5],['t2','bg',4.5],['t2','card',4.5],['t2','fill',4.5],['energy-t','bg',4.5],['energy-t','card',4.5],['attn','attn-bg',4.5],['alert','bg',4.5],['alert','card',4.5],['ink-t','ink',4.5],['knob-t','knob',4.5],['focus','bg',3],['energy','fill',3],['t2','fill',3]];
+const pairs = [['t1','bg',4.5],['t1','card',4.5],['t1','fill',4.5],['t2','bg',4.5],['t2','card',4.5],['t2','fill',4.5],['energy-t','bg',4.5],['energy-t','card',4.5],['attn','attn-bg',4.5],['alert','bg',4.5],['alert','card',4.5],['ink-t','ink',4.5],['alert-ink','alert',4.5],['knob-t','knob',4.5],['focus','bg',3],['energy','fill',3],['t2','fill',3]];
 const contrast = [];
 for (const [theme,p] of [['light',light],['dark',dark]]) for (const [foreground,background,minimum] of pairs) {
   const b=over(rgba(p[background],p),rgba(p.bg,p)),f=over(rgba(p[foreground],p),b);
@@ -43,7 +43,8 @@ for(const file of [...await list('src/ui'),'src/main.ts']) {
       }
       // Identifier strings (e.g. token), imports, SVG source and developer-only routes are not visible copy.
       if(text&&/[\u3400-\u9fff]/.test(text)&&!file.endsWith('design-lab.ts')&&!file.endsWith('about.ts')) {
-        const clean=text.replaceAll('状态模拟器','');const hits=clean.match(forbidden)||[];
+        // Explicit copy exceptions required by revision 2 A1/A2/A5; no broad word exclusions.
+        const clean=text.replaceAll('状态模拟器','').replaceAll('使用 token 登录','').replaceAll('签到页地址或 token','').replaceAll('token 无效或已过期','').replaceAll('车辆停放较久时会降低上报频率','').replace(/<[^>]*>/g,'');const hits=clean.match(forbidden)||[];
         if(hits.length)banned.push({file,line:ast.getLineAndCharacterOfPosition(n.pos).line+1,hits});
       }
     }

@@ -36,7 +36,7 @@ export class CloudClient {
   async request(path: string, options: Options = {}): Promise<unknown> {
     const h5 = options.service === 'h5';
     if (options.service && options.service !== 'app' && !h5) throw new ApiError('format');
-    if (h5 ? !/^\/cfmotoservermine\/H5\/signin(?:\/info|\/supplementPrize)?$/.test(path) || options.appLike || options.clientAuth
+    if (h5 ? !/^\/(?:cfmotoservermine\/H5\/signin(?:\/info|\/supplementPrize)?|cfmotoserverapp\/H5\/vehicle\/tire\/statistics)$/.test(path) || options.appLike || options.clientAuth
       : !/^\/v1\.0\/[A-Za-z0-9/_-]+$/.test(path)) throw new ApiError('format');
     const query = options.query ?? {};
     if (!query || typeof query !== 'object' || Array.isArray(query) || Object.keys(query).length > 30

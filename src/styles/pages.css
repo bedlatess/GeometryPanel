@@ -76,3 +76,10 @@ dialog .card { background:var(--fill); margin-block:var(--space-5); }dialog .pri
 .home-readings .metric{white-space:nowrap;}.widget-mark{width:var(--icon);height:var(--icon);}
 
 @media(min-height:501px) and (max-height:740px){.studio-screen{padding-top:var(--space-6);}.home-readings{margin-top:var(--space-4);}.quick-controls{margin-top:var(--space-4);}}
+
+.chart-temperature path{stroke:var(--t2);stroke-width:var(--chart-thin);}
+.fence-radius{fill:var(--attn-bg);stroke:var(--attn);}
+
+.primary.danger{background:var(--alert);color:var(--alert-ink);}
+
+.home-state-line{display:flex;align-items:center;gap:var(--space-2);}.home-state-line .home-status{flex:1;min-width:0;}.home-state-line #home-reminders{flex:none;}.home-state-line .tag{min-height:var(--tap);}

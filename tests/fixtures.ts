@@ -1,3 +1,6 @@
+import { ownerReads } from '../src/api/owner';
+import { ownerData } from './owner-data';
+export { ownerData };
 import { test as base, expect, type Page } from '@playwright/test';
 
 export const VIN_A = 'LAAAAAAAAAAAAAAA1';
@@ -53,6 +56,7 @@ export interface Mocks {
   vehicleRows?: unknown[];
   home?: Record<string, unknown>; battery?: Record<string, unknown>;
   extensions?: ExtensionMocks; tasks?: TaskMocks;
+  owner?: { data:Record<string,unknown>; mode?:'missing'|'failure'; failWrite?:string; networkWrite?:string; hold?:Promise<void>; writes?:number; noChange?:boolean };
   loginReplies?: { uid: string; token: string }[]; roadTiles: string[];
 }
 export const test = base.extend<{ mocks: Mocks }>({
@@ -72,6 +76,43 @@ export const test = base.extend<{ mocks: Mocks }>({
         if (state.holdList) await state.holdList;
         if (state.listFailures-- > 0) return reply(null, 503, 50000);
         return reply(state.empty ? [] : state.vehicleRows ?? cars);
+      }
+      if(state.owner){
+        const owner=state.owner,relative=call.path.replace(/^\/v1\.0\/(?:app\/cfmotoserverapp|mine\/cfmotoservermine)\//,'');
+        const match=Object.entries(ownerReads).find(([key,[path]])=>path.replace('{vin}',VIN_A)===relative||path.replace('{vin}',VIN_B)===relative||path===call.path);
+        if(match&&call.method==='GET'){
+          if(owner.hold)await owner.hold;
+          if(owner.mode==='failure')return reply(null,503,50000);
+          if(owner.mode==='missing')return reply(null);
+          const key=match[0];if(['home','settings','caps','tires'].includes(key)){
+            if(key==='home')return reply({...auditData().home,...owner.data.home});
+            if(key==='settings')return reply({...state.extensions?.settings,...owner.data.settings});
+          }
+          return reply(owner.data[key]??null);
+        }
+        if(call.method!=='GET'&&/^(?:keepmileage\/reset|vehicleSet\/(?:nfc\/rename|propertyOne\/one|propertyTwo\/one|lowPowerPhoneReminder)|app\/inductiveUnlock\/airLock\/remove\/|electricFence\/one|chargePlan\/one|carShare$|vehicle\/tempShare$)/.test(relative)){
+          owner.writes=(owner.writes??0)+1;if(owner.hold)await owner.hold;
+          if(owner.networkWrite&&relative.endsWith(owner.networkWrite))return {abort:true};
+          if(owner.mode==='failure'||owner.failWrite&&relative.endsWith(owner.failWrite))return reply(null,503,50000);
+          if(owner.mode==='missing')return reply(null);
+          if(!owner.noChange){const data=owner.data,b=call.body;
+            if(relative==='keepmileage/reset')data.maintenance={keepMileage:'5000'};
+            if(relative.startsWith('app/inductiveUnlock/airLock/remove/'))data.phoneKeys=(data.phoneKeys as any[]).filter(r=>r.id!==relative.split('/').at(-1));
+            if(relative==='vehicleSet/nfc/rename')data.nfcKeys=(data.nfcKeys as any[]).map(r=>r.id===b.nfcId?{...r,nfcName:b.nfcName}:r);
+            if(relative==='vehicleSet/propertyOne/one'){
+              if(b.commond==='92')data.nfcKeys=(data.nfcKeys as any[]).filter(r=>r.nfcNo!==b.commondParam);
+              if(b.commond==='135'||b.commond==='139')data.settings={...(data.settings as object),[b.commond==='135'?'automaticLock':'radarFcw']:Number(b.commondParam)};
+            }
+            if(relative==='vehicleSet/lowPowerPhoneReminder')data.settings={...(data.settings as object),ultraLowBatteryReminder:b.lowPowerPhoneReminder,withdrawalStartTime:b.lowPowerPhoneReminderStartTime,withdrawalEndTime:b.lowPowerPhoneReminderEndTime};
+            if(relative==='electricFence/one')data.fences=call.method==='DELETE'?(data.fences as any[]).filter(r=>r.id!==call.query?.id):[...(data.fences as any[]).filter(r=>r.id!==b.id),{...b,id:b.id??'created-fence',delFlag:'1'}];
+            if(relative==='electricFence/one/use')data.fences=(data.fences as any[]).map(r=>r.id===b.id?{...r,delFlag:b.delFlag}:r);
+            if(relative==='chargePlan/one'){data.plans=[{...b,id:b.id??'created-plan',delFlag:'1'}];return reply(b.id??'created-plan');}
+            if(relative==='chargePlan/one/use')data.plans=(data.plans as any[]).map(r=>r.id===b.id?{...r,delFlag:b.delFlag}:r);
+            if(relative==='carShare')data.shareLong=[...(data.shareLong as any[]),{...b,id:'created-share'}];
+            if(relative==='vehicle/tempShare'){if(call.method==='PUT')for(const k of ['shareLong','shareTemp'])data[k]=(data[k] as any[]).filter(r=>r.id!==b.id);else data.shareTemp=[...(data.shareTemp as any[]),{id:'created-temp',shareName:b.fullName,sharePhone:b.phone,residualSeconds:b.shareHours*3600}];}
+          }
+          return reply(true);
+        }
       }
       if (call.path.includes('/vehicleHomePageV2/')) {
         if (state.expired) return reply(null, 401, 401);

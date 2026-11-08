@@ -2,9 +2,9 @@
 
 极核车友的第三方面板，基于原作者授权的旧APK与网页发布物恢复功能并重新实现。网页、Android与iOS共用一套界面和业务；原生工程负责系统能力。主工程为本目录，工作区的 `panel-android/` 仅保留早期参考。
 
-[打开网页](https://bedlatess.github.io/GeometryPanel/) · [下载APK / unsigned IPA](https://github.com/bedlatess/GeometryPanel/releases/tag/v0.7.0) · [集中验收](ACCEPTANCE.md) · [原版功能逐项对照](verification/original-parity.md)
+[打开网页](https://bedlatess.github.io/GeometryPanel/) · [下载APK / unsigned IPA](https://github.com/bedlatess/GeometryPanel/releases/tag/v0.8.0) · 集中验收见工作区 docs/ACCEPTANCE.md · [原版功能逐项对照](verification/original-parity.md)
 
-当前网页及安装包版本 **0.7.0**。按设计规范 v1.2 完成 UI 重构：车辆 / 记录 / 工具 / 我的四栏、影棚首页、双向拨杆、深浅主题、完整页面导航和 G 品牌图标。业务协议保留原实现；旧偏好兼容迁移。设计规则见 [DESIGN.md](DESIGN.md)，自测记录见 [UI 验证](verification/ui-review.md)。
+当前网页及安装包版本 **0.8.0**。新增功能、协议证据及暂缓建议见 [原网页版对照](web-parity.md) 和 [接口查证](owner-endpoints.md)。按设计规范 v1.3 完成 UI 重构：车辆 / 记录 / 工具 / 我的四栏、影棚首页、双向拨杆、深浅主题、完整页面导航和 G 品牌图标。业务协议保留原实现；旧偏好兼容迁移。设计规则见 [DESIGN.md](DESIGN.md)，自测记录见 [UI 验证](verification/ui-review.md)。
 
 iPhone 可在分享菜单中添加到主屏幕。Android 使用本项目稳定签名，可覆盖本项目旧版。iOS 提供标准版和桌面组件版两个未签名设备包，使用者自行签名。
 

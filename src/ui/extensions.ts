@@ -1,3 +1,4 @@
+import { changeOnce } from '../core/owner-model';
 import { ListGroup,ListRow,Stat,Empty,Segmented,Tag,age,html,PickerSheet,ConfirmSheet,MonthPicker,MonthBars,duration,RefreshButton,CalendarPicker } from './kit';
 import type { PageActions } from './pages/actions';
 import { ApiError, messageFor } from '../api/client';
@@ -145,29 +146,26 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     } catch (failure) {
       if (!alive || signal.aborted) return;
       if (failure instanceof ApiError && failure.kind === 'expired') expire();
-      else error = '未收到车辆响应';
+      else error = accepted?'已发送，车辆尚未确认':'修改未生效';
     } finally { writing = false; if (alive && !signal.aborted) { busy = false; render(); } }
   }
   async function write() {
     if (!alive || expired || busy || options.demo || !session || !confirmation?.setting.writable) return;
     const pending = confirmation; confirmation = null; busy = true; writing = true; error = ''; note = ''; render();
     request?.abort(); request = new AbortController(); const signal = request.signal;
-    let accepted = false;
     try {
-      const inductiveResult = pending.setting.key === 'cloudInductiveEnabled'
-        ? await materials.configureInductive(session, pending.value === '1', signal) : null;
-      if (!inductiveResult) await api.writeSetting(session, pending.setting.key, pending.value, signal);
-      if (!alive || signal.aborted) return;
-      accepted = true;
-      // Read back instead of pretending an ACK is the new physical setting.
-      settings = await api.settings(session, signal);
-      settingsAt = Date.now();
-      note = settings.find(item => item.key === pending.setting.key)?.value === pending.value && (!inductiveResult || inductiveResult.confirmed) ? '已更新' : '修改未生效';
+      let confirmed=true;
+      note=await changeOnce(async()=>{
+        if(pending.setting.key==='cloudInductiveEnabled'){const result=await materials.configureInductive(session,pending.value==='1',signal);confirmed=result.confirmed;}
+        else try{await api.writeSetting(session,pending.setting.key,pending.value,signal);}catch(e){if(e instanceof ApiError&&e.kind==='expired')expire();throw e;}
+      },async()=>{settings=await api.settings(session,signal);settingsAt=Date.now();return settings;},()=>{
+        const actual=settings?.find(item=>item.key===pending.setting.key)?.value;
+        return actual==null||!confirmed?null:actual===pending.value;
+      },signal);
     } catch (failure) {
-      if (!alive || signal.aborted) return;
-      if (failure instanceof ApiError && failure.kind === 'expired') expire();
-      else error = '未收到车辆响应';
-    } finally { writing = false; if (alive && !signal.aborted) { busy = false; render(); } }
+      if(!alive||signal.aborted)return;
+      if(failure instanceof ApiError&&failure.kind==='expired')expire();else error='已发送，车辆尚未确认';
+    } finally {writing=false;if(alive&&!signal.aborted){busy=false;render();}}
   }
   function clicked(event: Event) {
     const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;

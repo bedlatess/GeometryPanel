@@ -84,7 +84,7 @@ test('settings require explicit confirmation, respect capability blocks and rere
   expect(writes(mocks.calls)).toEqual([]);
   await setting(page,'精准续航','关闭');
   await page.getByRole('button',{name:'确认修改',exact:true}).click();
-  await expect(panel(page).getByRole('status')).toContainText('已更新');
+  await expect(panel(page).getByRole('status')).toContainText('已生效');
   expect(writes(mocks.calls)).toHaveLength(1);
   expect(writes(mocks.calls)[0].body).toEqual({ commond: '55', commondParam: '0', relatedFunctions: null, vcu: VIN_A, version: '' });
   await expect(panel(page).getByRole('switch',{name:'精准续航'})).not.toBeChecked();
@@ -107,7 +107,7 @@ test('custom single-key actions use recovered choices while a changed cushion ge
   await setting(page,'座垫感应 2.0','开启');
   mocks.extensions.settings.rideFunctionVOList = [];
   await page.getByRole('button',{name:'确认修改',exact:true}).click();
-  await expect(panel(page).getByRole('alert')).toContainText('未收到车辆响应');
+  await expect(panel(page).getByRole('status')).toContainText('修改未生效');
   expect(writes(mocks.calls)).toHaveLength(1);
 });
 
@@ -117,7 +117,7 @@ test('uncertain setting failure never retries and closing aborts a pending read'
   await navigate(page,'/vehicle/settings');
   await setting(page,'精准续航','关闭');
   await page.getByRole('button',{name:'确认修改',exact:true}).click();
-  await expect(panel(page).getByRole('alert')).toContainText('未收到车辆响应');
+  await expect(panel(page).getByRole('status')).toContainText('已发送，车辆尚未确认');
   expect(writes(mocks.calls)).toHaveLength(1);
   await navigate(page,'/records');
   let release!: () => void; const waiting = new Promise<void>(resolve => { release = resolve; });
@@ -148,7 +148,7 @@ test('cloud inductive switch uses owner-checked native materials contract and co
   await setting(page,'车辆感应钥匙','开启');
   expect(mocks.calls.filter(call => call.path.endsWith('/airLock/setting'))).toHaveLength(0);
   await page.getByRole('button',{name:'确认修改',exact:true}).click();
-  await expect(panel(page).getByRole('status')).toContainText('已更新');
+  await expect(panel(page).getByRole('status')).toContainText('已生效');
   const changes = mocks.calls.filter(call => call.path.endsWith('/airLock/setting'));
   expect(changes).toHaveLength(1);
   expect(changes[0].body).toEqual({ inductiveUnlockType: '', openStatus: 1, uniqueIdentify: '', vinNo: VIN_A });

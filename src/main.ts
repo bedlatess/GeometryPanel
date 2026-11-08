@@ -1,3 +1,8 @@
+import { mountOwner, ownerRoutes } from './ui/owner';
+import { OwnerApi } from './api/owner';
+import { changeOnce } from './core/owner-model';
+import { tokenCredentials } from './core/owner-model';
+import { encryptAccounts, decryptAccounts } from './core/account-backup';
 import './styles.css';
 import { renderHome } from './ui/home';
 import { icon, type Icon } from './ui/icons';
@@ -70,6 +75,7 @@ const noNative=new NativeClient(null);
 const hadRoute=location.hash.startsWith('#/');
 const router=createRouter(()=>{ mapVisible=false; render(); },()=>{if(!modal.open)return false;close();return true;});
 let notice = '';
+let homeUnread=false;
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 let shownNotice = '';
 let realPreferences: typeof preferences | null = null;
@@ -82,6 +88,7 @@ let lastCommandReport: CommandReport | null = null;
 let commandTarget: Session | null = null;
 let commandIntent: 'horn' | VehicleAction | null = null;
 let phone = '';
+let updatingAccountId: string | null = null;
 let cacheReady = Boolean(navigator.serviceWorker?.controller), checkingUpdate = false, lastUpdateCheck = 0;
 const cooldowns = new Map<string, number>();
 class UserMessage extends Error { }
@@ -103,14 +110,27 @@ const actions:PageActions={
  toolbar(body,clicked){toolbarBody=body;toolbarClick=clicked;const slot=content.querySelector('.header-extra');if(slot)slot.innerHTML=body;},
  closeSheet:()=>close(),navigate:path=>router.navigate(path),toast:text=>{notice=text;render();},
 };
-function mountPage(host:HTMLElement) {
+function mountPage(host:HTMLElement){
+ const path=router.path,shared={path,session:preview||expired?null:session,demo:preview,actions,native:preview?noNative:native,snapshot:preview?demoSnapshot:reading,onExpired:panelExpired};
+ if(path==='/vehicle')return host.id==='home-reminders'?mountOwner(host,shared):mountBasePage(host);
+ if(path==='/vehicle/location')return mountOwner(host,shared);
+ if(ownerRoutes[path]){if(path==='/records/battery/official'){host.innerHTML='<div class="segmented"><button data-action="route" data-value="/records/battery">本机记录</button><button aria-pressed="true">官方记录</button></div><div data-owner-slot></div>';return mountOwner(host.querySelector<HTMLElement>('[data-owner-slot]')!,shared);}return mountOwner(host,shared);}
+ if(['/vehicle/status','/vehicle/info','/vehicle/location','/vehicle/settings','/records/tires','/records/rides','/records/battery'].includes(path)||path.startsWith('/records/rides/')){
+  const original=host.innerHTML;host.innerHTML=(path==='/records/battery'?'<div class="segmented"><button aria-pressed="true">本机记录</button><button data-action="route" data-value="/records/battery/official">官方记录</button></div>':'')+(path==='/vehicle/status'?'<div data-owner-slot></div>':'')+'<div data-base-slot>'+original+'</div>'+(path!=='/vehicle/status'?'<div data-owner-slot></div>':'');
+  const base=mountBasePage(host.querySelector<HTMLElement>('[data-base-slot]')!),extra=mountOwner(host.querySelector<HTMLElement>('[data-owner-slot]')!,shared);const monthClick=(event:Event)=>{const button=(event.target as Element).closest<HTMLElement>('[data-month-step]');if(button)host.querySelector('[data-owner-slot]')?.dispatchEvent(new CustomEvent('owner-month',{detail:button.dataset.monthStep}));};host.addEventListener('click',monthClick);return()=>{host.removeEventListener('click',monthClick);base?.();extra();};
+ }
+ return mountBasePage(host);
+}
+
+function mountBasePage(host:HTMLElement) {
  const path=router.path,nativeClient=preview?noNative:native,book=preview?emptyAccounts():structuredClone(accountBook),bound=preview||expired?null:session;
  const uncertain=()=>{notice='未收到车辆响应';};
  const common={native:nativeClient,session:bound,demo:preview,snapshot:preview?demoSnapshot:reading,onExpired:panelExpired,onUncertain:uncertain,actions};
- if(path==='/vehicle'){let alive=true;const abort=new AbortController(),month=chinaDay().slice(0,7);if(preview)host.innerHTML=MonthBars(month,[{day:month+'-06',mileageKm:12.4}]);else if(bound){void new ExtensionsApi().month(bound,month,abort.signal).then(v=>{if(alive)host.innerHTML=MonthBars(month,v.days);}).catch(()=>{});void new ExtensionsApi().alerts(bound,1,abort.signal).then(v=>{if(alive&&(v.accountUnread||v.alerts.some(a=>a.unread))){const bell=content.querySelector('[aria-label="消息"]');if(bell&&!bell.querySelector('.badge'))bell.insertAdjacentHTML('beforeend',Badge());}}).catch(()=>{});}return()=>{alive=false;abort.abort();};}
+ if(path==='/vehicle'){const summary=host;homeUnread=false;let alive=true;const abort=new AbortController(),month=chinaDay().slice(0,7);if(preview)summary.innerHTML=MonthBars(month,[{day:month+'-06',mileageKm:12.4}]);else if(bound){void new ExtensionsApi().month(bound,month,abort.signal).then(v=>{if(alive)summary.innerHTML=MonthBars(month,v.days);}).catch(()=>{});void new OwnerApi().read(bound,'unread',{},abort.signal).then(v=>{if(alive&&typeof v==='number'&&v>0){homeUnread=true;const bell=content.querySelector('[aria-label="消息"]');if(bell&&!bell.querySelector('.badge'))bell.insertAdjacentHTML('beforeend',Badge());}}).catch(()=>{});}return()=>{alive=false;abort.abort();};}
+ if(['/vehicle/status','/vehicle/info','/vehicle/location'].includes(path))return()=>{};
  if(path==='/records')return mountRecordsSummary(host,{...common,vehicleId:book.selectedVehicleId??''});
  if(path==='/me/lab')return mountDesignLab(host);
- if(path==='/me/accounts')return mountAccounts(host,{book,onSelect:activateSavedVehicle,onRemove:forgetSavedAccount,onChange:changeSavedAccounts,onAdd:showPhone,actions,demo:preview});
+ if(path==='/me/accounts')return mountAccounts(host,{book,onSelect:activateSavedVehicle,onRemove:forgetSavedAccount,onChange:changeSavedAccounts,onAdd:()=>{updatingAccountId=null;showPhone();},onUpdate:id=>{updatingAccountId=id;showPhone();},actions,demo:preview});
  if(path==='/tools/tasks')return mountTasks(host,{...common,accounts:book,onNativeConsent:()=>preview?Promise.reject():authorizeNativeAccounts(native,accountBook).then(()=>{})});
  if(path.startsWith('/tools/bluetooth')||path.startsWith('/tools/meter')) {
    const dispose=mountNative(host.querySelector<HTMLElement>('#native-panel')!,{...common,section:path.startsWith('/tools/meter')?'meter':'bluetooth',view:path.split('/')[3]});
@@ -129,9 +149,9 @@ function render() {
  const car=vehicle(),data=preview?demoSnapshot:reading,locked=busy||booting||updating;
  const enabled=Boolean(!preview&&session&&!locked&&!expired&&navigator.onLine);
  const path=router.path;
- const key=[path,preview,expired,session?.uid,session?.vehicle.vin,path==='/records'?reading?.receivedAt:''].join('|');
- const existing=key===pageKey?content.querySelector<HTMLElement>('[data-page-controller]'):null;
- if(existing)existing.remove();
+ const key=[path,preview,expired,session?.uid,session?.vehicle.vin,['/records','/vehicle','/vehicle/status','/vehicle/location','/vehicle/info'].includes(path)?reading?.receivedAt:''].join('|');
+ const existing=key===pageKey?Array.from(content.querySelectorAll<HTMLElement>('[data-page-controller]')):[];
+ if(existing.length)existing.forEach(node=>node.remove());
  else {const dispose=disposePage;disposePage=undefined;pageKey=key;dispose?.();toolbarBody='';toolbarClick=undefined;}
  let body=path==='/vehicle'?renderHome({car,data,preferences,enabled,locked,busy,control:activeControl,expired,online:navigator.onLine,demo:preview,message:notice,phase:leverPhase==='idle'?undefined:leverPhase,target:leverTarget,multi:!preview&&accountBook.accounts.reduce((n,a)=>n+a.vehicles.length,0)>1})
  :pageFor(path,{car,data,book:preview?emptyAccounts():accountBook,preferences,version,demo:preview,app:!preview&&native.available,android:!preview&&Boolean((window as any).GeometryNative),mapVisible,checking:checkingUpdate,developer,installed:currentInstallContext()==='installed'});
@@ -139,9 +159,11 @@ function render() {
  if(path==='/vehicle'&&preview)body+='<button class="action-row" data-action="preview">退出演示</button>';
  const header=path==='/vehicle'?'':path.split('/').length===2?`<h1 class="root-title">${pageTitles[path]}</h1>`:PageHeader(pageTitles[path]??(path.startsWith('/records/rides/')?'骑行':'几何面板'),toolbarBody||(path==='/vehicle/status'?`<button class="icon-button" data-action="refresh" aria-label="刷新车况" ${!enabled?'disabled':''}>${icon('refresh')}</button>`:''));
  content.innerHTML=`<div class="shell ${path==='/vehicle'?'home-shell':''} ${!car?'signed-out':''}">${expired?'<div class="global-banner error" role="status">登录已过期<button class="action-row" data-action="connect">重新登录</button></div>':!navigator.onLine?'<div class="global-banner" role="status">网络不可用</div>':nativeSyncPending?'<div class="global-banner" role="status">后台提醒需重新保存<button class="action-row" data-action="route" data-value="/tools/monitor">去设置</button></div>':''}${updateReady?`<div class="update-bar" role="status"><span>新版本已就绪</span><button class="action-row" data-action="update" ${locked||modal.open||!navigator.onLine?'disabled':''}>更新</button></div>`:''}${notice?`<div class="result-toast notice" role="status">${escape(notice)}</div>`:''}<main id="main-content" tabindex="-1">${header}${body}</main>${car?`<nav class="bottom-nav" aria-label="主导航">${(['vehicle','records','tools','me'] as const).map((root,i)=>`<button data-action="route" data-value="/${root}" ${router.root===root?'aria-current="page"':''}>${icon((['vehicle','chart','grid','user'] as Icon[])[i])}<span>${['车辆','记录','工具','我的'][i]}</span></button>`).join('')}</nav>`:''}</div>`;
- const host=content.querySelector<HTMLElement>('[data-page-controller]');
- if(host&&existing)host.replaceWith(existing);
- else if(host)disposePage=mountPage(host);
+ const hosts=Array.from(content.querySelectorAll<HTMLElement>('[data-page-controller]'));
+ if(existing.length)hosts.forEach((host,i)=>existing[i]&&host.replaceWith(existing[i]));
+ else {const disposers=hosts.map(mountPage);disposePage=()=>disposers.forEach(dispose=>dispose?.());}
+ content.inert=modal.open;
+ if(path==='/vehicle'&&homeUnread){const bell=content.querySelector('[aria-label="消息"]');if(bell&&!bell.querySelector('.badge'))bell.insertAdjacentHTML('beforeend',Badge());}
  mountVehicleArt(content);
  if(notice&&notice!==shownNotice){shownNotice=notice;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice='';shownNotice='';content.querySelector('.result-toast')?.remove();},4000);}
  if(!modal.open&&focused?.action)Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(b=>b.dataset.action===focused.action&&b.dataset.value===focused.value&&!b.disabled)?.focus({preventScroll:true});
@@ -169,7 +191,7 @@ function close() {
     if (activeControl) { notice = '未收到车辆响应'; if (leverPhase === 'sending') leverPhase = 'error'; }
     activeControl = false;
   }
-  pending = null; commandTarget = null; commandIntent = null; modal.close(); modal.replaceChildren(); render();
+  pending = null; updatingAccountId=null; commandTarget = null; commandIntent = null; modal.close(); modal.replaceChildren(); render();
   const target = modalReturnFocus; modalReturnFocus = null;
   const restoreFocus = () => {
     if (target && !modal.open) Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(button => button.dataset.action === target.action && button.dataset.value === target.value && !button.disabled)?.focus({ preventScroll: true });
@@ -214,8 +236,35 @@ async function run(task: (signal: AbortSignal, current: () => boolean) => Promis
 
 function showPhone() {
   pending = null;
-  show('手机号', `<form id="phone-form"><label>手机号<input id="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="11" required pattern="1[0-9]{10}" value="${escape(phone)}"></label><button class="primary block" type="submit">获取验证码</button></form>`);
+  show('手机号', `<form id="phone-form"><label>手机号<input id="phone" type="tel" inputmode="tel" autocomplete="tel-national" maxlength="11" required pattern="1[0-9]{10}" value="${escape(phone)}"></label><button class="primary block" type="submit">获取验证码</button></form><button class="action-row" data-action="token-login">使用 token 登录</button>`);
 }
+
+async function openStorage(){
+ if(preview){notice='演示中不可用';render();return;}if(!session||expired||busy)return;const bound=session,owner=new OwnerApi();
+ await run(async(signal,current)=>{const home=await owner.read(bound,'home',{},signal) as Record<string,unknown>;if(!current())return;if(home?.openStorageBoxFlag!==true){notice='此车型不支持';return;}
+  actions.sheet('打开储物箱',ConfirmSheet('确认打开',bound.vehicle.name,bound.vehicle.vin.slice(-6),'data-storage-confirm','从 当前状态 改为 打开'),button=>{if(!button.hasAttribute('data-storage-confirm')||session!==bound||busy)return;actions.closeSheet();void run(async(controlSignal,isCurrent)=>{const result=await changeOnce(()=>owner.storage(bound,controlSignal),()=>owner.read(bound,'home',{},controlSignal),()=>null,controlSignal);if(isCurrent())notice=result;},{bound,control:true});});
+ },{bound});
+}
+
+function showTokenLogin(){
+ const uid=updatingAccountId?accountBook.accounts.find(a=>a.id===updatingAccountId)?.uid??'':'';
+ show('登录',`<form id="token-form"><label>签到页地址或 token<input id="login-secret" type="password" autocomplete="off" spellcheck="false" maxlength="8192" required></label><button type="button" class="icon-button" data-action="token-eye" aria-label="显示登录信息">${icon('eye')}</button><label>账号 ID<input id="login-uid" value="${escape(uid)}" autocomplete="off" maxlength="128"></label><p class="muted">极核 App：我的 → 签到<br>长按错误页网址复制，粘贴到此处</p><button class="primary" type="submit">解析并登录</button></form>`);
+}
+function showAccountBackup(exporting:boolean){
+ if(preview)return;
+ actions.sheet(exporting?'备份账号':'恢复账号',`<p>${exporting?'备份包含登录信息，只保存在你自己的设备上':'恢复后将替换本机账号'}</p>${exporting?'':'<label>备份文件<input data-account-file type="file" accept=".gpbackup"></label>'}<label>备份密码<input data-account-password type="password" autocomplete="new-password" minlength="8" maxlength="256" required></label><button class="primary" data-account-backup-confirm>${exporting?'加密并导出':'解密并恢复'}</button>`,button=>{
+  if(!button.hasAttribute('data-account-backup-confirm'))return;const dialog=button.closest('dialog')!,input=dialog.querySelector<HTMLInputElement>('[data-account-password]')!,password=input.value,file=dialog.querySelector<HTMLInputElement>('[data-account-file]')?.files?.[0];
+  if(password.length<8){actions.toast('密码至少 8 位');return;}if(!exporting&&!file){actions.toast('请选择备份文件');return;}input.value='';button.setAttribute('disabled','');
+  void run(async(_signal,current)=>{
+   try{
+    if(exporting){const encrypted=await encryptAccounts(accountBook,password);if(!current())return;const a=document.createElement('a'),url=URL.createObjectURL(new Blob([encrypted],{type:'application/octet-stream'}));a.href=url;a.download='GeometryPanel.gpbackup';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+    else{const restored=await decryptAccounts(await file!.text(),password);if(!current())return;await revokeNativeAccounts(native);accountBook=await updateAccounts(()=>restored);session=accountSession(accountBook);reading=null;expired=false;await synchronizeAccounts();pageKey='';}
+    notice=exporting?'已导出':'已恢复';close();
+   }catch{throw new UserMessage(exporting?'保存失败，请重试':'文件或密码不正确');}
+  });
+ });
+}
+
 function secondsRemaining() {
   let deadline = cooldowns.get(phone) ?? 0;
   try { deadline = Math.max(deadline, Number(sessionStorage.getItem(`${storagePrefix}sms:${phone}`)) || 0); } catch { }
@@ -263,6 +312,12 @@ async function retrieveCars(signal: AbortSignal, current: () => boolean) {
   try {
     const result = await api.list(account.token, signal);
     if (!current() || pending !== account) return;
+    if (updatingAccountId) {
+      const old=accountBook.accounts.find(a=>a.id===updatingAccountId);
+      if(!old||old.uid!==account.uid)throw new UserMessage('账号不一致');
+      accountBook=await updateAccounts(book=>{const a=book.accounts.find(x=>x.id===old.id);if(!a||a.token!==old.token)throw new Error('changed');a.token=account.token;a.epoch++;a.enabled=true;return book;});
+      session=accountSession(accountBook);await synchronizeAccounts();pending=null;updatingAccountId=null;notice='已更新';modal.close();pageKey='';render();return;
+    }
     pending.vehicles = result.vehicles; rememberVehicleArt(result.vehicles);
     show('选择车辆', listBody(result));
   } catch (error) {
@@ -438,7 +493,7 @@ function handleAction(event: MouseEvent) {
   if (action === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
   if (action === 'data-status') show('数据状态', dataSheet(preview ? demoSnapshot : reading));
   if (action === 'vehicle-picker' && !busy) { if (preview) show('切换车辆', '<div class="list-row">演示车辆</div>'); else show('切换车辆', vehiclePicker(accountBook)); }
-  if (action === 'more') show('更多', ActionSheet([['分享车况图片', 'grid', 'status-export'], ['查看上次车控结果', 'info', 'command-report'], ['首页按键设置', 'settings', 'route', '/me/home']]));
+  if (action === 'more') show('更多', ActionSheet([['打开储物箱','seat','storage'],['分享车况图片', 'grid', 'status-export'], ['查看上次车控结果', 'info', 'command-report'], ['首页按键设置', 'settings', 'route', '/me/home']]));
   if (action === 'walk' && !preview) { const links = navigationLinks(reading?.daily.location ?? null); if (links?.walk) window.open(links.walk, '_blank', 'noopener,noreferrer'); }
   if (action === 'connect' && !busy) showPhone();
   if (action === 'status-export' && !busy && (preview || reading)) {
@@ -458,6 +513,7 @@ function handleAction(event: MouseEvent) {
   if (action === 'range') { preferences.range = !preferences.range; applyPreferences(); render(); }
   if (action === 'foreground-refresh') { preferences.foregroundRefresh = !preferences.foregroundRefresh; applyPreferences(); render(); }
   if(action==='map'&&!preview&&!busy&&navigator.onLine){mapVisible=!mapVisible;render();}
+  if(action==='account-backup-export'||action==='account-backup-import'){showAccountBackup(action.endsWith('export'));return;}
   if(action==='version'){if(++versionTaps>=5){developer=true;render();}}
   if(action==='pick-start')show('打开后的首页',PickerSheet([['vehicle','车辆'],['records','记录'],['tools','工具'],['me','我的']],preferences.startPage,'start-value'));
   if(action==='pick-shortcut')show('首页按键',PickerSheet(Object.entries(shortcutNames),preferences.shortcut[Number(button.dataset.value)],'shortcut-'+button.dataset.value));
@@ -486,7 +542,7 @@ function handleAction(event: MouseEvent) {
     if (preview) show('寻车', hornSheet(demoVehicle, 'high'));
     else if (session) { show('寻车', hornSheet(session.vehicle, 'high')); commandTarget = session; commandIntent = 'horn'; }
   }
-  if (action === 'storage') { notice = '此车型不支持'; render(); }
+  if(action==='storage')void openStorage();
   if (action === 'vehicle-action' && !busy && navigator.onLine && !expired && ['powerOn','powerOff','seat'].includes(button.dataset.value ?? '')) presentControl(button.dataset.value as VehicleAction);
   if(action==='logout'&&!busy&&!preview)show('退出全部账号',ConfirmSheet('退出全部账号','本机全部账号','—','data-action="confirm-logout"','移除本机登录和后台绑定'));
 }
@@ -526,7 +582,7 @@ modal.addEventListener('click', event => {
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   if (button.dataset.action === 'close') close();
-  if (['status-export','command-report','route'].includes(button.dataset.action ?? '')){handleAction(event);return;}
+  if (['status-export','command-report','route','storage'].includes(button.dataset.action ?? '')){handleAction(event);return;}
   if (button.dataset.action === 'saved-vehicle') void activateSavedVehicle(button.dataset.value!);
   if (button.dataset.action === 'send-horn-choice') { if (preview) { notice = '已发送鸣笛寻车'; close(); } else beginCommand(button.dataset.value === 'high' ? 'high' : 'normal'); }
   if (button.dataset.action === 'demo-control') { close(); leverPhase = 'sending'; render(); clearTimeout(leverTimer); leverTimer = setTimeout(() => { leverPhase = 'pending'; render(); leverTimer = setTimeout(() => { leverPhase = 'error'; render(); }, 15000); }, 700); }
@@ -538,6 +594,8 @@ modal.addEventListener('click', event => {
   if (button.dataset.action === 'new-captcha') void fetchCaptcha();
   if (button.dataset.action === 'resend' && !secondsRemaining()) void fetchCaptcha();
   if (button.dataset.action === 'code') showCode(false);
+  if(button.dataset.action==='token-login')showTokenLogin();
+  if(button.dataset.action==='token-eye'){const i=modal.querySelector<HTMLInputElement>('#login-secret');if(i){i.type=i.type==='password'?'text':'password';button.setAttribute('aria-label',i.type==='password'?'显示登录信息':'隐藏登录信息');}}
   if (button.dataset.action === 'phone') showPhone();
   if (button.dataset.action === 'retry-list') void run(retrieveCars, { bound: pending?.token === session?.token ? session! : undefined });
   if (button.dataset.action === 'select') void selectVehicle(Number(button.dataset.value));
@@ -564,6 +622,12 @@ function handleSubmit(event:SubmitEvent) {
     try { preferences = importPreferences(modal.querySelector<HTMLTextAreaElement>('#preferences-import')!.value); notice = '已导入'; applyPreferences();close(); }
     catch { notice='配置格式不正确';render(); }
     return;
+  }
+  if(form.id==='token-form'){
+    const raw=modal.querySelector<HTMLInputElement>('#login-secret')!.value,uid=modal.querySelector<HTMLInputElement>('#login-uid')!.value;
+    modal.querySelector<HTMLInputElement>('#login-secret')!.value='';
+    let credentials:{token:string;uid:string};try{credentials=tokenCredentials(raw,uid);}catch(e){notice=e instanceof Error&&e.message==='uid'?'请填写账号 ID':'token 无效或已过期';render();return;}
+    void run(async(signal,current)=>{pending={...credentials,vehicles:[]};try{await retrieveCars(signal,current);}catch{throw new UserMessage('token 无效或已过期');}});return;
   }
   if (form.id === 'phone-form') { phone = modal.querySelector<HTMLInputElement>('#phone')!.value.trim(); void fetchCaptcha(); }
   if (form.id === 'code-form') {

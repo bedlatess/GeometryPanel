@@ -45,7 +45,7 @@ final class NativeEngine {
     JSONObject status() {
         JSONObject status = ble.status();
         try {
-            status.put("bound", material != null); status.put("proximityEnabled", ProximityService.running);
+            status.put("uniqueIdentify", BleProtocol.hex(vault.identity())); status.put("bound", material != null); status.put("proximityEnabled", ProximityService.running);
             status.put("notificationsEnabled", NativeNotifications.preferences(context).getBoolean("enabled", false));
             status.put("notificationPermission", NativeNotifications.permission(context));
             status.put("meterState", CastProjectionService.phase);

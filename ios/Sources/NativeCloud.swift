@@ -19,6 +19,7 @@ struct NativeCloudSnapshot {
     let sample: NativeHistorySample
     let messageIds: Set<String>
     let partial: Bool
+    var fenceMessageIds: Set<String> = []
 }
 
 final class NativeCloud {
@@ -117,13 +118,13 @@ final class NativeCloud {
         let pressureFront = number(front?["tirePressure"], range: 0...10), pressureRear = number(rear?["tirePressure"], range: 0...10)
         let warnings = rows.compactMap { number($0["warningType"], range: 0...100000) }; let tireWarning: Bool? = warnings.isEmpty ? nil : warnings.contains { $0 > 0 }
         let sample = NativeHistorySample(at: now, soc: numeric(["bmssoc"], range: 0...100), voltage: numeric(["voltage","bmsVoltage"], range: 0...300), range: number(home["hmiRidableMile"], range: 0...2000), temperature: numeric(["batteryTemp"], range: -50...150), current: batteryElectrical.0 ?? homeElectrical.0, power: batteryElectrical.1 ?? homeElectrical.1, charging: charging, online: online, frontPressure: pressureFront, rearPressure: pressureRear, tireWarning: tireWarning, chargeFull: full, reportState: reportState, reportedAt: reported)
-        var ids: Set<String> = []
+        var ids: Set<String> = [], fenceIds: Set<String> = []
         for row in (inbox["messageVOList"] as? [[String: Any]] ?? []).prefix(100) {
             var reported = row["vinNo"] as? String
             if reported == nil, let extraText = row["extra"] as? String, let data = extraText.data(using: .utf8), data.count <= 16384, let extra = try? JSONSerialization.jsonObject(with: data) as? [String: Any] { reported = extra["vinNo"] as? String ?? (extra["carInfo"] as? [String:Any])?["vinNo"] as? String }
             guard reported == nil || reported == "" || reported == vin, let id = row["messageId"], let unread = number(row["unread"], range: 0...1), unread == 0 else { continue }
-            let text = String(describing: id); if text.utf8.count <= 100 { ids.insert(text) }
+            let text = String(describing: id); if text.utf8.count <= 100 { ids.insert(text); if (row["content"] as? String ?? "").contains("围栏") { fenceIds.insert(text) } }
         }
-        return NativeCloudSnapshot(sample: sample, messageIds: ids, partial: partial)
+        return NativeCloudSnapshot(sample: sample, messageIds: ids, partial: partial, fenceMessageIds: fenceIds)
     }
 }

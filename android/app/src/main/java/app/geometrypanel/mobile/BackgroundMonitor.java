@@ -123,7 +123,7 @@ final class BackgroundMonitor {
                 JSONArray rows = messages.optJSONArray("messageVOList");
                 if (rows != null) for (int i = 0; i < rows.length(); i++) { JSONObject row = rows.optJSONObject(i); if (row == null) continue;
                     String target = row.optString("vinNo", row.optString("vin", "")); if (!target.isEmpty() && !target.equals(vin)) continue;
-                    String messageId = row.optString("messageId", ""); if (messageId.matches("[A-Za-z0-9_-]{1,100}")) { next.put("messageId", messageId); break; }
+                    String messageId = row.optString("messageId", ""); if (messageId.matches("[A-Za-z0-9_-]{1,100}")) { next.put("messageId", messageId); if (row.optString("content", "").contains("围栏")) next.put("fenceMessage", true); break; }
                 }
             }
             guard.check(); apply(id, vehicle.optString("label"), next, settings, token);
@@ -194,7 +194,7 @@ final class BackgroundMonitor {
             case "lowBattery": return "电量 " + Math.round(snapshot.optDouble("soc")) + "%，请及时充电";
             case "offline": return "车辆离线";
             case "tire": return "胎压异常，请检查轮胎";
-            case "message": return "收到车辆消息";
+            case "message": return snapshot.optBoolean("fenceMessage", false) ? "电子围栏有新提醒" : "收到车辆消息";
             default: return "车况记录中断";
         }
     }

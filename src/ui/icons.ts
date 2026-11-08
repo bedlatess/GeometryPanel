@@ -1,5 +1,6 @@
 /** One outline icon family; decorative by default, controls keep visible labels. */
 const paths = {
+  eye:'<path d="M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0"/><circle cx="12" cy="12" r="3"/>',
   scan:'<path d="M7 3H3v4M17 3h4v4M21 17v4h-4M7 21H3v-4M7 12h10"/>',
   phone:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2M9 6h6v7H9z"/>',
   share:'<path d="M12 16V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',
