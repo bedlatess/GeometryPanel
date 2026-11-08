@@ -1,0 +1,69 @@
+.location-card {
+  border-radius: 20px;
+  overflow: hidden;
+  background: var(--card);
+}
+.map {
+  height: 150px;
+  width: 100%;
+  position: relative;
+  background: var(--fill);
+  display: block;
+}
+.map svg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.pin {
+  position: absolute;
+  left: 58%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: var(--line);
+  display: grid;
+  place-items: center;
+}
+.pin i {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow: 0 0 0 4px var(--card);
+}
+.info {
+  padding: 14px 16px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.info > div {
+  flex: 1;
+  min-width: 0;
+}
+b {
+  font-size: 17px;
+  font-weight: 600;
+  display: block;
+}
+.info span {
+  font-size: 13px;
+  color: var(--t2);
+}
+ion-button {
+  --border-radius: 18px;
+  --padding-start: 12px;
+  --padding-end: 12px;
+  height: 36px;
+  font-size: 15px;
+  margin: 0;
+}
+.app-icon {
+  width: 16px;
+  height: 16px;
+  margin-right: 6px;
+}

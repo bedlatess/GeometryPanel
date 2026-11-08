@@ -1,0 +1,21 @@
+.group-list {
+  margin-top: 22px;
+}
+.group-list:first-child {
+  margin-top: 0;
+}
+.group-list:first-child:has(h2) {
+  margin-top: 8px;
+}
+h2 {
+  margin: 0 16px 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--t2);
+}
+.group-list > ion-list {
+  margin: 0;
+  padding: 0;
+  border-radius: 14px;
+  background: var(--card);
+}

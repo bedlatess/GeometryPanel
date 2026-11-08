@@ -55,7 +55,7 @@ import WebKit
               let method = body["method"] as? String, let params = body["params"] as? [String: Any], pending.count < 8, !pending.contains(id),
               let serialized = try? JSONSerialization.data(withJSONObject: body), serialized.count <= 1572864,
               serialized.count <= (method == "asset.export" && params["kind"] as? String == "panel" ? 1572864 : ["accounts.sync", "background.configure", "tasks.configure"].contains(method) ? 262144 : 16384) else { return }
-        let methods: Set<String> = ["capabilities", "status", "bindVehicle", "forgetVehicle", "ble.scan", "ble.connect", "ble.disconnect", "ble.command", "ble.proximity", "notifications.configure", "widget.update", "meter.open", "accounts.sync", "accounts.remove", "background.configure", "background.status", "background.run", "background.history", "history.clear", "tasks.configure", "tasks.run", "tasks.status", "widget.configure", "widget.pin", "shortcuts.configure", "tools.open", "diagnostics.export", "updates.check", "updates.install", "keepalive.export", "officialLogin.start", "officialLogin.stop", "officialLogin.result", "asset.export"]
+        let methods: Set<String> = ["capabilities", "status", "bindVehicle", "forgetVehicle", "ble.scan", "ble.connect", "ble.disconnect", "ble.command", "ble.proximity", "notifications.configure", "widget.update", "meter.open", "accounts.sync", "accounts.remove", "background.configure", "background.status", "background.run", "background.history", "history.clear", "tasks.configure", "tasks.run", "tasks.status", "widget.configure", "widget.pin", "shortcuts.configure", "tools.open", "diagnostics.export", "updates.check", "updates.install", "keepalive.export", "officialLogin.start", "officialLogin.stop", "officialLogin.result", "asset.export", "haptic"]
         guard methods.contains(method) else { reply(id, failure: PanelError.unavailable("当前版本没有这个原生方法。")); return }
         pending.insert(id); let generation = epoch
         Task { [weak self] in
@@ -72,6 +72,17 @@ import WebKit
     private func call(_ method: String, params: [String: Any]) async throws -> Any {
         switch method {
         case "capabilities": return ["platform": "ios", "version": 1, "features": ["ble": true, "proximity": true, "notifications": true, "widget": local.widgetAvailable, "meter": true, "background": true, "history": true, "multiAccount": true, "tasks": true, "shortcuts": true, "scanner": true, "ota": true, "wallpaperZip": true, "diagnostics": true, "updates": true, "officialLogin": false, "keepalive": false], "limitations": ["iOS 不能按蓝牙 MAC 直接选车：请在车旁扫描并确认设备。", "蓝牙连接提醒不代表靠近自动解锁；旧版没有已验证的自动解锁协议。", "启用后前台每分钟监测；后台由系统机会调度，不承诺持续运行或自动任务准点执行。", "仪表需手动连接车辆 Wi-Fi；iOS 无通用 Wi-Fi Direct。投屏仅采集本应用画面，无音频和反控。", "组件版需要支持 App Groups 的自签资料；常规版不含组件。IPA 由使用者自签。"]]
+        case "haptic":
+            let type = params["type"] as? String ?? ""
+            switch type {
+            case "light": UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            case "medium": UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            case "selection": UISelectionFeedbackGenerator().selectionChanged()
+            case "success": UINotificationFeedbackGenerator().notificationOccurred(.success)
+            case "warning": UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            default: return ["performed": false]
+            }
+            return ["performed": true]
         case "status": var status = bluetooth.status; status["uniqueIdentify"] = try SecureStore.identity().hex; status["bound"] = binding != nil; status["meter"] = meter.status; status["widgetAvailable"] = local.widgetAvailable; return status
         case "bindVehicle":
             let validated = try VehicleBinding(params)

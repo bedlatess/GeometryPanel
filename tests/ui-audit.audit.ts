@@ -39,7 +39,7 @@ test('synthetic visual delivery and interface checks', async ({ page, mocks }) =
         const small = await page.locator('main button:not(:disabled), nav button, main input:not(:disabled), main select:not(:disabled), main summary, main a').evaluateAll(els => els.filter(e => {
           const r = e.getBoundingClientRect(), s = getComputedStyle(e); return r.width > 0 && r.height > 0 && s.visibility !== 'hidden' && (r.width < 43.9 || r.height < 43.9);
         }).map(e => ({ text: e.getAttribute('aria-label') || e.textContent, width: e.getBoundingClientRect().width, height: e.getBoundingClientRect().height })));
-        const text = await page.locator('main').innerText();
+        const text = await page.locator('main:visible').last().innerText();
         text.split('\n').map(s => s.trim()).filter(Boolean).forEach(s => texts.add(s));
         const words = text.replaceAll('状态模拟器','').match(banned) || [];
         checks.push({ page: id, theme, width, overflow, small, banned: words });
@@ -56,8 +56,8 @@ test('synthetic visual delivery and interface checks', async ({ page, mocks }) =
   const routes = ['/vehicle/location','/vehicle/info','/vehicle/messages','/records/rides','/records/rides/2026-11-06','/records/battery','/records/tires','/tools/bluetooth','/tools/meter','/tools/monitor','/tools/widgets','/tools/diagnostics','/tools/tasks','/tools/scan','/me/accounts','/me/appearance','/me/home','/me/art','/me/backup','/me/install'];
   for (const route of routes) {
     await navigate(page, route); await stable(page);
-    await expect(page.getByRole('button', { name: '返回', exact: true })).toBeVisible();
-    const text = await page.locator('main').innerText();
+    await expect(page.locator('ion-back-button:visible')).toBeVisible();
+    const text = await page.locator('main:visible').last().innerText();
     text.split('\n').map(s => s.trim()).filter(Boolean).forEach(s => texts.add(s));
     expect(text.replaceAll('状态模拟器','').match(banned) || [], route).toEqual([]);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), route).toBe(true);

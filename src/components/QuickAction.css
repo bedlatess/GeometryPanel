@@ -1,0 +1,27 @@
+.quick-action {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--t2);
+  background: transparent;
+  padding: 0;
+}
+.circle {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+  background: var(--ctl);
+  box-shadow: var(--ctl-sh);
+  display: grid;
+  place-items: center;
+  color: var(--t1);
+}
+.app-icon {
+  width: 24px;
+  height: 24px;
+}
+.unavailable {
+  opacity: 0.42;
+}

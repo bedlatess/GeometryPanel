@@ -63,6 +63,22 @@ final class NativeBridge {
                                     "meter", activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT), "background", true, "history", true, "multiAccount", true, "shortcuts", true, "tasks", true,
                                     "scanner", true, "ota", true, "diagnostics", true, "updates", true, "officialLogin", true, "keepalive", true, "wallpaperZip", true),
                             "limitations", NativeJson.list("此车型的蓝牙钥匙需在车旁确认", "车辆靠近时发送提醒", "后台提醒需允许系统通知", "仪表工具需使用兼容车型", "无法连接极核 App 时可用验证码登录")), null); return;
+                case "haptic":
+                    int feedback;
+                    switch (params.optString("type")) {
+                        case "light": feedback = android.view.HapticFeedbackConstants.CLOCK_TICK; break;
+                        case "medium": feedback = android.view.HapticFeedbackConstants.LONG_PRESS; break;
+                        case "selection": feedback = android.view.HapticFeedbackConstants.CLOCK_TICK; break;
+                        case "success": feedback = Build.VERSION.SDK_INT >= 30
+                                ? android.view.HapticFeedbackConstants.CONFIRM
+                                : android.view.HapticFeedbackConstants.LONG_PRESS; break;
+                        case "warning": feedback = Build.VERSION.SDK_INT >= 30
+                                ? android.view.HapticFeedbackConstants.REJECT
+                                : android.view.HapticFeedbackConstants.LONG_PRESS; break;
+                        default: reply.finish(null, "invalid_parameters"); return;
+                    }
+                    view.performHapticFeedback(feedback);
+                    reply.finish(NativeJson.obj("performed", true), null); return;
                 case "status": reply.finish(engine.status(), null); return;
                 case "accounts.sync": reply.finish(BackgroundMonitor.get(activity).sync(params), null); return;
                 case "accounts.remove": reply.finish(BackgroundMonitor.get(activity).remove(BackgroundConfig.id(params, "accountId")), null); return;

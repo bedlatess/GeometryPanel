@@ -1,0 +1,89 @@
+ion-modal {
+  --height: auto;
+  --width: calc(100% - 16px);
+  --max-width: 584px;
+  --border-radius: 38px;
+  --backdrop-opacity: 1;
+  --box-shadow: var(--sheet-shadow);
+}
+ion-modal::part(content) {
+  margin-bottom: 8px;
+}
+ion-modal::part(backdrop) {
+  background: var(--scrim);
+}
+ion-modal::part(handle) {
+  width: 36px;
+  height: 5px;
+  top: 8px;
+  background: var(--fill2);
+}
+.sheet-content {
+  display: block;
+  position: relative;
+  margin: 0;
+  width: 100%;
+  border: 0;
+  padding: 32px 20px 22px;
+  background: var(--card);
+  color: var(--t1);
+  max-height: 85dvh;
+  overflow: auto;
+}
+.sheet-heading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.sheet-heading h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.sheet-close {
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  color: var(--t2);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.sheet-close .app-icon {
+  width: 14px;
+  height: 14px;
+}
+.confirm-content {
+  text-align: center;
+}
+.confirm-content .confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 16px;
+  background: var(--fill);
+  border-radius: 50%;
+}
+.confirm-icon .app-icon {
+  width: 30px;
+  height: 30px;
+}
+.confirm-content h2 {
+  font-size: 22px;
+  font-weight: 700;
+}
+.confirm-content p {
+  margin: 8px 0 22px;
+  color: var(--t2);
+  font-size: 15px;
+}
+.sheet-content ion-button {
+  --border-radius: 28px;
+  min-height: 56px;
+  margin: 10px 0 0;
+}
+.sheet-content ion-button[fill='clear'] {
+  --background: transparent;
+}

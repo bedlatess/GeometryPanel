@@ -1,0 +1,38 @@
+.welcome {
+  min-height: 100dvh;
+  background: var(--studio);
+  position: relative;
+}
+.identity {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-bottom: 160px;
+}
+.mark {
+  width: 84px;
+}
+.wordmark {
+  width: 230px;
+  margin-top: 26px;
+}
+.identity p {
+  margin-top: 14px;
+  color: var(--t2);
+  font-size: 15px;
+}
+.welcome-actions {
+  position: absolute;
+  left: 20px;
+  right: 20px;
+  bottom: calc(20px + var(--ion-safe-area-bottom, 0px));
+}
+.welcome-actions p {
+  text-align: center;
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 14px;
+}

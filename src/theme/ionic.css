@@ -1,0 +1,73 @@
+:root {
+  --ion-font-family: var(--cn);
+  --ion-background-color: var(--bg);
+  --ion-text-color: var(--t1);
+  --ion-item-background: var(--card);
+  --ion-toolbar-background: var(--bar);
+  --ion-tab-bar-background: var(--bar);
+  --ion-tab-bar-border-color: var(--line);
+  --ion-border-color: var(--line);
+  --ion-color-primary: var(--ink);
+  --ion-color-primary-contrast: var(--ink-t);
+  --ion-color-primary-shade: var(--ink);
+  --ion-color-primary-tint: var(--ink);
+  --ion-color-danger: var(--alert);
+  --ion-color-success: var(--energy);
+  --ion-color-warning: var(--attn);
+  --ion-color-step-50: var(--card);
+  --ion-color-step-100: var(--fill);
+  --ion-color-step-200: var(--fill2);
+  --ion-color-step-500: var(--t3);
+  --ion-color-step-600: var(--t2);
+  --ion-color-step-900: var(--t1);
+}
+ion-button {
+  --background: var(--ink);
+  --background-hover: var(--ink);
+  --background-activated: var(--ink);
+  --color: var(--ink-t);
+  --border-radius: 28px;
+  --box-shadow: none;
+  height: 56px;
+  font-size: 17px;
+  font-weight: 600;
+  text-transform: none;
+  letter-spacing: 0;
+}
+ion-button[fill='clear'] {
+  --color: var(--t1);
+  --background: transparent;
+}
+ion-toolbar ion-button {
+  --background: transparent;
+  --color: var(--t1);
+  height: 44px;
+  min-width: 44px;
+  margin: 0;
+  --border-radius: 22px;
+}
+ion-button[fill='outline'] {
+  --color: var(--t1);
+  --border-color: var(--line);
+}
+ion-toggle {
+  --track-background: var(--fill2);
+  --track-background-checked: var(--ink);
+  --handle-background: var(--white);
+  --handle-background-checked: var(--ink-t);
+}
+ion-item {
+  --background: var(--card);
+  --color: var(--t1);
+  --border-color: var(--line);
+}
+ion-action-sheet {
+  --background: var(--card);
+  --color: var(--t1);
+  --button-color: var(--t1);
+}
+ion-picker,
+ion-datetime {
+  --background: var(--card);
+  --color: var(--t1);
+}

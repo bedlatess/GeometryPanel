@@ -20,9 +20,9 @@ test('offline shell loads at a repository subpath and never caches API data', as
   const response = await page.request.get('./');
   expect(response.headers()['content-security-policy']).toBe("connect-src 'self'");
   await open(page); await login(page);
-  await page.getByRole('button', { name: '寻车' }).click();
-  await page.getByRole('button', { name: '发送', exact: true }).click();
-  await expect(page.locator('.notice')).toContainText('已发送鸣笛寻车');
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
+  await page.getByRole('button', { name: '鸣笛寻车', exact: true }).click();
+  await expect(page.locator('.notice')).toContainText('已发出鸣笛寻车');
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   const cached = await page.evaluate(async () => {
@@ -38,9 +38,9 @@ test('offline shell loads at a repository subpath and never caches API data', as
   expect(cached.some(url => /tapi|captcha|vehicle|token/.test(url))).toBe(false);
   await context.setOffline(true);
   await page.reload();
-  await expect(page.locator('.global-banner')).toBeVisible();
+  await expect(page.locator('.global-banner,.state-line').filter({hasText:'网络不可用'})).toBeVisible();
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '寻车' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '寻车', exact: true })).toBeDisabled();
   await context.setOffline(false);
   await expect(page.locator('.battery-number')).toHaveText('82%');
 });
@@ -89,7 +89,7 @@ test('waiting updates require an explicit idle action and preserve login', async
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await navigate(page,'/me');
   await navigate(page,'/me/home');await page.getByRole('switch',{name:'首页显示电压'}).click();
-  await page.getByRole('button', { name: '车辆', exact: true }).click();
+  await page.getByRole('tab', { name: '车辆', exact: true }).click();
   await page.evaluate(async () => { await caches.open('another-app-cache'); });
   await request.post(`http://127.0.0.1:4174/__test/update?scope=${encodeURIComponent(scope)}`);
   await page.evaluate(async () => { const registration = await navigator.serviceWorker.getRegistration(); await registration?.update(); });
@@ -97,7 +97,7 @@ test('waiting updates require an explicit idle action and preserve login', async
   await expect(update).toBeVisible();
   await page.getByRole('button', { name: '座桶', exact: true }).click();
   await expect(update).toBeDisabled();
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
+  await page.keyboard.press('Escape');
   await expect(update).toBeEnabled();
   await Promise.all([page.waitForEvent('load'), update.click()]);
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();

@@ -1,0 +1,66 @@
+.status-card {
+  background: var(--card);
+  border-radius: 20px;
+  padding: 20px;
+}
+.heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.status-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: var(--energy);
+  background: var(--energy-bg);
+  flex: none;
+}
+.warning {
+  color: var(--attn);
+  background: var(--attn-bg);
+}
+.neutral:not(.warning) {
+  color: var(--t2);
+  background: var(--fill);
+}
+.status-icon .app-icon {
+  width: 22px;
+  height: 22px;
+}
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+p {
+  font-size: 15px;
+  color: var(--t2);
+  margin-top: 2px;
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 18px;
+}
+.stat {
+  background: var(--fill);
+  border-radius: 14px;
+  padding: 12px;
+}
+.stat > span:first-child {
+  display: block;
+  font-size: 13px;
+  color: var(--t2);
+}
+.metric-value {
+  margin-top: 4px;
+  font-size: 24px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.metric-value :deep(.digits) {
+  overflow-wrap: normal;
+}

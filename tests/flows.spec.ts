@@ -2,9 +2,9 @@ import { navigate, control, report, developerLab, test, expect, open, login, log
 
 test('demo is labelled, does not call upstream, and fits small screens', async ({ page, mocks }) => {
   await open(page);
-  await page.getByRole('button', { name: '体验演示' }).click();
+  await page.getByRole('button', { name: '先看看演示' }).click();
   await expect(page.locator('.home-heading').getByText('演示', { exact:true })).toBeVisible();
-  await expect(page.getByRole('button', { name: '寻车' })).toBeEnabled();
+  await expect(page.getByRole('button', { name: '寻车', exact: true })).toBeEnabled();
   for (const width of [320, 390, 430]) {
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
@@ -41,17 +41,17 @@ test('login, encrypted restore, vehicle switch, confirmed horn, and logout', asy
   await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
   await page.getByRole('button', { name: '测试极核 B' }).click();
   await expect(page.locator('.battery-number')).toHaveText('45%');
-  await page.getByRole('button', { name: '寻车' }).click();
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
   expect(mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'))).toHaveLength(0);
-  await page.getByRole('button', { name: '发送', exact: true }).click();
-  await expect(page.getByText('已发送鸣笛寻车')).toBeVisible();
+  await page.getByRole('button', { name: '鸣笛寻车', exact: true }).click();
+  await expect(page.getByText('已发出鸣笛寻车')).toBeVisible();
   const horn = mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'));
   expect(horn).toHaveLength(1); expect(JSON.parse(horn[0].body.param).vinNo).toBe(VIN_B);
   expect(mocks.calls.filter(call => call.path.endsWith(`/vehicleInfo/control/${VIN_B}`))).toHaveLength(1);
   expect(mocks.calls.filter(call => call.path.endsWith('/loginByPhone'))).toHaveLength(1);
   await navigate(page,'/me');
   await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click();
-  await page.getByRole('dialog').getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '退出全部账号', exact: true }).click();
   await expect(page.getByRole('button',{name:'登录极核账号',exact:true})).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeVisible();
@@ -66,11 +66,11 @@ test('SMS countdown and recovery without requesting another message', async ({ p
   const slider = page.getByRole('slider');
   await expect(slider).toHaveAttribute('aria-valuemax', '719');
   await slider.focus(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-  await expect(page.getByRole('textbox', { name: '短信验证码', exact: true })).toBeEnabled();
+  await expect(page.getByRole('textbox', { name: '输入验证码', exact: true })).toBeEnabled();
   await expect(page.getByRole('button', { name: /秒后重新获取/ })).toBeDisabled();
   await page.getByRole('button', { name: '更换手机号' }).click();
   await page.getByRole('button', { name: '获取验证码' }).click();
-  await expect(page.getByRole('textbox', { name: '短信验证码', exact: true })).toBeVisible();
+  await expect(page.getByRole('textbox', { name: '输入验证码', exact: true })).toBeVisible();
   expect(mocks.calls.filter(call => call.path.endsWith('/authCode/V2'))).toHaveLength(1);
   await page.clock.fastForward(61000);
   await expect(page.getByRole('button', { name: '重新获取验证码', exact: true })).toBeEnabled();
@@ -117,10 +117,10 @@ test('15 character frame numbers can be selected, restored, and used for confirm
   await expect(page.locator('.battery-number')).toHaveText('82%');
   await page.reload();
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
-  await expect(page.getByRole('button', { name: '寻车' })).toBeEnabled();
-  await page.getByRole('button', { name: '寻车' }).click();
-  await page.getByRole('button', { name: '发送', exact: true }).click();
-  await expect(page.getByText('已发送鸣笛寻车')).toBeVisible();
+  await expect(page.getByRole('button', { name: '寻车', exact: true })).toBeEnabled();
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
+  await page.getByRole('button', { name: '鸣笛寻车', exact: true }).click();
+  await expect(page.getByText('已发出鸣笛寻车')).toBeVisible();
   const horn = mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'));
   expect(horn).toHaveLength(1); expect(JSON.parse(horn[0].body.param).vinNo).toBe(id);
   expect(mocks.calls.filter(call => call.path.endsWith(`/vehicleInfo/control/${id}`))).toHaveLength(1);
@@ -131,7 +131,7 @@ test('returned but unrecognized vehicles do not produce an empty-account message
   mocks.vehicleRows = [{ vinNo: '' }];
   await open(page); await loginToList(page);
   await expect(page.getByText('车辆信息未识别', { exact:true })).toBeVisible();
-  await expect(page.locator('#modal')).not.toContainText('本次返回 0 辆车');
+  await expect(page.locator('#runtime-modal')).not.toContainText('本次返回 0 辆车');
   mocks.vehicleRows = [{ vinNo: '123456789012345', vehicleName: '测试极核 A' }];
   await page.getByRole('button', { name: '重新读取' }).click();
   await page.getByRole('button', { name: '测试极核 A' }).click();
@@ -144,22 +144,24 @@ test('battery outage preserves home data; expired sessions disable control', asy
   mocks.batteryFailure = true;
   await open(page); await login(page);
   await expect(page.locator('.battery-number')).toHaveText('82%');
-  await expect(page.locator('.metric.voltage strong')).toHaveText('—');
+  await navigate(page,'/vehicle/status?tab=battery');
+  await expect(page.locator('main:visible ion-item').filter({hasText:'电压'}).locator('.row-value')).toHaveText('—');
+  await navigate(page,'/vehicle');
   mocks.expired = true;
   await page.getByRole('button', { name: '刷新车况' }).click();
   await expect(page.locator('.notice')).toHaveText('登录已过期');
-  await expect(page.getByRole('button', { name: '寻车' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '寻车', exact: true })).toBeDisabled();
   await expect(page.getByRole('button', { name: '重新登录', exact: true })).toBeVisible();
 });
 
 test('uncertain horn results do not retry or fall back', async ({ page, mocks }) => {
   await open(page); await login(page);
   mocks.commandResults.prepare = 'network';
-  await page.getByRole('button', { name: '寻车' }).click();
-  await page.getByRole('button', { name: '发送', exact: true }).click();
-  await expect(page.locator('#modal-message')).toContainText('未收到车辆响应');
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
-  await expect(page.locator('.notice')).toContainText('未收到车辆响应');
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
+  await page.getByRole('button', { name: '鸣笛寻车', exact: true }).click();
+  await expect(page.locator('#modal-message')).toContainText('没收到车辆响应，先看一眼车');
+  await page.keyboard.press('Escape');
+  await expect(page.locator('.notice')).toContainText('没收到车辆响应，先看一眼车');
   expect(mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'))).toHaveLength(1);
   expect(mocks.calls.some(call => call.path.includes('/vehicleInfo/control'))).toBe(false);
 });
@@ -168,13 +170,13 @@ test('closing an in-flight command preserves uncertainty and prevents late succe
   let release!: () => void;
   mocks.holdCommand = { stage: 'prepare', wait: new Promise<void>(resolve => { release = resolve; }) };
   await open(page); await login(page);
-  await page.getByRole('button', { name: '寻车' }).click();
-  await page.getByRole('button', { name: '发送', exact: true }).click();
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
+  await page.getByRole('button', { name: '鸣笛寻车', exact: true }).click();
   await expect.poll(() => mocks.calls.filter(call => call.path.endsWith('/dbpoint/send')).length).toBe(1);
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
+  await page.keyboard.press('Escape');
   release();
-  await expect(page.locator('.notice')).toContainText('未收到车辆响应');
-  await expect(page.locator('#modal')).not.toBeVisible();
+  await expect(page.locator('.notice')).toContainText('已发出，结果待确认');
+  await expect(page.locator('#runtime-modal')).not.toBeVisible();
   expect(mocks.calls.filter(call => call.path.endsWith('/dbpoint/send'))).toHaveLength(1);
   expect(mocks.calls.some(call => call.path.includes('/vehicleInfo/control'))).toBe(false);
 });
@@ -192,8 +194,8 @@ test('a failed local save keeps the previous vehicle and persisted account', asy
   await navigate(page,'/me');
   await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
   await page.getByRole('button', { name: '测试极核 B' }).click();
-  await expect(page.locator('#modal-message')).toContainText('保存失败，请重试');
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
+  await expect(page.locator('#modal-message')).toContainText('没保存上，再试一次');
+  await page.keyboard.press('Escape');
   await page.reload();
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
   await expect(page.locator('.battery-number')).toHaveText('82%');
@@ -203,10 +205,10 @@ test('closing a pending login list discards a late response', async ({ page, moc
   let release!: () => void;
   mocks.holdList = new Promise<void>(resolve => { release = resolve; });
   await open(page); await loginToList(page);
-  await expect(page.locator('dialog').getByText('正在加载', { exact:true }).first()).toBeVisible();
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
+  await expect(page.locator('#runtime-modal').getByText('正在加载', { exact:true }).first()).toBeVisible();
+  await page.keyboard.press('Escape');
   release();
-  await expect(page.locator('#modal')).not.toBeVisible();
+  await expect(page.locator('#runtime-modal')).not.toBeVisible();
   await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeEnabled();

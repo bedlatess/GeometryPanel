@@ -1,5 +1,6 @@
 import { navigate, control, report, developerLab, test, expect, open, login } from './fixtures';
 import type { Page } from '@playwright/test';
+import { readFileSync } from 'node:fs';
 
 async function syntheticNative(page: Page) {
   await page.addInitScript(() => {
@@ -16,18 +17,45 @@ async function syntheticNative(page: Page) {
     };
   });
 }
+test('Android host back closes Ionic overlays before navigation and preserves command uncertainty', async ({ page, mocks }) => {
+  const activity = readFileSync('android/app/src/main/java/app/geometrypanel/mobile/MainActivity.java', 'utf8');
+  const back = activity.match(/CLOSE_DIALOG_SCRIPT = """([\s\S]*?)""";/)![1];
+  await syntheticNative(page);
+  await open(page); await login(page);
+  await expect(page.locator('.notice')).not.toBeVisible();
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
+  await expect(page.locator('.native-back-port')).toHaveAttribute('open');
+  expect(await page.evaluate(back)).toBe(true);
+  await expect(page.locator('#runtime-modal')).not.toBeVisible();
+  await expect(page.locator('.native-back-port')).not.toHaveAttribute('open');
+  await expect(page).toHaveURL(/#\/vehicle$/);
+  expect(await page.evaluate(back)).toBe(false);
+  expect(mocks.calls.filter(call => /dbpoint\/send$/.test(call.path))).toHaveLength(0);
+  let release!: () => void;
+  mocks.holdCommand = { stage: 'prepare', wait: new Promise<void>(resolve => { release = resolve; }) };
+  await page.getByRole('button', { name: '寻车', exact: true }).click();
+  await page.getByRole('button', { name: '鸣笛寻车', exact: true }).click();
+  await expect.poll(() => mocks.calls.filter(call => /dbpoint\/send$/.test(call.path)).length).toBe(1);
+  expect(await page.evaluate(back)).toBe(true);
+  release();
+  await expect(page.locator('#runtime-modal')).not.toBeVisible();
+  await expect(page.locator('.notice')).toContainText('已发出，结果待确认');
+  await expect(page).toHaveURL(/#\/vehicle$/);
+  expect(mocks.calls.filter(call => /dbpoint\/send$/.test(call.path))).toHaveLength(1);
+  expect(mocks.calls.some(call => call.path.includes('/vehicleInfo/control'))).toBe(false);
+});
 test('Safari explains installation without pretending native functions are available', async ({ page, mocks }) => {
-  await open(page);await page.getByRole('button',{name:'体验演示',exact:true}).click();
+  await open(page);await page.getByRole('button',{name:'先看看演示',exact:true}).click();
   await navigate(page,'/vehicle/status');
   await navigate(page,'/tools/bluetooth');
   await expect(page.getByText('以下功能需在 App 中使用')).toBeVisible();
   expect(mocks.calls).toHaveLength(0);
-  await page.getByRole('button',{name:'返回',exact:true}).click();
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await page.locator('ion-back-button:visible').click();
+  await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();
 });
 test('native demo remains read-only and never prepares cloud keys', async ({ page, mocks }) => {
   await syntheticNative(page); await open(page);
-  await page.getByRole('button', { name: '体验演示' }).click();
+  await page.getByRole('button', { name: '先看看演示' }).click();
   await navigate(page,'/vehicle/status');
   await navigate(page,'/tools/bluetooth');
   await expect(page.getByRole('button', { name: '准备资料' })).toBeDisabled();
@@ -46,7 +74,7 @@ test('native snapshot contains only display data and logout clears native vehicl
   await navigate(page,'/me');
   await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click();
   const previous = await page.evaluate(() => (window as any).__nativeCalls.filter((call: any) => call.method === 'forgetVehicle').length);
-  await page.getByRole('dialog').getByRole('button', { name: '退出全部账号' }).click();
+  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '退出全部账号' }).click();
   await expect(page.getByText('已退出全部账号', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).__nativeCalls.filter((call: any) => call.method === 'forgetVehicle').length)).toBe(previous + 1);
 });

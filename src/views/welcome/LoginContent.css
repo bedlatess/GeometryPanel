@@ -1,0 +1,74 @@
+input {
+  width: 100%;
+  height: 52px;
+  background: var(--fill);
+  color: var(--t1);
+  border: 0;
+  border-radius: 14px;
+  padding: 0 16px;
+  font-size: 17px;
+  margin: 8px 0 16px;
+}
+label,
+p {
+  font-size: 15px;
+  color: var(--t2);
+}
+.code-entry {
+  position: relative;
+  display: flex;
+  gap: 8px;
+  margin: 16px 0;
+}
+.code-entry span {
+  flex: 1;
+  height: 56px;
+  border-radius: 14px;
+  background: var(--fill);
+  display: grid;
+  place-items: center;
+  font: 600 24px var(--num);
+}
+.code-entry span.active {
+  box-shadow: inset 0 0 0 2px var(--t1);
+}
+.code-entry input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  margin: 0;
+}
+.secret-field {
+  position: relative;
+}
+.secret-field input {
+  padding-right: 64px;
+}
+.secret-field button {
+  position: absolute;
+  right: 8px;
+  top: 12px;
+  min-height: 44px;
+  color: var(--t1);
+  background: var(--fill);
+}
+.login-car {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  padding: 16px;
+  background: var(--fill);
+  color: var(--t1);
+  border-radius: 14px;
+  margin: 8px 0;
+}
+.login-car small {
+  color: var(--t2);
+  margin-top: 6px;
+}
+.captcha {
+  width: 100%;
+  height: auto;
+  touch-action: none;
+}

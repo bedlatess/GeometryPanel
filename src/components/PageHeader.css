@@ -1,0 +1,11 @@
+ion-toolbar {
+  --min-height: 44px;
+}
+ion-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+ion-back-button {
+  --color: var(--t1);
+  font-size: 17px;
+}

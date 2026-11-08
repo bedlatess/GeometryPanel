@@ -1,0 +1,111 @@
+.vehicle-stage {
+  position: absolute;
+  top: var(--stage-top);
+  left: 0;
+  right: 0;
+  height: var(--stage-height);
+}
+.floor {
+  position: absolute;
+  left: 70px;
+  right: 70px;
+  bottom: 18px;
+  height: 34px;
+  background: radial-gradient(50% 50% at 50% 50%, var(--floor), transparent 72%);
+}
+.vehicle-image,
+.reflection {
+  position: absolute;
+  left: 50%;
+  bottom: 30px;
+  width: 330px;
+  max-width: 90%;
+  transform: translateX(-50%);
+}
+.vehicle-image {
+  animation: arrive 500ms var(--out);
+  transition:
+    opacity 600ms,
+    filter 600ms;
+}
+.reflection {
+  bottom: -172px;
+  transform: translateX(-50%) scaleY(-1);
+  opacity: 0.14;
+  mask-image: linear-gradient(to top, var(--t1), transparent 30%);
+  display: var(--reflection-display, none);
+}
+.old img {
+  filter: grayscale(1) contrast(0.9) brightness(1.05);
+  opacity: 0.6;
+}
+.model-mark {
+  position: absolute;
+  inset: auto 0 44px;
+  text-align: center;
+  white-space: nowrap;
+  font: 700 min(128px, calc(var(--stage-height) - 60px))/1 var(--num);
+  letter-spacing: -4px;
+  opacity: 0.55;
+  background: linear-gradient(180deg, var(--model-start), transparent 115%);
+  background-clip: text;
+  color: transparent;
+}
+.model-mark {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+:global([data-theme='dark']) .model-mark {
+  opacity: 1;
+}
+.fallback-mark {
+  width: 100px;
+  position: absolute;
+  left: calc(50% - 50px);
+  bottom: 60px;
+}
+.charge-glow {
+  position: absolute;
+  left: 40px;
+  right: 40px;
+  bottom: 6px;
+  height: 60px;
+  background: radial-gradient(50% 50% at 50% 50%, var(--charge-glow), transparent 70%);
+  animation: charge 2.4s ease-in-out infinite alternate;
+}
+.charge-line {
+  position: absolute;
+  left: 90px;
+  right: 90px;
+  bottom: 32px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--energy), transparent);
+  animation: flow 2s linear infinite;
+}
+@keyframes charge {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes flow {
+  from {
+    background-position: -100px 0;
+  }
+  to {
+    background-position: 100px 0;
+  }
+}
+@keyframes arrive {
+  from {
+    opacity: 0;
+    scale: 0.98;
+  }
+  to {
+    opacity: 1;
+    scale: 1;
+  }
+}

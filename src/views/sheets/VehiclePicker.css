@@ -1,0 +1,45 @@
+.account-name {
+  padding: 10px 4px 6px;
+  font-size: 13px;
+  color: var(--t2);
+}
+.vehicle-choice {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  min-height: 76px;
+  width: 100%;
+  text-align: left;
+  color: var(--t1);
+  background: var(--card);
+  padding: 0;
+}
+.car-art {
+  width: 80px;
+  text-align: center;
+  color: var(--t3);
+  font-weight: 700;
+  font-size: 22px;
+}
+.car-art img {
+  width: 80px;
+  max-height: 64px;
+  object-fit: contain;
+}
+.name {
+  flex: 1;
+}
+b {
+  font-size: 17px;
+  font-weight: 600;
+}
+small {
+  display: block;
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 4px;
+}
+.secondary {
+  --background: var(--fill);
+  --color: var(--t1);
+}

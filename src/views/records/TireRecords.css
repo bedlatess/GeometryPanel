@@ -1,0 +1,71 @@
+.wheel-card {
+  position: relative;
+  height: 262px;
+  margin-top: 16px;
+  background: var(--card);
+  border-radius: 20px;
+  overflow: hidden;
+}
+.bike {
+  position: absolute;
+  left: 50%;
+  top: 22px;
+  transform: translateX(-50%);
+  width: 300px;
+}
+.pressure {
+  position: absolute;
+  top: 196px;
+  text-align: center;
+  width: 120px;
+  left: 14px;
+}
+.pressure.rear {
+  left: auto;
+  right: 14px;
+}
+.pressure b {
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 600;
+}
+.pressure small {
+  color: var(--t2);
+  font-size: 14px;
+  font-weight: 500;
+  margin-left: 2px;
+}
+.pressure span {
+  display: block;
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 4px;
+}
+.chart-card {
+  margin-top: 12px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: 20px;
+}
+.legend {
+  display: flex;
+  gap: 18px;
+  font-size: 12px;
+  color: var(--t3);
+  margin-top: 8px;
+}
+.legend > span:first-child {
+  color: var(--attn);
+}
+.foot {
+  text-align: center;
+  font-size: 13px;
+  color: var(--t2);
+  margin-top: 22px;
+}
+.foot ion-button {
+  vertical-align: middle;
+  width: 44px;
+  height: 44px;
+  margin: 0;
+}

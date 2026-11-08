@@ -1,0 +1,61 @@
+ion-modal {
+  --height: auto;
+  --width: calc(100% - 16px);
+  --max-width: 584px;
+  --border-radius: 38px;
+  --backdrop-opacity: 1;
+  --box-shadow: var(--sheet-shadow);
+}
+ion-modal::part(content) {
+  margin-bottom: 8px;
+}
+ion-modal::part(backdrop) {
+  background: var(--scrim);
+}
+ion-modal::part(handle) {
+  width: 36px;
+  height: 5px;
+  top: 8px;
+  background: var(--fill2);
+}
+.sheet-content {
+  display: block;
+  position: relative;
+  margin: 0;
+  width: 100%;
+  border: 0;
+  padding: 32px 20px 22px;
+  background: var(--card);
+  color: var(--t1);
+  max-height: 85dvh;
+  overflow: auto;
+}
+.sheet-heading {
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+h2 {
+  flex: 1;
+  margin: 0;
+  font-size: 22px;
+  font-weight: 700;
+}
+.sheet-close {
+  display: grid;
+  place-items: center;
+  background: var(--fill);
+  color: var(--t2);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+}
+.sheet-close .app-icon {
+  width: 14px;
+  height: 14px;
+}
+#modal-message {
+  color: var(--t2);
+  font-size: 15px;
+  margin: 8px 0 0;
+}

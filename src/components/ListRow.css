@@ -1,0 +1,67 @@
+ion-item {
+  --background: var(--card);
+  --color: var(--t1);
+  --min-height: 52px;
+  --padding-start: 16px;
+  --inner-padding-end: 16px;
+  --border-color: var(--line);
+  --border-width: 0;
+  --inner-border-width: 0 0 0.5px;
+  --background-activated: var(--fill);
+  font-size: 17px;
+}
+ion-item:last-child {
+  --inner-border-width: 0;
+}
+ion-item::part(detail-icon) {
+  color: var(--t3);
+  opacity: 1;
+  width: 14px;
+}
+.tall {
+  --min-height: 64px;
+}
+ion-label {
+  margin-block: 10px;
+  font-weight: 400;
+}
+small {
+  display: block;
+  color: var(--t2);
+  font-size: 13px;
+  margin-top: 2px;
+}
+.value {
+  color: var(--t2);
+  margin-left: 12px;
+  max-width: 58%;
+  text-align: right;
+}
+.tile {
+  width: 30px;
+  height: 30px;
+  background: var(--fill);
+  border-radius: 8px;
+  margin: 0 12px 0 0;
+  display: grid;
+  place-items: center;
+}
+.tile .app-icon {
+  width: 18px;
+  height: 18px;
+}
+.danger {
+  --color: var(--alert);
+}
+ion-toggle {
+  --track-background: var(--fill2);
+  --track-background-checked: var(--ink);
+  --handle-background: var(--knob);
+  --handle-background-checked: var(--ink-t);
+  height: 31px;
+  width: 51px;
+}
+ion-spinner {
+  color: var(--t2);
+  width: 22px;
+}

@@ -53,6 +53,7 @@ export interface Mocks {
   expired: boolean; readFailure: boolean; batteryFailure: boolean;
   commandResults: Partial<Record<CommandStage, 'network' | 'false' | 'rejected' | 'expired'>>;
   holdList?: Promise<void>; holdCommand?: { stage: CommandStage; wait: Promise<void> };
+  holdRead?: Promise<void>;
   vehicleRows?: unknown[];
   home?: Record<string, unknown>; battery?: Record<string, unknown>;
   extensions?: ExtensionMocks; tasks?: TaskMocks;
@@ -68,6 +69,7 @@ export const test = base.extend<{ mocks: Mocks }>({
     // WebKit + service workers can bypass context.route(), so network routing alone is insufficient.
     await context.exposeBinding('__mockUpstream', async (_source, call: Call) => {
       state.calls.push(call);
+      if (state.holdRead && call.path.includes('/vehicleHomePageV2/')) await state.holdRead;
       const reply = (data: unknown, status = 200, code = 10000) => ({ status, body: JSON.stringify({ code, data, message: status === 200 ? '' : 'synthetic-private-value' }) });
       if (call.path.endsWith('/code/generate')) return reply({ imageCaptchaId: 'synthetic', backgroundImage: png, sliderImage: png });
       if (call.path.endsWith('/authCode/V2')) return reply(null);
@@ -85,7 +87,8 @@ export const test = base.extend<{ mocks: Mocks }>({
           if(owner.mode==='failure')return reply(null,503,50000);
           if(owner.mode==='missing')return reply(null);
           const key=match[0];if(['home','settings','caps','tires'].includes(key)){
-            if(key==='home')return reply({...auditData().home,...owner.data.home});
+            if(key==='home')return reply({bmssoc: call.path.endsWith(VIN_B) ? 45 : 82,
+              hmiRidableMile: 91, ...auditData().home, ...state.home, ...owner.data.home});
             if(key==='settings')return reply({...state.extensions?.settings,...owner.data.settings});
           }
           return reply(owner.data[key]??null);
@@ -230,6 +233,9 @@ export const test = base.extend<{ mocks: Mocks }>({
     await context.route('**/*', async route => {
       const request = route.request();
       const url = new URL(request.url());
+      if (url.href === 'https://assets.example.invalid/neutral-vehicle.png') {
+        await route.fulfill({ path: 'tests/assets/generic-scooter.png', contentType: 'image/png' }); return;
+      }
       if (url.origin === 'http://127.0.0.1:4174') { await route.continue(); return; }
       if (/^webrd0[1-4]\.is\.autonavi\.com$/.test(url.hostname) && url.pathname === '/appmaptile') {
         state.roadTiles.push(url.href);
@@ -265,27 +271,44 @@ export async function loginToList(page: Page) {
   await slider.focus();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
-  await expect(page.getByRole('textbox', { name: '短信验证码', exact: true })).toBeEnabled();
-  await page.getByRole('textbox', { name: '短信验证码', exact: true }).fill('123456');
-  await page.getByRole('button', { name: '登录', exact: true }).click();
+  await expect(page.getByRole('textbox', { name: '输入验证码', exact: true })).toBeEnabled();
+  await page.getByRole('textbox', { name: '输入验证码', exact: true }).fill('123456');
 }
-export async function login(page: Page) {
+export async function login(page: Page, car = '测试极核 A') {
   await loginToList(page);
-  await page.getByRole('button', { name: '测试极核 A' }).click();
-  await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
+  await page.getByRole('button', { name: car }).click();
+  await expect(page.getByRole('heading', { name: car })).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新车况' })).toBeEnabled();
+  await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();
 }
 
-export async function navigate(page: Page,path:string) {
- await page.evaluate(path=>{location.hash=path;},path);
- await expect(page).toHaveURL(new RegExp('#'+path.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'));
- await expect(page.locator('main')).toBeVisible();
+export async function navigate(page: Page, path: string) {
+  const aliases: Record<string, string> = {
+    '/vehicle/info': '/vehicle/status?tab=device',
+    '/vehicle/firmware': '/vehicle/status/firmware',
+    '/records/rides': '/records?tab=ride', '/records/tires': '/records?tab=tire',
+    '/records/battery': '/records?tab=battery',
+    '/records/battery/official': '/records?tab=battery&source=official',
+  };
+  const target = aliases[path] || path.replace('/records/rides/', '/records/ride/');
+  await page.evaluate(async value => {
+    const app = (document.querySelector('#app') as any).__vue_app__;
+    await app.config.globalProperties.$router.push(value);
+  }, target);
+  await expect(page).toHaveURL(new RegExp('#' + target.replace(/[.*+?^${}()|[\]\\]/g,
+    '\\$&') + '$'));
+  await expect(page.locator(`[data-page="${target.split('?')[0]}"]:not(.ion-page-hidden) :is(main, .welcome)`).last()).toBeVisible();
+  await expect(page.locator('[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)'))
+    .toHaveCount(1);
 }
 export async function control(page:Page,mode:string) {
  await navigate(page,'/vehicle');
- if(mode==='seat'){await page.getByRole('button',{name:'座桶',exact:true}).click();return;}
- const lever=page.locator('main .lever');await expect(lever).toBeEnabled();await lever.focus();
- await page.keyboard.press(mode==='powerOff'?'ArrowLeft':'ArrowRight');await page.keyboard.press('Enter');
+ if(mode==='seat'){await page.getByRole('button',{name:'座桶',exact:true}).click();
+ await expect(page.locator('#runtime-modal')).toBeVisible();return;}
+ const lever=page.locator('[data-page="/vehicle"]:not(.ion-page-hidden) .lever');await expect(lever).toBeVisible();await expect(lever).toBeEnabled();
+ const box=(await lever.boundingBox())!;
+ await lever.click({position:{x:mode==='powerOff'?32:box.width-32,y:32}});
+ await expect(page.locator('#runtime-modal')).toBeVisible();
 }
 export async function report(page:Page) {
  if(!page.url().endsWith('#/tools/diagnostics'))await navigate(page,'/tools/diagnostics');

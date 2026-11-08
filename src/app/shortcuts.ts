@@ -1,0 +1,14 @@
+export const shortcutMap: Record<string, [string, string, string, string?]> = {
+  horn: ['horn', '寻车', 'horn'],
+  seat: ['seat', '座桶', 'vehicle-action', 'seat'],
+  location: ['pin', '位置', 'route', '/vehicle/location'],
+  status: ['pulse', '车况', 'route', '/vehicle/status'],
+  settings: ['gear', '车辆设置', 'route', '/vehicle/settings'],
+  rides: ['t-rec', '骑行', 'route', '/records?tab=ride'],
+  tires: ['tire', '胎压', 'route', '/records?tab=tire'],
+  battery: ['batt', '电池', 'route', '/records?tab=battery'],
+  messages: ['bell', '消息', 'route', '/vehicle/messages'],
+  high: ['horn', '高声寻车', 'horn-high'],
+  'horn-high': ['horn', '高声寻车', 'horn-high'],
+  storage: ['seat', '储物箱', 'storage'],
+};

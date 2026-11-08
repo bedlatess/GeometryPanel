@@ -1,0 +1,98 @@
+.home-heading {
+  position: absolute;
+  top: calc(var(--ion-safe-area-top, 0px) + 8px);
+  left: 20px;
+  right: 12px;
+  display: flex;
+  align-items: flex-start;
+  z-index: 5;
+}
+.home-heading > div {
+  min-width: 0;
+  flex: 1;
+}
+.car-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 0;
+  background: transparent;
+  color: var(--t1);
+  min-height: 44px;
+  margin-block: -8px;
+}
+h1 {
+  font-size: 24px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.car-name .app-icon {
+  width: 16px;
+  height: 16px;
+  color: var(--t2);
+  flex: none;
+}
+.car-name small {
+  background: var(--fill);
+  font-size: 12px;
+  border-radius: 6px;
+  padding: 2px 4px;
+}
+.state-line {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-top: 6px;
+  font-size: 15px;
+  color: var(--t2);
+}
+.state-line b {
+  color: var(--t1);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 500;
+}
+.state-line .app-icon {
+  width: 15px;
+  height: 15px;
+}
+.warning b {
+  color: var(--attn);
+}
+.energy b {
+  color: var(--energy-t);
+}
+.danger b {
+  color: var(--alert);
+}
+.icon-button {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  color: var(--t1);
+  border-radius: 22px;
+  margin-top: -2px;
+}
+.badge {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--alert);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.state-skeleton {
+  height: 18px;
+  width: 160px;
+  margin-top: 6px;
+  display: block;
+}

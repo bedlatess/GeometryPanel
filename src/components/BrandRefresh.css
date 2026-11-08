@@ -1,0 +1,42 @@
+.brand-refresh {
+  position: relative;
+  width: 28px;
+  height: 30px;
+  margin: 17px auto;
+  opacity: 0;
+  transition: opacity 150ms;
+}
+.refresher-active .brand-refresh {
+  opacity: 1;
+}
+.g-mark,
+.g-bar {
+  position: absolute;
+  inset: 0;
+  background: var(--t1);
+  mask: url('../assets/brand/mark.svg') center/contain no-repeat;
+}
+.g-mark {
+  clip-path: polygon(
+    0 0,
+    100% 0,
+    100% 39.6%,
+    61.7% 39.6%,
+    61.7% 60.4%,
+    100% 60.4%,
+    100% 100%,
+    0 100%
+  );
+}
+.g-bar {
+  clip-path: inset(39.6% 0 39.6% 61.7%);
+  transform: translateX(calc((1 - var(--pull-progress)) * -6px));
+}
+.refreshing .g-bar {
+  animation: refresh-bar 800ms linear infinite;
+}
+@keyframes refresh-bar {
+  to {
+    rotate: 360deg;
+  }
+}

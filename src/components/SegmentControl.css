@@ -1,0 +1,28 @@
+ion-segment {
+  height: 34px;
+  min-height: 34px;
+  background: var(--fill);
+  border-radius: 10px;
+  padding: 2px;
+  --background: var(--fill);
+}
+ion-segment-button {
+  min-height: 30px;
+  --padding-top: 0;
+  --padding-bottom: 0;
+  --color: var(--t1);
+  --color-checked: var(--t1);
+  --indicator-color: var(--segment);
+  --border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+.segment-button-checked {
+  font-weight: 600;
+}
+ion-segment-button::before {
+  display: none;
+}
+ion-label {
+  margin: 0;
+}

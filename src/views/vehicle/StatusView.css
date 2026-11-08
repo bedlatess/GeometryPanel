@@ -1,0 +1,12 @@
+.status-content {
+  margin-top: 16px;
+}
+.foot {
+  display: block;
+  width: 100%;
+  text-align: center;
+  font-size: 13px;
+  color: var(--t2);
+  background: transparent;
+  padding: 14px 0;
+}

@@ -36,6 +36,7 @@ export function pageFor(path:string,o:PageOptions):string {
  case '/vehicle/info':return `<div data-page-controller>${infoPage(o.car,o.demo)}</div>`;
  case '/records':return `<div data-page-controller id="records-panel">${recordsPage(o.data)}</div>`;
  case '/tools':return `<div data-page-controller id="tools-home">${toolsPage(o.app,o.android)}</div>`;
+ case '/tools/picture':return ListGroup('', ListRow('导出车况图片', '', 'data-action="status-export"'));
  case '/me':return mePage(o.car,o.book,o.preferences,o.version,o.demo);
  case '/me/appearance':return appearancePage(o.preferences);
  case '/me/home':return homeCustomPage(o.preferences);

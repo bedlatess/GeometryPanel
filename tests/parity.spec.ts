@@ -22,8 +22,8 @@ async function secondLogin(page: Page, car = '测试极核 B') {
   await page.getByRole('button', { name: '添加账号', exact: true }).click();
   await page.getByRole('textbox', { name: '手机号', exact: true }).fill('13900000000'); await page.getByRole('button', { name: '获取验证码' }).click();
   await page.getByRole('slider').focus(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
-  await page.getByRole('textbox', { name: '短信验证码', exact: true }).fill('123456'); await page.getByRole('button', { name: '登录', exact: true }).click();
-  await page.getByRole('dialog').getByRole('button', { name: car }).click();
+  await page.getByRole('textbox', { name: '输入验证码', exact: true }).fill('123456');
+  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: car }).click();
   await expect(page.getByRole('heading', { name: car, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
 }
@@ -58,14 +58,14 @@ test('native account consent precedes credential handoff; pause persists and log
   await navigate(page,'/me');
   await navigate(page,'/me/accounts');
   await page.locator('[data-account-enabled]').uncheck();
-  await expect(page.getByText('已保存')).toBeVisible();
+  await expect(page.locator('#accounts-panel').getByText('已保存')).toBeVisible();
   await navigate(page,'/me');
   await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
-  await page.getByRole('dialog').getByRole('button', { name: '测试极核 A' }).click();
+  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '测试极核 A' }).click();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
   expect((await calls(page)).filter(call => call.method === 'accounts.sync').at(-1)!.params.accounts[0].enabled).toBe(false);
   await settings(page); await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click();
-  await page.getByRole('dialog').getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '退出全部账号', exact: true }).click();
   await expect(page.getByText('已退出全部账号', { exact: true })).toBeVisible();
   expect((await calls(page)).filter(call => call.method === 'accounts.sync').at(-1)!.params).toEqual({ accounts: [], selectedVehicleId: null });
 });
@@ -73,19 +73,21 @@ test('native account consent precedes credential handoff; pause persists and log
 test('browser history distinguishes battery from charge records and clearing one category retains the other', async ({ page, mocks }) => {
   mocks.battery = { chargeState: 1 }; await open(page); await login(page);
   await navigate(page,'/records/battery');
-  await expect(page.locator('[data-history-items] .list-row')).toHaveCount(1);
+  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count','1');
   await navigate(page,'/vehicle');
   mocks.battery = { chargeState: 0 }; await page.getByRole('button', { name: '刷新车况', exact: true }).click();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
   await background(page); await navigate(page,'/records/battery');
-  await expect(page.locator('[data-history-items] .list-row')).toHaveCount(2);
-  await page.getByRole('button', { name: '清除本机记录', exact: true }).click();
-  await page.getByRole('dialog').getByRole('button',{name:'清除本机记录',exact:true}).click();
-  await expect(page.locator('[data-history-items] .list-row')).toHaveCount(0);
-  await page.getByRole('button', { name: '充电记录', exact: true }).click();
-  await expect(page.locator('[data-history-items] .list-row')).toHaveCount(1); await expect(page.getByText(/已中止/)).toBeVisible();
+  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count','2');
+  await page.getByRole('button',{name:'更多电池操作',exact:true}).click();
+  await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'清除本机记录',exact:true}).click();
+  await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'电量',exact:true}).click();
+  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'清除本机记录',exact:true}).click();
+  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count','0');
+  await expect(page.locator('main:visible ion-item').filter({hasText:'82% → 82%'})).toHaveCount(1);
+  await expect(page.getByText('中途拔掉',{exact:true})).toBeVisible();
   await navigate(page,'/me');
-  await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click(); await page.getByRole('dialog').getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click(); await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '退出全部账号', exact: true }).click();
   await expect(page.getByText('已退出全部账号', { exact: true })).toBeVisible();
   const count = await page.evaluate(async () => {
     const request = indexedDB.open('zeeho-panel:/panel/:vault-v2', 1);
@@ -109,7 +111,7 @@ test('legacy encrypted session migrates once and retains its opaque account iden
   await navigate(page,'/vehicle'); await page.reload(); await expect(page.getByRole('heading', { name: '迁移测试车辆', exact: true })).toBeVisible();
   async function identity() {
     await background(page);
-    const id = await page.locator('[data-selected-vehicle]').getAttribute('data-selected-vehicle');
+    const id = await page.locator('[data-selected-vehicle]:visible').getAttribute('data-selected-vehicle');
     await navigate(page,'/me'); return id;
   }
   const id = await identity(); await navigate(page,'/vehicle'); await page.reload(); await expect(page.getByRole('heading', { name: '迁移测试车辆', exact: true })).toBeVisible();
@@ -130,21 +132,21 @@ test('official native login hands off once locally then uses normal verified veh
 
 test('system shortcut rejects unknown vehicles and requires visible confirmation before a command', async ({ page, mocks }) => {
   await nativeMock(page); await open(page); await login(page); await background(page);
-  const id = await page.locator('[data-selected-vehicle]').getAttribute('data-selected-vehicle');
+  const id = await page.locator('[data-selected-vehicle]:visible').getAttribute('data-selected-vehicle');
   await navigate(page,'/me');
   await page.evaluate(() => window.dispatchEvent(new CustomEvent('geometry:native-shortcut', { detail: { vehicleId: 'unknown', action: 'horn' } })));
-  await expect(page.getByRole('dialog')).not.toBeVisible();
+  await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();
   await page.evaluate(vehicleId => window.dispatchEvent(new CustomEvent('geometry:native-shortcut', { detail: { vehicleId, action: 'horn' } })), id);
   await expect(page.getByRole('heading', { name: '系统快捷指令', exact: true })).toBeVisible();
   expect(mocks.calls.some(call => call.path.endsWith('/dbpoint/send'))).toBe(false);
   await page.getByRole('button', { name: '继续', exact: true }).click();
-  await expect(page.getByRole('button', { name: '发送', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '鸣笛寻车', exact: true })).toBeVisible();
   expect(mocks.calls.some(call => call.path.endsWith('/dbpoint/send'))).toBe(false);
 });
 
 test('status picture exports only a bounded PNG through the native save flow', async ({ page }) => {
   await nativeMock(page); await open(page); await login(page); await settings(page);
-  await navigate(page,'/tools');await page.getByRole('button',{name:'导出车况图片',exact:true}).click();
+  await navigate(page,'/tools/picture');await page.getByRole('button',{name:'导出车况图片',exact:true}).click();
   await expect(page.getByText('已导出')).toBeVisible();
   const params = (await calls(page)).find(call => call.method === 'asset.export')!.params;
   expect(Object.keys(params).sort()).toEqual(['data', 'fileName', 'kind']);
@@ -157,7 +159,7 @@ test('desktop preview, configuration and read-only reset use the selected opaque
   await nativeMock(page); await open(page); await login(page); await background(page);
   await navigate(page,'/tools/widgets');
   await expect(page.getByRole('region', { name: '组件内容预览' })).toContainText('82%电量');
-  const id = await page.locator('[data-selected-vehicle]').getAttribute('data-selected-vehicle');
+  const id = await page.locator('[data-selected-vehicle]:visible').getAttribute('data-selected-vehicle');
   await page.getByRole('button',{name:'大',exact:true}).click(); await page.locator('[data-background-controls]').check();
   await page.getByRole('button', { name: '保存组件', exact: true }).click();
   await expect(page.locator('#background-panel').getByRole('status').filter({hasText:/已更新|已保存/})).toBeVisible();

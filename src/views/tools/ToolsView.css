@@ -1,0 +1,46 @@
+:deep(.group-list:first-child) {
+  margin-top: 0;
+}
+.app-card {
+  margin-top: 20px;
+  background: var(--ink);
+  color: var(--ink-t);
+  border-radius: 22px;
+  padding: 20px;
+}
+h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+p {
+  font-size: 15px;
+  opacity: 0.65;
+  margin-top: 4px;
+}
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 16px 0 18px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px 10px;
+}
+li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+li .app-icon {
+  width: 20px;
+  height: 20px;
+  opacity: 0.9;
+}
+ion-button {
+  --background: var(--ink-t);
+  --color: var(--ink);
+  --border-radius: 18px;
+  height: 36px;
+  margin: 0;
+  font-size: 15px;
+}

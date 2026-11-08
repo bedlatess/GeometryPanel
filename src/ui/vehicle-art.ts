@@ -6,6 +6,11 @@ const key = storagePrefix + 'vehicle-art';
 const cacheName = storagePrefix + 'vehicle-art-v1';
 const safe = (value: unknown): value is string => typeof value === 'string' && (/^https:\/\/[^\s<>"'@]+$/.test(value) || /^data:image\/(?:png|webp);base64,[A-Za-z0-9+/=]+$/.test(value));
 type Sources = { local?: string; main?: string; thumb?: string };
+export function vehicleImageSources(car?: Vehicle, thumbnail = false): string[] {
+  const record = car ? saved()[car.vin] : undefined;
+  return [record?.local, thumbnail ? car?.vehicleScalePicUrl ?? record?.thumb : undefined,
+    car?.vehiclePicUrl ?? record?.main].filter(safe);
+}
 function saved(): Record<string, Sources> { try { const data: unknown = JSON.parse(localStorage.getItem(key) ?? '{}'); return data && typeof data === 'object' && !Array.isArray(data) ? data as Record<string, Sources> : {}; } catch { return {}; } }
 export function rememberVehicleArt(cars: Vehicle[]) {
   const values = saved();

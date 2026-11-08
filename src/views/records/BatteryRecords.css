@@ -1,0 +1,32 @@
+.record-top {
+  display: flex;
+  align-items: center;
+  margin: 22px 4px 0;
+}
+.record-top .metric-value {
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 600;
+  flex: 1;
+}
+.record-top :deep(small) {
+  font-size: 20px;
+}
+.record-sub {
+  color: var(--t2);
+  font-size: 15px;
+  margin: 6px 4px 0;
+}
+.chart-card {
+  margin-top: 16px;
+  padding: 16px;
+  background: var(--card);
+  border-radius: 20px;
+}
+.axis {
+  display: flex;
+  justify-content: space-between;
+  color: var(--t3);
+  font: 500 12px var(--num);
+  margin-top: 8px;
+}

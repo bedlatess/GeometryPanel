@@ -1,0 +1,105 @@
+.lever {
+  position: relative;
+  height: 64px;
+  border-radius: 32px;
+  background: var(--fill);
+  touch-action: pan-y;
+  user-select: none;
+  cursor: pointer;
+}
+.knob {
+  position: absolute;
+  top: 5px;
+  left: 5px;
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: var(--knob-sh);
+  display: grid;
+  place-items: center;
+  color: var(--knob-ink);
+  transition: transform 350ms var(--spring);
+}
+.dragging .knob {
+  transition: none;
+}
+.snapping .knob {
+  transition: transform 180ms var(--out);
+}
+.knob .app-icon {
+  width: 22px;
+  height: 22px;
+}
+.lever-label {
+  position: absolute;
+  inset: 0 22px 0 70px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--t2);
+}
+.phase-idle:not(.off):not(.middle):not(.dragging) .lever-label {
+  background: linear-gradient(100deg, var(--t2) 40%, var(--t1) 50%, var(--t2) 60%);
+  background-clip: text;
+  color: transparent;
+  background-size: 300% 100%;
+  animation: idle-shine 5.6s linear infinite;
+}
+@keyframes idle-shine {
+  0% {
+    background-position: 100% 0;
+  }
+  28.6%,
+  100% {
+    background-position: 0 0;
+  }
+}
+.right .lever-label {
+  inset: 0 70px 0 22px;
+}
+.middle .lever-label {
+  inset: 0 22px;
+  justify-content: space-between;
+}
+.ink {
+  background: var(--ink);
+}
+.ink .lever-label {
+  color: var(--ink-t);
+}
+.ink .knob {
+  background: var(--ink-t);
+  color: var(--ink);
+  box-shadow: none;
+}
+.warn {
+  background: var(--attn-bg);
+  box-shadow: inset 0 0 0 1.5px var(--attn);
+}
+.warn .lever-label {
+  color: var(--attn);
+}
+.off {
+  opacity: 0.42;
+  cursor: default;
+}
+.knob.completed {
+  background: var(--energy);
+  color: var(--white);
+}
+.spinner {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 2.4px solid currentColor;
+  border-right-color: transparent;
+  animation: spin 1s linear infinite;
+}
+@keyframes spin {
+  to {
+    rotate: 360deg;
+  }
+}
