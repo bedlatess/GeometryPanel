@@ -62,7 +62,7 @@ final class NativeBridge {
                             "features", NativeJson.obj("ble", ble, "proximity", ble, "notifications", true, "widget", true,
                                     "meter", activity.getPackageManager().hasSystemFeature(PackageManager.FEATURE_WIFI_DIRECT), "background", true, "history", true, "multiAccount", true, "shortcuts", true, "tasks", true,
                                     "scanner", true, "ota", true, "diagnostics", true, "updates", true, "officialLogin", true, "keepalive", true, "wallpaperZip", true),
-                            "limitations", NativeJson.list("BLE 协议已按旧包恢复，仍需实车核对；BLE2/3 钥匙配对不支持。", "靠近服务只提醒，不自动开锁；云授权过期会停止。", "后台监控需要明确开启并允许通知；系统省电和后台限制可能延后轮询或任务。", "仪表 Wi-Fi / 投屏协议需匹配车型；视频不含音频或反向触控。", "官方登录捕获需要系统 VPN 与本机 CA 信任；官方证书锁定可能阻止，届时使用面板验证码登录。")), null); return;
+                            "limitations", NativeJson.list("此车型的蓝牙钥匙需在车旁确认", "车辆靠近时发送提醒", "后台提醒需允许系统通知", "仪表工具需使用兼容车型", "无法连接极核 App 时可用验证码登录")), null); return;
                 case "status": reply.finish(engine.status(), null); return;
                 case "accounts.sync": reply.finish(BackgroundMonitor.get(activity).sync(params), null); return;
                 case "accounts.remove": reply.finish(BackgroundMonitor.get(activity).remove(BackgroundConfig.id(params, "accountId")), null); return;
@@ -158,16 +158,16 @@ final class NativeBridge {
     }
     static String human(String code) {
         switch (code == null ? "" : code) {
-            case "refresh_required": case "refresh_or_connect_required": return "请先重新读取并绑定当前车辆资料，云端钥匙授权有效期为五分钟。";
+            case "refresh_required": case "refresh_or_connect_required": return "资料已过期，请重新准备资料";
             case "permission_denied": return "系统权限未允许，请在设置中允许后重试。";
             case "bluetooth_off": return "请先打开手机蓝牙。";
             case "connect_first": return "请先连接当前车辆蓝牙。";
             case "authenticate_first": return "请先完成蓝牙认证。";
-            case "ble_material_missing": return "云端没有提供完整蓝牙钥匙材料；可继续使用其它功能。";
+            case "ble_material_missing": return "钥匙资料不可用，请稍后刷新";
             case "enable_inductive_in_cloud_first": return "请先在车辆设置中启用感应钥匙，再刷新资料。";
-            case "pairing_generation_unsupported": return "当前只恢复了旧包支持的 2.0 BLE1 钥匙登记，其它代际不猜测写入。";
-            case "busy": return "上一项操作尚未结束，请稍候。";
-            default: return "本次操作未完成；若已发送车辆请求，请先观察实际状态，再决定是否重试。";
+            case "pairing_generation_unsupported": return "此车型暂不支持手机登记";
+            case "busy": return "上一项尚未结束";
+            default: return "结果尚未确认，请先查看车辆";
         }
     }
 }

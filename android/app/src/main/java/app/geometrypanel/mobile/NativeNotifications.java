@@ -20,7 +20,7 @@ final class NativeNotifications {
         NotificationManager manager = context.getSystemService(NotificationManager.class);
         manager.createNotificationChannel(new NotificationChannel("geometry-reminders", "车况提醒", NotificationManager.IMPORTANCE_DEFAULT));
         manager.createNotificationChannel(new NotificationChannel("geometry-device", "车辆连接服务", NotificationManager.IMPORTANCE_LOW));
-        manager.createNotificationChannel(new NotificationChannel("geometry-cast", "仪表屏幕投送", NotificationManager.IMPORTANCE_LOW));
+        manager.createNotificationChannel(new NotificationChannel("geometry-cast", "仪表投屏", NotificationManager.IMPORTANCE_LOW));
     }
     static PendingIntent open(Context context) {
         return PendingIntent.getActivity(context, 1, new Intent(context, MainActivity.class).setFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP | Intent.FLAG_ACTIVITY_SINGLE_TOP), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
@@ -47,13 +47,13 @@ final class NativeNotifications {
         if (soc > threshold + 5) { preferences.edit().putBoolean("lowSent", false).apply(); return; }
         if (soc > threshold || preferences.getBoolean("lowSent", false)) return;
         preferences.edit().putBoolean("lowSent", true).apply();
-        context.getSystemService(NotificationManager.class).notify(501, builder(context, "geometry-reminders", "车辆电量较低", "刚读取到电量 " + Math.round(soc) + "% ，请留意补电。此提醒来自本机读取，并非云端后台监控。")
+        context.getSystemService(NotificationManager.class).notify(501, builder(context, "geometry-reminders", reading.optString("vehicleLabel", "几何面板"), "电量 " + Math.round(soc) + "%，请及时充电")
                 .setAutoCancel(true).build());
     }
     @android.annotation.SuppressLint("MissingPermission")
     static void near(Context context) {
         if (permission(context)) context.getSystemService(NotificationManager.class).notify(502,
-                builder(context, "geometry-reminders", "检测到车辆靠近", "已检测到绑定车辆的蓝牙信号。这里只提醒，不会自动开锁或上电。")
+                builder(context, "geometry-reminders", "几何面板", "车辆已靠近")
                         .setAutoCancel(true).build());
     }
 }

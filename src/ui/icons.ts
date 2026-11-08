@@ -1,5 +1,9 @@
 /** One outline icon family; decorative by default, controls keep visible labels. */
 const paths = {
+  scan:'<path d="M7 3H3v4M17 3h4v4M21 17v4h-4M7 21H3v-4M7 12h10"/>',
+  phone:'<rect x="6" y="2" width="12" height="20" rx="2"/><path d="M11 18h2M9 6h6v7H9z"/>',
+  share:'<path d="M12 16V3m-4 4 4-4 4 4M5 13v7h14v-7"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
   back: '<path d="m15 18-6-6 6-6"/>',
   close: '<path d="m18 6-12 12M6 6l12 12"/>',
   bell: '<path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/>',

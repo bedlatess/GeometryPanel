@@ -16,7 +16,7 @@ public final class BackgroundService extends Service {
         if (intent == null || "stop".equals(intent.getAction()) || !monitor.enabled()) { stopSelf(); return START_NOT_STICKY; }
         try {
             PendingIntent stop = PendingIntent.getService(this, 31, new Intent(this, BackgroundService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            startForeground(530, NativeNotifications.builder(this, "geometry-device", "车况后台监控", "按当前账号与车辆轮询车况；系统仍可能延迟后台任务。")
+            startForeground(530, NativeNotifications.builder(this, "geometry-device", "后台提醒", "后台提醒已开启")
                     .setOngoing(true).addAction(new android.app.Notification.Action.Builder(null, "停止本次服务", stop).build()).build());
             running = true; handler.removeCallbacksAndMessages(null); tick();
         } catch (RuntimeException error) { stopSelf(); }

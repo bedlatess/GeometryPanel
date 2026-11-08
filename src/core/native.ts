@@ -63,22 +63,8 @@ export function connectNative(window: NativeWindow): NativeClient {
   if (android) android.onmessage = event => client.receive(event.data);
   return client;
 }
-export function nativeMessage(error: unknown): string {
-  if (!(error instanceof NativeError)) return '操作未完成，请稍后重试。';
-  const messages: Record<string, string> = {
-    unavailable: '当前浏览器没有原生能力，请安装 APK 或自签 IPA。',
-    permission_denied: '系统权限未允许，请在系统设置中开启后重试。',
-    unsupported: '当前系统或车型暂不支持此能力。', unsupported_ble2: '此代蓝牙协议尚未恢复，暂不支持配对。',
-    stale_material: '车辆授权资料已过期，请重新准备蓝牙资料。', owner_not_verified: '未能核实当前账号为车主，无法操作蓝牙钥匙。',
-    refresh_required: '车辆授权资料已过期，请重新准备蓝牙资料。',
-    refresh_or_connect_required: '请先刷新蓝牙资料并重新连接车辆。',
-    connect_first: '请先连接当前车辆蓝牙。', authenticate_first: '请先完成蓝牙认证。',
-    ble_material_missing: '车辆未提供完整蓝牙钥匙材料，可继续使用其它功能。',
-    enable_inductive_in_cloud_first: '请在车辆设置中开启感应钥匙，然后刷新资料。',
-    pairing_generation_unsupported: '当前只恢复了旧版支持的 2.0 BLE1 钥匙登记，此代暂不支持。',
-    timeout: '等待设备超时，结果尚未确认，请先检查车辆再重试。',
-    busy: '设备仍在处理上一项操作，请稍候。', not_connected: '请先选择并连接车辆蓝牙。',
-    bluetooth_off: '请先打开系统蓝牙。', cloud_disabled: '请先开启车辆感应功能。',
-  };
-  return messages[error.code] ?? '设备操作未完成，请检查系统权限、连接和车型兼容性后重试。';
+export function nativeMessage(error:unknown):string {
+ if(!(error instanceof NativeError))return '未收到车辆响应';
+ const messages:Record<string,string>={unavailable:'以下功能需在 App 中使用',permission_denied:'权限未开启，请到系统设置开启',unsupported:'此车型不支持',unsupported_ble2:'此车型不支持',stale_material:'资料已过期，请重新准备资料',owner_not_verified:'车主身份未确认',refresh_required:'资料已过期，请重新准备资料',refresh_or_connect_required:'请更新资料后重新连接',connect_first:'请先连接车辆蓝牙',authenticate_first:'请先完成车辆认证',ble_material_missing:'钥匙资料不可用，请稍后刷新',enable_inductive_in_cloud_first:'请先开启车辆感应钥匙',pairing_generation_unsupported:'此车型不支持',timeout:'未收到车辆响应',busy:'上一项尚未结束',not_connected:'请先连接车辆蓝牙',bluetooth_off:'请先打开蓝牙',cloud_disabled:'请先开启车辆感应钥匙'};
+ return messages[error.code]??'未收到车辆响应';
 }

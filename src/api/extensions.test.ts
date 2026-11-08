@@ -70,7 +70,7 @@ test('allowlisted settings produce exact recovered commands, fields and versions
   assert.deepEqual(calls[3].body, { vinNo: session.vehicle.vin, motoPlay: 1 });
 });
 test('all 30 writable setting contracts match an independently recovered inert AST ledger', async () => {
-  const contract = JSON.parse(readFileSync(new URL('../../verification/extensions-contract.json', import.meta.url), 'utf8')).settings as {
+  const contract = JSON.parse(readFileSync(new URL('../../docs/dev/verification/extensions-contract.json', import.meta.url), 'utf8')).settings as {
     key: string; kind: string; endpoint: string; command: string | null; version: string | null; choices: string[];
   }[];
   assert.equal(contract.length, 30);

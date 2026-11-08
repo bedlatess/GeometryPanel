@@ -23,7 +23,7 @@ import org.json.JSONObject;
 final class NativeActions {
     private NativeActions() { }
     static boolean allowed(String action) { return action != null && action.matches("refresh|unlock|lock|horn|seat"); }
-    static String label(String action) { switch (action) { case "unlock": return "解锁上电"; case "lock": return "上锁关电"; case "horn": return "鸣笛找车"; case "seat": return "打开座桶"; default: return "刷新车况"; } }
+    static String label(String action) { switch (action) { case "unlock": return "上电开锁"; case "lock": return "关机锁车"; case "horn": return "鸣笛寻车"; case "seat": return "打开座桶"; default: return "刷新车况"; } }
     private static synchronized byte[] key(Context context) throws Exception {
         NativeVault vault = new NativeVault(context); String saved = vault.read("action-secret");
         if (saved != null) return BleProtocol.hex(saved, 32);

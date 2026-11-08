@@ -92,10 +92,10 @@ import CoreBluetooth
         switch action {
         case "register":
             guard binding.cloudEnabled == true else { throw PanelError.coded("enable_inductive_in_cloud_first", "请先在官方车辆设置中开启感应功能并刷新，不能在未知开关状态下登记。") }
-            guard binding.inductiveGeneration == "2.0" || binding.inductiveGeneration == "2" else { throw PanelError.unavailable("当前只恢复了 2.0 的本机登记协议。") }
+            guard binding.inductiveGeneration == "2.0" || binding.inductiveGeneration == "2" else { throw PanelError.unavailable("此车型暂不支持手机登记") }
             let identity = try SecureStore.identity()
             let result = try await transact(0x77, expected: 0xf7, payload: KeyProtocol.bytes(1, identity), timeout: 8)
-            guard result.isEmpty else { throw PanelError.invalid("登记回复格式与旧版协议不符。") }
+            guard result.isEmpty else { throw PanelError.invalid("登记尚未确认，请查看车辆") }
             bindAcknowledged = true
             if binding.broadcastType != "1" {
                 let response = try KeyProtocol.decode(await transact(0x78, expected: 0xf8, payload: KeyProtocol.number(1, 2), timeout: 6))
@@ -156,13 +156,13 @@ import CoreBluetooth
     }
     func peripheral(_ peripheral: CBPeripheral, didDiscoverServices error: Error?) {
         guard peripheral === peer else { return }
-        guard error == nil, let service = peripheral.services?.first(where: { $0.uuid == CBUUID(string: KeyProtocol.service) }) else { fail(PanelError.unavailable("未找到旧版车辆蓝牙服务。")); return }
+        guard error == nil, let service = peripheral.services?.first(where: { $0.uuid == CBUUID(string: KeyProtocol.service) }) else { fail(PanelError.unavailable("未发现车辆，请重新搜索")); return }
         peripheral.discoverCharacteristics([CBUUID(string: KeyProtocol.write), CBUUID(string: KeyProtocol.notify)], for: service)
     }
     func peripheral(_ peripheral: CBPeripheral, didDiscoverCharacteristicsFor service: CBService, error: Error?) {
         guard peripheral === peer else { return }
         guard error == nil, let write = service.characteristics?.first(where: { $0.uuid == CBUUID(string: KeyProtocol.write) && $0.properties.contains(.write) }),
-              let notify = service.characteristics?.first(where: { $0.uuid == CBUUID(string: KeyProtocol.notify) && $0.properties.contains(.notify) }) else { fail(PanelError.unavailable("车辆蓝牙特征与恢复协议不匹配。")); return }
+              let notify = service.characteristics?.first(where: { $0.uuid == CBUUID(string: KeyProtocol.notify) && $0.properties.contains(.notify) }) else { fail(PanelError.unavailable("此车型暂不支持蓝牙连接")); return }
         writable = write; peripheral.setNotifyValue(true, for: notify)
     }
     func peripheral(_ peripheral: CBPeripheral, didUpdateNotificationStateFor characteristic: CBCharacteristic, error: Error?) {

@@ -248,7 +248,7 @@ export async function control(page:Page,mode:string) {
 }
 export async function report(page:Page) {
  if(!page.url().endsWith('#/tools/diagnostics'))await navigate(page,'/tools/diagnostics');
- const pending=page.waitForEvent('download');await page.getByRole('button',{name:'导出车控结果',exact:true}).click();
+ const pending=page.waitForEvent('download');await page.getByRole('button',{name:'导出上次车控结果',exact:true}).click();
  const download=await pending,stream=await download.createReadStream();const chunks:Buffer[]=[];
  for await(const chunk of stream!)chunks.push(Buffer.from(chunk));return Buffer.concat(chunks).toString('utf8');
 }

@@ -59,7 +59,7 @@ public final class OfficialCaptureService extends VpnService {
         epoch = intent.getLongExtra("generation", -1); if (epoch != OfficialLogin.generation()) { stopSelf(); return START_NOT_STICKY; }
         PendingIntent stop = PendingIntent.getService(this, 2281, new Intent(this, OfficialCaptureService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
         startForeground(508, NativeNotifications.builder(this, "geometry-device", "临时官方登录捕获", "仅官方 App；不保存流量。最长十分钟，可随时停止。")
-                .setOngoing(true).addAction(new android.app.Notification.Action.Builder(null, "停止捕获", stop).build()).build());
+                .setOngoing(true).addAction(new android.app.Notification.Action.Builder(null, "停止连接", stop).build()).build());
         running = true; handler.postDelayed(this::stopSelf, 600000);
         loops.execute(() -> { try { open(); } catch (Exception error) { if (!stopped) OfficialLogin.phase = "capture_unavailable"; stopSelf(); } });
         return START_NOT_STICKY;

@@ -147,17 +147,17 @@ import WidgetKit
             let key = vehicle.id + "." + kind, now = Date().timeIntervalSince1970
             guard now - (notified[key] ?? 0) > 900 else { return }; notified[key] = now
             try? NativeHistory.event(account: account, vehicle: vehicle, kind: kind, title: title, body: body)
-            let content = UNMutableNotificationContent(); content.title = title; content.body = body; content.sound = .default
+            let content = UNMutableNotificationContent(); content.title = vehicle.label; content.body = body; content.sound = .default
             UNUserNotificationCenter.current().add(UNNotificationRequest(identifier: "monitor." + key, content: content, trigger: nil))
         }
-        if sample.charging == true, recent?.charging == false { emit("chargeStart", "充电开始提醒", "本机最近读取到车辆进入充电状态。") }
-        if sample.charging == true, recent?.charging == true, let old = recent?.soc, let soc = sample.soc, Int(soc / 10) > Int(old / 10) { emit("chargeProgress", "充电进度提醒", "本机最近读取到电量跨过新的十个百分点。") }
-        if sample.chargeFull == true, prior?.chargeFull != true { emit("chargeFull", "充电完成提醒", "云端最近返回了明确的充满状态，请查看车辆确认。") }
-        if sample.charging == false, recent?.charging == true, sample.chargeFull != true { emit("chargeStop", "充电停止提醒", "最近读取到充电停止；没有明确的充满确认。") }
-        if let soc = sample.soc, soc <= configuration.lowBatteryThreshold, prior?.soc == nil || prior!.soc! > configuration.lowBatteryThreshold { emit("lowBattery", "车辆电量提醒", "最近读取的电量已低于设置值，出发前请确认电量。") }
-        if sample.online == false, prior?.online == true { emit("offline", "车辆离线提醒", "云端最近报告车辆离线；这与手机网络请求失败不同。") }
-        if sample.tireWarning == true, prior?.tireWarning != true { emit("tire", "胎压状态提醒", "最近读取到胎压告警，请在骑行前检查轮胎。") }
-        if let old = messages[vehicle.id], !result.messageIds.subtracting(old).isEmpty { emit("message", "车辆有新消息", "官方服务返回了新的未读消息，请打开消息中心查看。") }
+        if sample.charging == true, recent?.charging == false { emit("chargeStart", "充电开始提醒", "充电已开始") }
+        if sample.charging == true, recent?.charging == true, let old = recent?.soc, let soc = sample.soc, Int(soc / 10) > Int(old / 10) { emit("chargeProgress", "充电进度提醒", "充电中") }
+        if sample.chargeFull == true, prior?.chargeFull != true { emit("chargeFull", "充电完成提醒", "已充满") }
+        if sample.charging == false, recent?.charging == true, sample.chargeFull != true { emit("chargeStop", "充电停止提醒", "充电已停止") }
+        if let soc = sample.soc, soc <= configuration.lowBatteryThreshold, prior?.soc == nil || prior!.soc! > configuration.lowBatteryThreshold { emit("lowBattery", "车辆电量提醒", "电量 \(Int(soc))%，请及时充电") }
+        if sample.online == false, prior?.online == true { emit("offline", "车辆离线提醒", "车辆离线") }
+        if sample.tireWarning == true, prior?.tireWarning != true { emit("tire", "胎压状态提醒", "胎压异常，请检查轮胎") }
+        if let old = messages[vehicle.id], !result.messageIds.subtracting(old).isEmpty { emit("message", "车辆有新消息", "收到车辆消息") }
         messages[vehicle.id] = result.messageIds
     }
     private func updateWidget(_ vehicle: NativeVehicle, _ sample: NativeHistorySample) {

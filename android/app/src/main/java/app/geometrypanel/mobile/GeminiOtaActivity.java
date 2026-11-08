@@ -39,10 +39,10 @@ public final class GeminiOtaActivity extends Activity {
     @Override public void onCreate(Bundle state) {
         super.onCreate(state); getWindow().addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
         ScrollView scroll = new ScrollView(this); LinearLayout column = new LinearLayout(this); column.setOrientation(LinearLayout.VERTICAL); column.setPadding(28, 48, 28, 32); scroll.addView(column); setContentView(scroll);
-        text(column, "AE5I · 5 寸 Sunplus Gemini 仪表升级", 22);
-        text(column, "仅适用于这款仪表，不能用于 AE3 或其它平台。选择来源可信的本地 bin，再手动连接仪表 ZEEHO Wi-Fi。当前热点不一定是面板所选车辆。旧包默认热点密码为 00A0400022。", 16);
-        text(column, "客户端只校验文件边界和 MD5，不能证明厂商签名或硬件兼容。请停车并保持供电；开始发送后中断会显示结果未知。", 15);
-        status = text(column, "尚未选择固件；没有连接或发送。", 16);
+        text(column, "AE5I · 5寸仪表升级", 22);
+        text(column, "仅适用于这款仪表，请连接自己的车辆热点", 16);
+        text(column, "请确认固件来源，停车并保持车辆供电", 15);
+        status = text(column, "请选择固件文件", 16);
         button(column, "打开系统 Wi-Fi 设置", () -> startActivity(new Intent(android.provider.Settings.ACTION_WIFI_SETTINGS)));
         button(column, "选择本地 .bin 固件", () -> { if (!busy) startActivityForResult(new Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/octet-stream"), 812); });
         button(column, "读取仪表版本并核对", this::query);
@@ -57,7 +57,7 @@ public final class GeminiOtaActivity extends Activity {
         String name = ""; try (Cursor cursor = getContentResolver().query(uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) { if (cursor != null && cursor.moveToFirst()) name = cursor.getString(0); }
         catch (Exception ignored) { }
         if (!GeminiProtocol.filename(name)) { status("请选择名称合法且以 .bin 结尾的本地文件。"); return; }
-        String chosenName = name; long copyEpoch = operation; busy = true; status("正在复制到应用缓存并计算 MD5，没有向仪表发送。");
+        String chosenName = name; long copyEpoch = operation; busy = true; status("正在准备固件文件");
         worker.execute(() -> {
             File next = null;
             try {
@@ -66,7 +66,7 @@ public final class GeminiOtaActivity extends Activity {
                     while ((read = input.read(block)) != -1) { if (closed || copyEpoch != operation || size + read > GeminiProtocol.MAX_FILE) throw new IOException(); output.write(block, 0, read); digest.update(block, 0, read); size += read; }
                     output.getFD().sync();
                 }
-                if (size <= 0 || copyEpoch != operation) throw new IOException(); if (firmware != null) firmware.delete(); firmware = next; fileName = chosenName; md5 = BleProtocol.hex(digest.digest()); status("已准备 " + size + " 字节，MD5：" + md5 + "。尚未发送升级请求。");
+                if (size <= 0 || copyEpoch != operation) throw new IOException(); if (firmware != null) firmware.delete(); firmware = next; fileName = chosenName; md5 = BleProtocol.hex(digest.digest()); status("固件已就绪");
             } catch (Exception error) { if (next != null) next.delete(); status("文件复制或校验失败，未发送升级请求。"); }
             finally { busy = false; }
         });
@@ -92,7 +92,7 @@ public final class GeminiOtaActivity extends Activity {
                 runOnUiThread(() -> { if (closed || socket != link || !hasWindowFocus()) { cancel(false); return; }
                     new AlertDialog.Builder(this).setTitle("最后确认 Gemini 升级").setMessage("当前热点仪表版本：" + version + "\n文件：" + fileName + "\nMD5：" + md5 + "\n当前热点不一定是面板所选车辆。确认硬件和固件来源，并保持供电。").setNegativeButton("取消", (d,w) -> cancel(true)).setOnCancelListener(d -> cancel(true)).setPositiveButton("确认发送固件", (d,w) -> worker.execute(() -> transfer(link))).show();
                 });
-            } catch (Exception error) { cancel(false); status("未能读取兼容仪表版本；检查唯一 Wi-Fi 热点与仪表平台，没有发送升级请求。"); }
+            } catch (Exception error) { cancel(false); status("仪表不兼容或连接未完成，请检查车辆热点"); }
         });
     }
     private void write(Socket link, int command, byte[] body) throws Exception {
@@ -111,7 +111,7 @@ public final class GeminiOtaActivity extends Activity {
             }
             if (sent != size || !md5.equals(BleProtocol.hex(digest.digest()))) throw new IOException();
             write(link, 0x10000007, new byte[0]); link.setSoTimeout(60000); GeminiProtocol.receive(link.getInputStream(), 0x10000006);
-            status("已收到仪表最终校验响应，不代表升级成功。保持供电，观察仪表重启并核对版本；不要立即重复升级。");
+            status("传输结束，请保持供电并核对仪表版本");
         } catch (Exception error) { status(requestSent ? "升级请求已经发出但未确认完成，结果未知。保持供电，先观察仪表状态，避免直接重试。" : "没有开始发送升级请求。"); }
         finally { closeSocket(); busy = false; }
     }

@@ -11,7 +11,7 @@ const fixture: Session = { token: 'synthetic-token', uid: 'fake', vehicle: { vin
 const reply = (data: unknown) => new Response(JSON.stringify({ code: 10000, data }));
 // Extracted from the recovered bundle's inert AST, independently of ZeehoApi.
 // A one-request implementation must fail even if its own mock says success.
-const contract = JSON.parse(readFileSync(new URL('../../verification/recovered-horn-contract.json', import.meta.url), 'utf8'));
+const contract = JSON.parse(readFileSync(new URL('../../docs/dev/verification/recovered-horn-contract.json', import.meta.url), 'utf8'));
 
 for (const mode of ['normal', 'high'] as HornMode[]) {
   test(`${mode} horn matches every recovered request in order, including the empty PUT signature`, async () => {

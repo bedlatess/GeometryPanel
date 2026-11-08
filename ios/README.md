@@ -46,7 +46,7 @@ bash ios/scripts/build.sh
 
 GitHub Actions `Verify iOS native and unsigned IPA` 在 macOS 构建。脚本从主项目 `package.json` 同步版本，先跑模拟器上的 XCTest，再构建两个 arm64 设备版。`ios/build/packages/` 包含两个 unsigned IPA、SHA256 和 `ios-verification.json`。记录当前提交、Xcode、模拟器结果、设备构建及每个 IPA 的哈希；没有真实 iPhone 或车辆时，不写成实机通过。
 
-Xcode 工程由 `project.yml` 生成，不手工维护 pbxproj。原生桥 v1 的固定白名单扩展见 `verification/parity-bridge-v2.md`。桥限制可信主页面、主 frame、方法及参数大小，不提供任意 TCP、请求代理、JavaScript 执行或钥匙读取。地图 iframe 不能访问桥。普通切车 / forgetVehicle 清理当前蓝牙和仪表操作，保留独立多账号监控；退出全部由网页显式关闭监控 / 任务并同步空账号。所有原生任务在每次异步结果后再次检查账号和车辆作用域。
+Xcode 工程由 `project.yml` 生成，不手工维护 pbxproj。原生桥 v1 的固定白名单扩展见 `docs/dev/verification/parity-bridge-v2.md`。桥限制可信主页面、主 frame、方法及参数大小，不提供任意 TCP、请求代理、JavaScript 执行或钥匙读取。地图 iframe 不能访问桥。普通切车 / forgetVehicle 清理当前蓝牙和仪表操作，保留独立多账号监控；退出全部由网页显式关闭监控 / 任务并同步空账号。所有原生任务在每次异步结果后再次检查账号和车辆作用域。
 
 ## 最后集中验收
 

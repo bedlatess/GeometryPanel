@@ -4,7 +4,7 @@ import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
 
 const root = resolve('dist');
-const types = { '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
+const types = { '.svg':'image/svg+xml', '.woff2':'font/woff2', '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
 const revisions = new Map();
 const isolatedScope = /^\/isolated\/[a-z0-9-]{1,100}\/$/;
 const server = createServer(async (request, response) => {

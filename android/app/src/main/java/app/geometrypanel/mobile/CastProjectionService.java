@@ -73,7 +73,7 @@ public final class CastProjectionService extends Service {
             Intent grant = intent.getParcelableExtra("projection");
             if (grant == null || intent.getIntExtra("resultCode", 0) != android.app.Activity.RESULT_OK) throw new IllegalArgumentException();
             PendingIntent stop = PendingIntent.getService(this, 8, new Intent(this, CastProjectionService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-            startForeground(520, NativeNotifications.builder(this, "geometry-cast", "仪表屏幕投送", "正在连接仪表；通知栏可随时停止屏幕采集。")
+            startForeground(520, NativeNotifications.builder(this, "geometry-cast", "仪表投屏", "正在连接仪表")
                     .setOngoing(true).addAction(new Notification.Action.Builder(null, "停止投屏", stop).build()).build());
             projection = getSystemService(MediaProjectionManager.class).getMediaProjection(android.app.Activity.RESULT_OK, grant);
             projection.registerCallback(new MediaProjection.Callback() { @Override public void onStop() { stopSession("system_stopped"); } }, main);
@@ -101,7 +101,7 @@ public final class CastProjectionService extends Service {
                 if (reply.command != 0x70000011 || !Boolean.TRUE.equals(new JSONObject(new String(reply.payload, StandardCharsets.UTF_8)).opt("status"))) throw new IOException("cast_probe_rejected");
             }
             if (!valid()) return;
-            phase = "等待仪表媒体协商";
+            phase = "等待仪表响应";
             listen(10920, this::frameChannel); listen(10921, this::mediaChannel); listen(10922, this::controlChannel);
             main.postDelayed(() -> { if (active && !encoding) stopSession("vehicle_did_not_start_capture"); }, 30000);
         } catch (Exception error) { stopSession("cast_handshake_failed"); }
@@ -193,7 +193,7 @@ public final class CastProjectionService extends Service {
                 empty = 0; int prefix = extended ? 4 : 0;
                 output.write(ByteBuffer.allocate(4 + prefix).order(ByteOrder.LITTLE_ENDIAN).putInt(frame.length + prefix)
                         .put(extended ? ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(sequence.incrementAndGet()).array() : new byte[0]).array());
-                output.write(frame); phase = "视频帧已发出，待观察仪表画面";
+                output.write(frame); phase = "已发送画面，请查看仪表";
             }
             output.flush();
         }
@@ -211,7 +211,7 @@ public final class CastProjectionService extends Service {
                     DisplayManager.VIRTUAL_DISPLAY_FLAG_AUTO_MIRROR, surface, null, main);
             else { display.resize(width, height, getResources().getDisplayMetrics().densityDpi); display.setSurface(surface); }
             if (display == null) throw new IOException("virtual_display_failed");
-            encoding = true; phase = "屏幕采集中，等待仪表拉取视频";
+            encoding = true; phase = "等待仪表显示画面";
             workers.execute(this::drainEncoder);
         }
     }

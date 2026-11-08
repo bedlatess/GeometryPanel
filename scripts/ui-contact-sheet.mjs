@@ -6,7 +6,7 @@ import path from 'node:path';
 
 const out = path.resolve('.tools/ui-v2');
 await mkdir(out, { recursive: true });
-const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js','test','-c','playwright.audit.config.ts'], { encoding:'utf8', env:process.env });
+const run = spawnSync(process.execPath, ['node_modules/@playwright/test/cli.js','test','-c','docs/dev/playwright.audit.config.ts'], { encoding:'utf8', env:process.env });
 await writeFile(path.join(out,'visual-run.txt'), (run.stdout || '') + (run.stderr || ''));
 process.stdout.write(run.stdout || ''); process.stderr.write(run.stderr || '');
 if (run.status !== 0) process.exit(run.status || 1);

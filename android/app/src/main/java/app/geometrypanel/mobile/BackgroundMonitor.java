@@ -157,7 +157,7 @@ final class BackgroundMonitor {
         if (!future) { battery.put(historyPoint(next)); updateCharge(charge, prior, next); }
         for (int i = 0; i < events.length(); i++) {
             JSONObject event = events.getJSONObject(i); String kind = event.getString("type"); String title = title(kind);
-            JSONObject saved = NativeJson.obj("id", UUID.randomUUID().toString(), "at", event.getLong("at"), "kind", kind, "title", title, "body", "来自本机本次读取的车况；缺测期间的实际时间未知。");
+            JSONObject saved = NativeJson.obj("id", UUID.randomUUID().toString(), "at", event.getLong("at"), "kind", kind, "title", title, "body", notificationBody(kind, next));
             storedEvents.put(saved); if (settings.data.getJSONObject("notifications").optBoolean(kind, false)) notifyEvent(id, label, saved);
         }
         record.put("battery", trim(battery, 500)); record.put("charge", trim(charge, 100)); record.put("events", trim(storedEvents, 200)); record.put("snapshot", next); record.put("lastPoll", next.getLong("receivedAt")); record.put("error", ""); persist();
@@ -185,10 +185,23 @@ final class BackgroundMonitor {
     }
     static JSONArray trim(JSONArray array, int max) { JSONArray clean = new JSONArray(); for (int i = Math.max(0, array.length() - max); i < array.length(); i++) clean.put(array.opt(i)); return clean; }
     private static String title(String kind) { switch (kind) { case "chargeStart": return "检测到开始充电"; case "chargeProgress": return "充电进度更新"; case "chargeFull": return "检测到已充满"; case "chargeStop": return "检测到充电停止"; case "lowBattery": return "车辆电量较低"; case "offline": return "车辆已离线"; case "tire": return "车辆胎压提醒"; case "message": return "收到新的车辆消息"; default: return "车况缺测区间"; } }
+    private static String notificationBody(String kind, JSONObject snapshot) {
+        switch(kind) {
+            case "chargeStart": return "充电已开始";
+            case "chargeFull": return "已充满";
+            case "chargeStop": return "充电已停止";
+            case "chargeProgress": return "充电中，电量 " + Math.round(snapshot.optDouble("soc")) + "%";
+            case "lowBattery": return "电量 " + Math.round(snapshot.optDouble("soc")) + "%，请及时充电";
+            case "offline": return "车辆离线";
+            case "tire": return "胎压异常，请检查轮胎";
+            case "message": return "收到车辆消息";
+            default: return "车况记录中断";
+        }
+    }
     @android.annotation.SuppressLint("MissingPermission") private void notifyEvent(String id, String label, JSONObject event) {
         if (!NativeNotifications.permission(context)) return;
         context.getSystemService(NotificationManager.class).notify(6000 + Math.floorMod((id + event.optString("kind")).hashCode(), 1000000),
-                NativeNotifications.builder(context, "geometry-reminders", label + " · " + event.optString("title"), event.optString("body")).setAutoCancel(true).build());
+                NativeNotifications.builder(context, "geometry-reminders", label, event.optString("body")).setAutoCancel(true).build());
     }
     private synchronized void persist() throws Exception { vault.save("background-state", state.toString()); }
     synchronized JSONObject history(JSONObject params) throws Exception {

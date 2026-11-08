@@ -58,7 +58,7 @@ test('record entry summaries use existing readings and clear before a different 
   mocks.extensions=auditData().extensions;
   await open(page); await login(page); await navigate(page,'/records');
   await expect(page.locator('#records-panel')).toContainText('2.4 / 2.6 bar');
-  await expect(page.locator('#records-panel')).toContainText('—% → —%');
+  await expect(page.locator('#records-panel')).not.toContainText('—% → —%');
   await expect(page.locator('#records-panel')).toContainText('暂无充电记录');
   await navigate(page,'/vehicle');await page.getByRole('button',{name:'切换车辆',exact:true}).click();
   await page.locator('dialog').getByRole('button',{name:/测试极核 B/}).click();

@@ -3,7 +3,7 @@ import ImageIO
 
 enum WallpaperArchive {
     static func validate(_ data: Data) throws {
-        func fail() -> PanelError { PanelError.invalid("壁纸 ZIP 结构或 PNG 校验未通过。只允许根目录的 1.png 和 2.png。") }
+        func fail() -> PanelError { PanelError.invalid("文件无法识别，请换一个壁纸文件") }
         func uint(_ offset: Int, _ length: Int) throws -> Int { guard offset >= 0, offset <= data.count - length else { throw fail() }; return Int(try data.unsigned(offset, length)) }
         guard data.count >= 22, data.count <= 16 * 1024 * 1024 else { throw fail() }
         let end = data.count - 22

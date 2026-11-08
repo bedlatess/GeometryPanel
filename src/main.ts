@@ -33,6 +33,9 @@ import { navigationLinks } from './core/navigation';
 
 import { connectNative, NativeClient } from './core/native';
 import { mountNative, widgetSnapshot } from './ui/native';
+import { ExtensionsApi } from './api/extensions';
+import { MonthBars, Badge } from './ui/kit';
+import { chinaDay } from './core/extensions-model';
 import { mountExtensions } from './ui/extensions';
 import { componentsPage } from './ui/kit/components-page';
 import { PageHeader, Sheet, ListRow, ActionSheet, PickerSheet, ConfirmSheet } from './ui/kit';
@@ -58,6 +61,9 @@ let preview = false, busy = false, booting = true, committing = false, activeCon
 let updateReady = false, updating = false, lastReadAttempt = 0;
 let updates: ReturnType<typeof installUpdates> | undefined;
 let disposePage: (()=>void)|undefined, pageKey='';
+let toolbarBody='', toolbarClick:((button:HTMLElement)=>void)|undefined;
+document.addEventListener('keydown',()=>document.documentElement.dataset.input='keyboard');
+document.addEventListener('pointerdown',()=>document.documentElement.dataset.input='pointer',true);
 let sheetListener: ((button:HTMLElement)=>void)|undefined;
 let mapVisible=false, versionTaps=0, developer=false;
 const noNative=new NativeClient(null);
@@ -90,28 +96,31 @@ function applyPreferences(save = true) {
 const escape = (value: unknown) => String(value).replace(/[&<>"']/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[char]!);
 const vehicle = () => preview ? demoVehicle : session?.vehicle;
 const isHorn = (mode: CommandMode) => mode === 'normal' || mode === 'high';
-const reportButton = () => lastCommandReport ? `<button class="text-button" data-action="command-report">查看${isHorn(lastCommandReport.mode) ? '寻车' : '车控'}结果</button>` : '';
+const reportButton = () => lastCommandReport ? `<button class="action-row" data-action="command-report">查看${isHorn(lastCommandReport.mode) ? '寻车' : '车控'}结果</button>` : '';
 
 const actions:PageActions={
  sheet(title,body,clicked){show(title,body);sheetListener=clicked;},
+ toolbar(body,clicked){toolbarBody=body;toolbarClick=clicked;const slot=content.querySelector('.header-extra');if(slot)slot.innerHTML=body;},
  closeSheet:()=>close(),navigate:path=>router.navigate(path),toast:text=>{notice=text;render();},
 };
 function mountPage(host:HTMLElement) {
  const path=router.path,nativeClient=preview?noNative:native,book=preview?emptyAccounts():structuredClone(accountBook),bound=preview||expired?null:session;
  const uncertain=()=>{notice='未收到车辆响应';};
  const common={native:nativeClient,session:bound,demo:preview,snapshot:preview?demoSnapshot:reading,onExpired:panelExpired,onUncertain:uncertain,actions};
+ if(path==='/vehicle'){let alive=true;const abort=new AbortController(),month=chinaDay().slice(0,7);if(preview)host.innerHTML=MonthBars(month,[{day:month+'-06',mileageKm:12.4}]);else if(bound){void new ExtensionsApi().month(bound,month,abort.signal).then(v=>{if(alive)host.innerHTML=MonthBars(month,v.days);}).catch(()=>{});void new ExtensionsApi().alerts(bound,1,abort.signal).then(v=>{if(alive&&(v.accountUnread||v.alerts.some(a=>a.unread))){const bell=content.querySelector('[aria-label="消息"]');if(bell&&!bell.querySelector('.badge'))bell.insertAdjacentHTML('beforeend',Badge());}}).catch(()=>{});}return()=>{alive=false;abort.abort();};}
  if(path==='/records')return mountRecordsSummary(host,{...common,vehicleId:book.selectedVehicleId??''});
  if(path==='/me/lab')return mountDesignLab(host);
  if(path==='/me/accounts')return mountAccounts(host,{book,onSelect:activateSavedVehicle,onRemove:forgetSavedAccount,onChange:changeSavedAccounts,onAdd:showPhone,actions,demo:preview});
  if(path==='/tools/tasks')return mountTasks(host,{...common,accounts:book,onNativeConsent:()=>preview?Promise.reject():authorizeNativeAccounts(native,accountBook).then(()=>{})});
- if(path==='/tools/bluetooth'||path==='/tools/meter') {
-   const dispose=mountNative(host.querySelector<HTMLElement>('#native-panel')!,{...common,section:path.endsWith('meter')?'meter':'bluetooth'});
+ if(path.startsWith('/tools/bluetooth')||path.startsWith('/tools/meter')) {
+   const dispose=mountNative(host.querySelector<HTMLElement>('#native-panel')!,{...common,section:path.startsWith('/tools/meter')?'meter':'bluetooth',view:path.split('/')[3]});
    const extra=host.querySelector<HTMLElement>('#background-panel');
    const disposeExtra=extra?mountBackground(extra,{...common,book,initial:'tools',toolGroup:'meter',onImported:importOfficialAccount}):undefined;
    return ()=>{dispose();disposeExtra?.();};
  }
- const ext=path==='/vehicle/settings'?'settings':path==='/vehicle/messages'?'alerts':path==='/records/tires'?'tires':path.startsWith('/records/rides/')?'tracks':path==='/records/rides'?'ride':null;
- if(ext)return mountExtensions(host,{...common,initial:ext,day:ext==='tracks'?path.split('/').at(-1):undefined});
+ const ext=path.startsWith('/vehicle/settings')?'settings':path.startsWith('/vehicle/messages')?'alerts':path==='/records/tires'?'tires':path.startsWith('/records/rides/')?'tracks':path==='/records/rides'?'ride':null;
+ if(ext)return mountExtensions(host,{...common,initial:ext,view:path.endsWith('/unsupported')?'unsupported':path.startsWith('/vehicle/messages/')?'message:'+decodeURIComponent(path.split('/').at(-1)!):undefined,day:ext==='tracks'?path.split('/').at(-1):undefined});
+ if(path==='/tools'){let alive=true;if(!preview&&native.available)void native.call<any>('background.status').then(status=>{if(alive){const row=host.querySelector('[data-value="/tools/monitor"] .row-value');if(row)row.textContent=status?.enabled===true?'已开启':'未开启';}}).catch(()=>{});return()=>{alive=false;};}
  const initial=path==='/records/battery'?'history':path==='/tools/monitor'?'monitor':path==='/tools/widgets'?'desktop':'tools';
  return mountBackground(host,{...common,book,initial,toolGroup:path==='/tools/android'?'android':path==='/tools/scan'?'scan':'diagnostics',onImported:importOfficialAccount});
 }
@@ -123,12 +132,13 @@ function render() {
  const key=[path,preview,expired,session?.uid,session?.vehicle.vin,path==='/records'?reading?.receivedAt:''].join('|');
  const existing=key===pageKey?content.querySelector<HTMLElement>('[data-page-controller]'):null;
  if(existing)existing.remove();
- else {const dispose=disposePage;disposePage=undefined;pageKey=key;dispose?.();}
+ else {const dispose=disposePage;disposePage=undefined;pageKey=key;dispose?.();toolbarBody='';toolbarClick=undefined;}
  let body=path==='/vehicle'?renderHome({car,data,preferences,enabled,locked,busy,control:activeControl,expired,online:navigator.onLine,demo:preview,message:notice,phase:leverPhase==='idle'?undefined:leverPhase,target:leverTarget,multi:!preview&&accountBook.accounts.reduce((n,a)=>n+a.vehicles.length,0)>1})
  :pageFor(path,{car,data,book:preview?emptyAccounts():accountBook,preferences,version,demo:preview,app:!preview&&native.available,android:!preview&&Boolean((window as any).GeometryNative),mapVisible,checking:checkingUpdate,developer,installed:currentInstallContext()==='installed'});
- if(path==='/vehicle'&&preview)body+='<button class="text-button" data-action="preview">退出演示</button>';
- const header=path==='/vehicle'?'':path.split('/').length===2?`<h1 class="root-title">${pageTitles[path]}</h1>`:PageHeader(pageTitles[path]??(path.startsWith('/records/rides/')?'骑行':'几何面板'),path==='/vehicle/status'?`<button class="icon-button" data-action="refresh" aria-label="刷新车况" ${!enabled?'disabled':''}>${icon('refresh')}</button>`:'');
- content.innerHTML=`<div class="shell ${path==='/vehicle'?'home-shell':''}">${expired?'<div class="global-banner error" role="status">登录已过期<button class="text-button" data-action="connect">重新登录</button></div>':!navigator.onLine?'<div class="global-banner" role="status">网络不可用</div>':nativeSyncPending?'<div class="global-banner" role="status">后台提醒需重新保存<button class="text-button" data-action="route" data-value="/tools/monitor">去设置</button></div>':''}${updateReady?`<div class="update-bar" role="status"><span>新版本已就绪</span><button class="text-button" data-action="update" ${locked||modal.open||!navigator.onLine?'disabled':''}>更新</button></div>`:''}${notice?`<div class="result-toast notice" role="status">${escape(notice)}</div>`:''}<main id="main-content" tabindex="-1">${header}${body}</main><nav class="bottom-nav" aria-label="主导航">${(['vehicle','records','tools','me'] as const).map((root,i)=>`<button data-action="route" data-value="/${root}" ${router.root===root?'aria-current="page"':''}>${icon((['vehicle','chart','grid','user'] as Icon[])[i])}<span>${['车辆','记录','工具','我的'][i]}</span></button>`).join('')}</nav></div>`;
+ if(!car&&!booting&&path!=='/vehicle'){router.navigate('/vehicle',true);return;}
+ if(path==='/vehicle'&&preview)body+='<button class="action-row" data-action="preview">退出演示</button>';
+ const header=path==='/vehicle'?'':path.split('/').length===2?`<h1 class="root-title">${pageTitles[path]}</h1>`:PageHeader(pageTitles[path]??(path.startsWith('/records/rides/')?'骑行':'几何面板'),toolbarBody||(path==='/vehicle/status'?`<button class="icon-button" data-action="refresh" aria-label="刷新车况" ${!enabled?'disabled':''}>${icon('refresh')}</button>`:''));
+ content.innerHTML=`<div class="shell ${path==='/vehicle'?'home-shell':''} ${!car?'signed-out':''}">${expired?'<div class="global-banner error" role="status">登录已过期<button class="action-row" data-action="connect">重新登录</button></div>':!navigator.onLine?'<div class="global-banner" role="status">网络不可用</div>':nativeSyncPending?'<div class="global-banner" role="status">后台提醒需重新保存<button class="action-row" data-action="route" data-value="/tools/monitor">去设置</button></div>':''}${updateReady?`<div class="update-bar" role="status"><span>新版本已就绪</span><button class="action-row" data-action="update" ${locked||modal.open||!navigator.onLine?'disabled':''}>更新</button></div>`:''}${notice?`<div class="result-toast notice" role="status">${escape(notice)}</div>`:''}<main id="main-content" tabindex="-1">${header}${body}</main>${car?`<nav class="bottom-nav" aria-label="主导航">${(['vehicle','records','tools','me'] as const).map((root,i)=>`<button data-action="route" data-value="/${root}" ${router.root===root?'aria-current="page"':''}>${icon((['vehicle','chart','grid','user'] as Icon[])[i])}<span>${['车辆','记录','工具','我的'][i]}</span></button>`).join('')}</nav>`:''}</div>`;
  const host=content.querySelector<HTMLElement>('[data-page-controller]');
  if(host&&existing)host.replaceWith(existing);
  else if(host)disposePage=mountPage(host);
@@ -224,16 +234,16 @@ function updateCooldown() {
   button.textContent = seconds ? `${seconds} 秒后重新获取` : '重新获取验证码';
 }
 function showCode(_sent = true) {
-  show('短信验证码', `<form id="code-form"><label>短信验证码<input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" required></label><button class="primary block" type="submit">登录</button></form><button class="text-button" data-action="resend">重新获取验证码</button><button class="text-button" data-action="phone">更换手机号</button>`);
+  show('短信验证码', `<form id="code-form"><label>短信验证码<input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{4,8}" maxlength="8" required></label><button class="primary block" type="submit">登录</button></form><button class="action-row" data-action="resend">重新获取验证码</button><button class="action-row" data-action="phone">更换手机号</button>`);
   updateCooldown();
 }
 async function fetchCaptcha() {
   if (secondsRemaining()) { showCode(false); return; }
-  show('图形验证码', '<p class="muted">正在加载</p><button class="text-button" data-action="new-captcha">重新加载图片</button><button class="text-button" data-action="code">已有短信验证码</button><button class="text-button" data-action="phone">更换手机号</button>');
+  show('图形验证码', '<p class="muted">正在加载</p><button class="action-row" data-action="new-captcha">重新加载图片</button><button class="action-row" data-action="code">已有短信验证码</button><button class="action-row" data-action="phone">更换手机号</button>');
   await run(async (signal, current) => {
     const captcha = await api.captcha(phone, signal);
     if (!current()) return;
-    show('图形验证码', '<canvas class="captcha" width="720" height="360" role="slider" tabindex="0" aria-label="拖动拼图完成验证" aria-valuemin="0" aria-valuenow="0"></canvas><button class="text-button" data-action="new-captcha">换一张</button><button class="text-button" data-action="code">已有短信验证码</button><button class="text-button" data-action="phone">更换手机号</button>');
+    show('图形验证码', '<canvas class="captcha" width="720" height="360" role="slider" tabindex="0" aria-label="拖动拼图完成验证" aria-valuemin="0" aria-valuenow="0"></canvas><button class="action-row" data-action="new-captcha">换一张</button><button class="action-row" data-action="code">已有短信验证码</button><button class="action-row" data-action="phone">更换手机号</button>');
     await mountCaptcha(modal.querySelector('canvas')!, captcha, track => {
       void run(async (codeSignal, isCurrent) => {
         startCooldown();
@@ -256,7 +266,7 @@ async function retrieveCars(signal: AbortSignal, current: () => boolean) {
     pending.vehicles = result.vehicles; rememberVehicleArt(result.vehicles);
     show('选择车辆', listBody(result));
   } catch (error) {
-    if (current()) show('选择车辆', '<p>加载失败</p><button class="primary block" data-action="retry-list">重新读取</button><button class="text-button" data-action="phone">更换账号</button>');
+    if (current()) show('选择车辆', '<p>加载失败</p><button class="primary block" data-action="retry-list">重新读取</button><button class="action-row" data-action="phone">更换账号</button>');
     throw error;
   }
 }
@@ -421,6 +431,7 @@ function handleAction(event: MouseEvent) {
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   if (booting || updating) return;
+  if(action==='page-toolbar'){toolbarClick?.(button);return;}
   if(action==='route'){router.navigate(button.dataset.value!);return;}
   if(action==='back'){router.back();return;}
   if (action === 'preview') { if (!preview) { realPreferences = preferences; preferences = structuredClone(defaultPreferences); preview = true; } else { preview = false; if (realPreferences) preferences = realPreferences; realPreferences = null; } notice = ''; resetLever(); applyPreferences(false); router.navigate('/vehicle'); render(); }
@@ -431,11 +442,11 @@ function handleAction(event: MouseEvent) {
   if (action === 'walk' && !preview) { const links = navigationLinks(reading?.daily.location ?? null); if (links?.walk) window.open(links.walk, '_blank', 'noopener,noreferrer'); }
   if (action === 'connect' && !busy) showPhone();
   if (action === 'status-export' && !busy && (preview || reading)) {
-    try {
-      const image = panelImage(preview ? demoSnapshot : reading!, preview);
+    void (async()=>{try {
+      const image = await panelImage(preview ? demoSnapshot : reading!, preview, vehicle()?.name);
       if (native.available) void run(async () => { await native.call('asset.export', { kind: 'panel', ...image }); notice = '已导出'; });
       else downloadPanelImage(image);
-    } catch { notice = '导出失败'; render(); }
+    } catch { notice = '导出失败'; render(); }})();
   }
   if (action === 'switch' && session && !busy && !expired) {
     const bound = session;
@@ -450,6 +461,9 @@ function handleAction(event: MouseEvent) {
   if(action==='version'){if(++versionTaps>=5){developer=true;render();}}
   if(action==='pick-start')show('打开后的首页',PickerSheet([['vehicle','车辆'],['records','记录'],['tools','工具'],['me','我的']],preferences.startPage,'start-value'));
   if(action==='pick-shortcut')show('首页按键',PickerSheet(Object.entries(shortcutNames),preferences.shortcut[Number(button.dataset.value)],'shortcut-'+button.dataset.value));
+  if(action==='download-app')show('下载 App',`<div class="list-group"><a class="list-row" href="https://github.com/bedlatess/GeometryPanel/releases/latest" target="_blank" rel="noopener noreferrer">Android</a><a class="list-row" href="https://github.com/bedlatess/GeometryPanel/releases/latest" target="_blank" rel="noopener noreferrer">iPhone 自签</a></div>`);
+  if(action==='export-preferences')downloadText(exportPreferences(preferences),'geometry-config.json');
+  if(action==='import-preferences')show('导入配置',`<label>选择配置文件<input type="file" id="preferences-file" accept=".json,application/json"></label><form id="preferences-form"><label>粘贴配置<textarea id="preferences-import" maxlength="4096" required></textarea></label><button class="primary" type="submit">导入配置</button></form>`);
   if(action==='copy-preferences')copyPreferences();
   if(action==='reset-preferences')show('恢复默认',ConfirmSheet('恢复默认','使用偏好','—','data-action="confirm-reset-preferences"'));
   if(action==='command-report'&&lastCommandReport&&!busy){router.navigate('/tools/diagnostics');return;}
@@ -547,7 +561,7 @@ function handleSubmit(event:SubmitEvent) {
   const form = event.target as HTMLFormElement;
   if (!form.reportValidity()) return;
   if (form.id === 'preferences-form') {
-    try { preferences = importPreferences(content.querySelector<HTMLTextAreaElement>('#preferences-import')!.value); notice = '已导入'; applyPreferences();render(); }
+    try { preferences = importPreferences(modal.querySelector<HTMLTextAreaElement>('#preferences-import')!.value); notice = '已导入'; applyPreferences();close(); }
     catch { notice='配置格式不正确';render(); }
     return;
   }
@@ -562,6 +576,7 @@ function handleSubmit(event:SubmitEvent) {
     });
   }
 }
+modal.addEventListener('change',async event=>{const input=event.target as HTMLInputElement;if(input.id==='preferences-file'&&input.files?.[0]){const value=await input.files[0].text();const area=modal.querySelector<HTMLTextAreaElement>('#preferences-import');if(area)area.value=value;}});
 modal.addEventListener('submit',handleSubmit);content.addEventListener('submit',handleSubmit);
 
 applyPreferences(false); render();

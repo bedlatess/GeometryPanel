@@ -1,4 +1,5 @@
-import { Stat,ListGroup,ListRow,ConfirmSheet,html } from './kit';
+import {choose}from './kit/pickers';
+import { Stat,ListGroup,ListRow,ConfirmSheet,html,PrimaryButton,SecondaryButton,RefreshButton } from './kit';
 import type { PageActions } from './pages/actions';
 import { ApiError, messageFor } from '../api/client';
 import { TasksApi } from '../api/tasks';
@@ -35,8 +36,10 @@ export function mountTasks(host: HTMLElement, options: Options): () => void {
   function render() {
     if(!alive)return;
     const inputSwitch=(label:string,name:string,checked:boolean)=>`<label class="switch-input"><span>${escape(label)}</span><input type="checkbox" role="switch" name="${name}" ${checked?'checked':''} ${disabled()}></label>`;
-    host.innerHTML=`${accounts.length>1?`<label>执行账号<select data-task-account ${busy?'disabled':''}>${accounts.map(row=>`<option value="${escape(row.id)}" ${row.id===account?.id?'selected':''}>${escape(row.label)}</option>`).join('')}</select></label>`:''}<div class="stats-grid">${Stat(summary?.points,'','积分')}${Stat(sign?.count,'天','连签')}</div><p>${loading?'正在加载':sign?.signed===true?'今日已签到':sign?.signed===false?'今日未签到':'状态未知'}</p>${summary?ListGroup('',summary.tasks.map(row=>ListRow(row.title,row.completed===true?'已完成':row.completed===false?'未完成':'状态未知','',undefined,true)).join('')):''}<button class="text-button" data-task="refresh" ${disabled()}>刷新积分</button><form data-task-config>${ListGroup('执行内容',taskActions.map(action=>inputSwitch(labels[action],action,config.actions[action])).join(''))}<label>要发布的文字<textarea name="postContent" maxlength="500" rows="3" ${disabled()}>${escape(config.postContent)}</textarea></label><label>执行间隔（秒）<input name="gap" type="number" min="0" max="60" step="1" value="${config.requestIntervalMs/1000}" ${disabled()}></label>${inputSwitch('同意切换点赞状态','legacyLikeConfirmed',config.legacyLikeConfirmed)}${nativeTasks?`${inputSwitch('定时执行','enabled',config.enabled)}<label>每天执行时间<input name="time" type="time" value="${config.time}" ${disabled()}></label>`:''}<button class="text-button" type="submit" ${disabled()}>保存任务设置</button></form><button class="primary" data-task="run" ${disabled()}>立即执行</button>${busy?'<p role="status">正在执行</p>':''}${note?`<p role="status">${escape(note)}</p>`:''}${error?`<p role="alert">${escape(error)}</p>`:''}${steps.length?ListGroup('上次结果',steps.map(step=>ListRow(labels[step.action],states[step.state]+(step.reason?' · '+reasons[step.reason]:''),'',undefined,true)).join('')):''}${nativeTasks?`<button class="text-button" data-task="status" ${busy?'disabled':''}>执行状态</button>`:''}`;
+    options.actions.toolbar(RefreshButton('刷新积分'),()=>void load());
+    host.innerHTML=`${accounts.length>1?ListGroup('',ListRow('执行账号',account?.label??'—','data-task="pick-account"')):''}<div class="stats-grid">${Stat(summary?.points,'','积分')}${Stat(sign?.count,'天','连签')}</div><div class="list-row"><span>${loading?'正在加载':sign?.signed===true?'今日已签到':sign?.signed===false?'今日未签到':'状态未知'}</span>${sign?.signed===false?`<button class="pill" data-task="signin" ${disabled()}>签到</button>`:''}</div>${summary?ListGroup('',summary.tasks.map(row=>ListRow(row.title,row.completed===true?'已完成':row.completed===false?'未完成':'状态未知','',undefined,true)).join('')):''}<form data-task-config>${ListGroup('执行内容',taskActions.map(action=>inputSwitch(labels[action],action,config.actions[action])).join(''))}<label>要发布的文字<textarea name="postContent" maxlength="500" rows="3" ${disabled()}>${escape(config.postContent)}</textarea></label><input name="gap" type="hidden" value="${config.requestIntervalMs/1000}">${ListGroup('',ListRow('执行间隔',config.requestIntervalMs/1000+' 秒','data-task="pick-gap"'))}${inputSwitch('允许取消已有的点赞','legacyLikeConfirmed',config.legacyLikeConfirmed)}${nativeTasks?`${inputSwitch('定时执行','enabled',config.enabled)}<label>每天执行时间<input name="time" type="time" value="${config.time}" ${disabled()}></label>`:''}<button class="primary" type="submit" ${disabled()}>保存</button></form>${SecondaryButton('立即执行','data-task="run"',Boolean(disabled()))}${busy?'<p role="status">正在执行</p>':''}${note?`<p role="status">${escape(note)}</p>`:''}${error?`<p role="alert">${escape(error)}</p>`:''}${steps.length?ListGroup('上次结果',steps.map(step=>ListRow(labels[step.action],states[step.state]+(step.reason?' · '+reasons[step.reason]:''),'',undefined,true)).join('')):''}${nativeTasks?ListGroup('',ListRow('执行状态','','data-task="status"')):''}`;
   }
+
   function prompt() {
     if(!pending||options.demo)return;
     const chosen=pending,label=chosen.kind==='save'?'启用并保存':'执行所选任务';
@@ -111,6 +114,7 @@ export function mountTasks(host: HTMLElement, options: Options): () => void {
     } catch (failure) { if (alive && !aborter.signal.aborted) fail(failure); }
     finally { writing = false; if (alive) { busy = false; render(); if (!nativeTasks) void load(); } }
   }
+  function captureForm(){const form=host.querySelector<HTMLFormElement>('[data-task-config]');if(!form)return;const data=new FormData(form);config={...config,postContent:String(data.get('postContent')??''),actions:Object.fromEntries(taskActions.map(a=>[a,data.has(a)]))as typeof config.actions,legacyLikeConfirmed:data.has('legacyLikeConfirmed'),enabled:data.has('enabled'),time:String(data.get('time')??config.time)};}
   function submitted(event: Event) {
     const form = event.target; if (!(form instanceof HTMLFormElement) || !form.hasAttribute('data-task-config')) return;
     event.preventDefault(); if (busy || loading || options.demo || !account) return;
@@ -126,10 +130,13 @@ export function mountTasks(host: HTMLElement, options: Options): () => void {
     const button = event.target instanceof Element ? event.target.closest<HTMLElement>('[data-task]') : null;
     if (!button || !host.contains(button) || button.hasAttribute('disabled') || busy) return;
     const action = button.dataset.task;
+    if(action==='pick-account'){choose(options.actions,'执行账号',accounts.map(a=>[a.id,a.label]),account?.id??'',value=>{account=accounts.find(a=>a.id===value);config=account?loadTaskConfig(account.id):defaultTaskConfig();summary=null;sign=null;steps=[];void load();});return;}
+    if(action==='pick-gap'){captureForm();choose(options.actions,'执行间隔',[0,1,2,3,5,10,15,30,60].map(n=>[String(n),n+' 秒']),String(config.requestIntervalMs/1000),value=>{config.requestIntervalMs=Number(value)*1000;render();});return;}
+    if(action==='signin'){const value=structuredClone(config);value.actions=Object.fromEntries(taskActions.map(a=>[a,a==='signin'])) as typeof value.actions;pending={kind:'run',config:value};prompt();return;}
     if (action === 'refresh') { void load(); return; }
     if (action === 'status') { void status(); return; }
     if (action === 'cancel') { pending = null; render(); return; }
-    if (action === 'run') { pending = { kind: 'run', config }; error = ''; render();prompt(); return; }
+    if (action === 'run') { captureForm();pending = { kind: 'run', config }; error = ''; render();prompt(); return; }
     if (action === 'confirm' && pending) { const chosen = pending; pending = null; if (chosen.kind === 'save') void save(chosen.config); else void run(chosen.config); }
   }
   function changed(event: Event) {

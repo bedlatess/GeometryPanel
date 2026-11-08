@@ -8,7 +8,7 @@ const panel = (page: Page) => page.locator('#tasks-panel');
 async function show(page: Page) {
   await navigate(page,'/vehicle/status');
   await navigate(page,'/tools/tasks');
-  await expect(panel(page).getByRole('button', { name: '保存任务设置', exact: true })).toBeEnabled();
+  await expect(panel(page).getByRole('button', { name: '保存', exact: true })).toBeEnabled();
 }
 const mutations = (calls: Call[]) => calls.filter(call => /\/(?:H5\/signin|likeFavoriteInfo|commonArticle|deleteArticle|adjustByShare|supplementPrize)$/.test(call.path) || call.path.includes('/article/share/'));
 
@@ -28,8 +28,8 @@ test('task entry reads synthetic status while every automatic action stays off a
 test('signin is confirmed separately, uses the fixed H5 origin and rereads actual completion', async ({ page, mocks }) => {
   mocks.tasks = sample(); await open(page); await login(page); await show(page);
   await panel(page).getByLabel('每日签到', { exact: true }).check();
-  await panel(page).getByLabel('执行间隔（秒）').fill('0');
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.getByRole('dialog').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   expect(mutations(mocks.calls)).toEqual([]);
   await expect(page.getByRole('dialog')).toContainText('每日签到');
@@ -45,8 +45,8 @@ test('post and cleanup require exact user text and delete only the unique new ar
   await panel(page).getByLabel('发布我的文字动态', { exact: true }).check();
   await panel(page).getByLabel('清理本次发布的动态', { exact: true }).check();
   await panel(page).getByLabel('要发布的文字').fill('只用于合成浏览器测试的动态');
-  await panel(page).getByLabel('执行间隔（秒）').fill('0');
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.getByRole('dialog').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   expect(mutations(mocks.calls)).toEqual([]);
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await expect(page.getByRole('dialog')).toContainText('只用于合成浏览器测试的动态');
@@ -63,8 +63,8 @@ test('unsafe publishing evidence and persisted daily gate prevent guessing a del
   await panel(page).getByLabel('发布我的文字动态', { exact: true }).check();
   await panel(page).getByLabel('清理本次发布的动态', { exact: true }).check();
   await panel(page).getByLabel('要发布的文字').fill('证据不完整测试');
-  await panel(page).getByLabel('执行间隔（秒）').fill('0');
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.getByRole('dialog').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
   await expect(panel(page)).toContainText('未确认新动态，停止清理');
@@ -77,13 +77,13 @@ test('unsafe publishing evidence and persisted daily gate prevent guessing a del
 test('legacy like behavior needs its own saved opt-in before any request', async ({ page, mocks }) => {
   mocks.tasks = sample(); await open(page); await login(page); await show(page);
   await panel(page).getByLabel('点赞广场动态', { exact: true }).check();
-  await panel(page).getByLabel('执行间隔（秒）').fill('0');
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.getByRole('dialog').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
   await expect(panel(page)).toContainText('状态未知'); expect(mutations(mocks.calls)).toEqual([]);
-  await panel(page).getByLabel('同意切换点赞状态', { exact: false }).check();
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByLabel('允许取消已有的点赞', { exact: false }).check();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
   await expect(panel(page)).toContainText('点赞广场动态已核实');
@@ -96,8 +96,8 @@ test('closing during a post stops later evidence and cleanup while retaining the
   await panel(page).getByLabel('发布我的文字动态', { exact: true }).check();
   await panel(page).getByLabel('清理本次发布的动态', { exact: true }).check();
   await panel(page).getByLabel('要发布的文字').fill('取消时的合成内容');
-  await panel(page).getByLabel('执行间隔（秒）').fill('0');
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.getByRole('dialog').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
   await expect.poll(() => mocks.calls.some(call => call.path.endsWith('/commonArticle'))).toBe(true);
@@ -121,7 +121,7 @@ test('native task activation syncs credentials only after explicit consent and s
   expect(await page.evaluate(() => (window as any).__taskNativeCalls.filter((call: any) => call.method === 'accounts.sync').length)).toBe(0);
   await panel(page).getByLabel('每日签到', { exact: true }).check();
   await panel(page).getByLabel('定时执行', { exact: true }).check();
-  await panel(page).getByRole('button', { name: '保存任务设置', exact: true }).click();
+  await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   expect(await page.evaluate(() => (window as any).__taskNativeCalls.filter((call: any) => call.method === 'accounts.sync').length)).toBe(0);
   await page.getByRole('button',{name:'启用并保存',exact:true}).click();
   await expect(panel(page)).toContainText('定时执行已保存');

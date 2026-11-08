@@ -19,14 +19,13 @@ const writes = (calls: Call[]) => calls.filter(call => call.method === 'PUT' && 
 test('extensions load month records and actual track geometry with exact recovered query fields', async ({ page, mocks }) => {
   mocks.extensions = sample(); await open(page); await login(page); await show(page);
   await expect(panel(page).getByText('12.4 km')).toBeVisible();
-  await panel(page).getByLabel('选择月份').fill('2026-10');
-  await panel(page).getByRole('button', { name: '读取', exact: true }).click();
-  await expect(panel(page).getByRole('button', { name: '刷新', exact: true })).toBeEnabled();
+  await page.getByRole('button',{name:'上个月',exact:true}).click();
+  await expect(page.getByRole('button', { name: '刷新骑行', exact: true })).toBeEnabled();
   expect(mocks.calls.filter(call => call.path.endsWith('/myRideInfo')).at(-1)?.query).toEqual({ month: '2026.10', vinNo: VIN_A });
-  await panel(page).getByRole('button', { name: /2026.10.06/ }).click();
-  await expect(panel(page).getByRole('heading',{name:/2026-10-06/})).toBeVisible();
+  await panel(page).getByRole('button', { name: /10月6日/ }).click();
+  await expect(panel(page).getByRole('heading',{name:/10月6日/})).toBeVisible();
   await expect(panel(page).getByRole('img', { name: '行程轨迹' })).toBeVisible();
-  const path = await panel(page).locator('svg path').getAttribute('d');
+  const path = await panel(page).locator('svg.track-drawing path').getAttribute('d');
   expect(path?.split('M').length).toBe(3);
   expect(mocks.calls.find(call => call.path.endsWith('/ridetrack_v2'))?.query).toEqual({ page: '1', pageSize: '20', startDateTime: '2026-10-06', startTime: '2026-10', vinNo: VIN_A });
   await expect(panel(page).getByRole('link', { name: '查看起点' })).toHaveAttribute('rel', 'noopener noreferrer');
@@ -35,7 +34,7 @@ test('extensions load month records and actual track geometry with exact recover
   await panel(page).getByRole('button', { name: '加载道路底图', exact: true }).click();
   await expect(panel(page).getByRole('img', { name: '历史轨迹与高德道路底图' })).toBeVisible();
   await expect.poll(() => mocks.roadTiles.length).toBeGreaterThan(0);
-  expect((await panel(page).locator('svg path').getAttribute('d'))?.split('M').length).toBe(3);
+  expect((await panel(page).locator('svg.track-drawing path').getAttribute('d'))?.split('M').length).toBe(3);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
 });
 
@@ -44,7 +43,7 @@ test('account-wide message actions require scope confirmation and never run mere
   await navigate(page,'/vehicle/messages');
   const messageWrites = () => mocks.calls.filter(call => /\/Message\/(read|delete)$/.test(call.path));
   await expect(panel(page)).toContainText('车辆消息'); expect(messageWrites()).toEqual([]);
-  await panel(page).getByRole('button', { name: '全部标为已读', exact: true }).click(); expect(messageWrites()).toEqual([]);
+  await page.getByRole('button', { name: '全部标为已读', exact: true }).click(); expect(messageWrites()).toEqual([]);
   await expect(page.getByRole('dialog')).toContainText('此账号全部车辆');await page.getByRole('dialog').getByRole('button',{name:'全部标为已读',exact:true}).click();
   await expect(panel(page)).toContainText('已更新');
   expect(messageWrites()[0].query).toEqual({ messageKind: '3' });
@@ -70,14 +69,14 @@ test('tires, scoped alerts and failed categories retain clear states and escape 
   await navigate(page,'/records/tires');
   await expect(panel(page).getByRole('alert')).toContainText('加载失败');
   mocks.extensions.fail = undefined;
-  await panel(page).getByRole('button', { name: '刷新', exact: true }).click();
+  await page.getByRole('button', { name: '刷新', exact: true }).click();
   await expect(panel(page).getByRole('heading', { name: '前轮', exact: true })).toBeVisible();
 });
 
 test('settings require explicit confirmation, respect capability blocks and reread after acceptance', async ({ page, mocks }) => {
   mocks.extensions = sample(); await open(page); await login(page); await show(page);
   await navigate(page,'/vehicle/settings');
-  await panel(page).getByText('不支持的功能', {exact:false}).click();await expect(panel(page).getByText('自动驻车',{exact:true})).toBeVisible();await expect(panel(page).getByRole('button',{name:/自动驻车/})).toHaveCount(0);
+  await panel(page).getByText('不支持的功能', {exact:false}).click();await expect(panel(page).getByText('自动驻车',{exact:true})).toBeVisible();await expect(panel(page).getByRole('button',{name:/自动驻车/})).toHaveCount(0);await page.getByRole('button',{name:'返回',exact:true}).click();
   await setting(page,'精准续航','关闭');
   await expect(page.getByRole('dialog')).toContainText('测试极核 A');
   expect(writes(mocks.calls)).toEqual([]);
@@ -99,7 +98,7 @@ test('custom single-key actions use recovered choices while a changed cushion ge
     rideFunctionVOList: [{ parentCode: 'E_CUSHION_SENSOR', functionCode: '2.0' }] };
   await open(page); await login(page); await show(page);
   await navigate(page,'/vehicle/settings');
-  await expect(panel(page).getByRole('button',{name:/最高车速限制/})).toBeDisabled();
+  await expect(panel(page).getByRole('button',{name:/最高车速限制/})).toHaveCount(0);await expect(panel(page).locator('.list-row').filter({hasText:'最高车速限制'})).toContainText('45');
   await expect(panel(page).getByLabel('座垫感应 1.0目标设置', { exact: true })).toHaveCount(0);
   await setting(page,'按键单击','解锁座垫');
   await page.getByRole('button',{name:'确认修改',exact:true}).click();
@@ -124,7 +123,7 @@ test('uncertain setting failure never retries and closing aborts a pending read'
   let release!: () => void; const waiting = new Promise<void>(resolve => { release = resolve; });
   mocks.extensions.hold = { kind: 'month', wait: waiting };
   await show(page);
-  await expect(panel(page).getByRole('button',{name:'正在加载',exact:true})).toBeDisabled();
+  await expect(panel(page).locator('[aria-busy=true]')).toBeVisible();
   await navigate(page,'/records');
   release();
   await expect(panel(page)).toHaveCount(0);

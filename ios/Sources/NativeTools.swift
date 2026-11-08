@@ -54,7 +54,7 @@ enum NativeAsset {
         return ["opened": true]
     }
     func exportDiagnostics() throws -> [String: Any] {
-        let data = try JSONSerialization.data(withJSONObject: ["platform": "ios", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown", "schema": 1, "accountCount": NativeBackground.shared.accounts.accounts.count, "monitorEnabled": NativeBackground.shared.enabled, "backgroundMode": NativeBackground.shared.backgroundMode, "widgetAvailable": WidgetSnapshot.sharedDefaults != nil, "containsCredentials": false, "containsLocation": false], options: [.prettyPrinted, .sortedKeys])
+        let data = try JSONSerialization.data(withJSONObject: ["platform": "ios", "version": Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "unknown", "schema": 1, "accountCount": NativeBackground.shared.accounts.accounts.count, "monitorEnabled": NativeBackground.shared.enabled, "backgroundMode": NativeBackground.shared.backgroundMode, "widgetAvailable": WidgetSnapshot.sharedDefaults != nil, "lastErrorCategory": DiagnosticEvent.snapshot(), "containsCredentials": false, "containsLocation": false], options: [.prettyPrinted, .sortedKeys])
         try share(data, name: "GeometryPanel-diagnostics.json"); return ["opened": true]
     }
     func asset(_ params: [String: Any], validate: () -> Bool) async throws -> [String: Any] {
@@ -98,7 +98,7 @@ enum NativeAsset {
     }
     func installUpdate() throws -> [String: Any] {
         guard let release else { throw PanelError.invalid("请先检查更新，核对本仓库版本。") }
-        UIApplication.shared.open(release); return ["opened": true, "message": "请下载未签名 IPA，使用自己的签名工具安装；不会签名可继续使用 Safari 主屏幕版。"]
+        UIApplication.shared.open(release); return ["opened": true, "message": "请下载自签安装包，或将网页版添加到主屏幕"]
     }
 }
 
@@ -151,23 +151,23 @@ enum GeminiOTA {
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     override func viewDidLoad() {
         super.viewDidLoad(); view.backgroundColor = .systemBackground
-        title = ["ota":"Gemini 仪表升级", "wallpaperZip":"检查本地壁纸 ZIP", "diagnostics":"脱敏诊断", "updates":"应用更新"][name]
+        title = ["ota":"仪表升级", "wallpaperZip":"检查壁纸文件", "diagnostics":"诊断", "updates":"应用更新"][name]
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "关闭", style: .done, target: self, action: #selector(close))
         if name == "ota" { navigationItem.leftBarButtonItem = UIBarButtonItem(title: "停止", style: .plain, target: self, action: #selector(stopTransmission)) }
-        let button = UIButton(type: .system); var config = UIButton.Configuration.filled(); config.title = ["ota":"选择本地 .bin 固件", "wallpaperZip":"选择 ZIP 并校验 / 导出", "diagnostics":"导出诊断", "updates":"检查本仓库更新"][name]; button.configuration = config; button.addAction(UIAction { [weak self] _ in self?.perform() }, for: .touchUpInside)
+        let button = UIButton(type: .system); var config = UIButton.Configuration.filled(); config.title = ["ota":"选择本地 .bin 固件", "wallpaperZip":"选择壁纸文件", "diagnostics":"导出诊断", "updates":"检查更新"][name]; button.configuration = config; button.addAction(UIAction { [weak self] _ in self?.perform() }, for: .touchUpInside)
         let stack = UIStackView(arrangedSubviews: [button, output]); stack.axis = .vertical; stack.spacing = 20; stack.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(stack)
         NSLayoutConstraint.activate([stack.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 20), stack.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -20), stack.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 20), stack.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -20)])
         output.isEditable = false; output.font = .preferredFont(forTextStyle: .body)
-        output.text = name == "ota" ? "仅适用于 AE5I 的 5 寸 Sunplus Gemini 仪表。先手动连接自己的车辆热点，停稳车辆并保持供电。读取版本后还需再次确认；MD5 不能证明固件兼容性，必须使用你确认来源和车型的固件。" : name == "wallpaperZip" ? "在本机检查 ZIP 中的 1.png、2.png、长度、CRC 和 PNG 结构。通过后可保存 / 分享；推送请回仪表壁纸入口选中模板。" : name == "updates" ? "只读取本 GitHub 仓库已发布的版本，包括验收版；按版本号选择最新版本。IPA 不签名，下载后由使用者自签；Safari 主屏幕版无需签名。" : "仅导出版本、能力、账号数量和监控模式，不含账号、钥匙、位置、服务端原文。"
+        output.text = name == "ota" ? "仅适用于 AE5I 5寸仪表，请确认固件来源并保持供电" : name == "wallpaperZip" ? "选择壁纸文件，检查后可保存" : name == "updates" ? "自签安装包需自行签名，也可使用网页版" : "导出排查记录，不含登录信息"
         if name == "updates" {
-            let install = UIButton(type: .system); install.setTitle("打开已核对的发布页 / 自签安装", for: .normal); install.addAction(UIAction { [weak self] _ in do { _ = try self?.tools.installUpdate() } catch { self?.output.text = (error as? PanelError)?.errorDescription } }, for: .touchUpInside); stack.insertArrangedSubview(install, at: 1)
+            let install = UIButton(type: .system); install.setTitle("下载安装包", for: .normal); install.addAction(UIAction { [weak self] _ in do { _ = try self?.tools.installUpdate() } catch { self?.output.text = (error as? PanelError)?.errorDescription } }, for: .touchUpInside); stack.insertArrangedSubview(install, at: 1)
         }
     }
     private func perform() {
         guard task == nil else { return }
         if ["ota", "wallpaperZip"].contains(name) { let picker = UIDocumentPickerViewController(forOpeningContentTypes: name == "ota" ? [.data] : [.zip], asCopy: true); picker.delegate = self; present(picker, animated: true); return }
         if name == "diagnostics" { do { _ = try tools.exportDiagnostics() } catch { output.text = "导出未完成。" }; return }
-        task = Task { [weak self] in guard let self else { return }; defer { self.task = nil }; do { let result = try await self.tools.checkUpdate(); self.output.text = "检查结果：\(result["version"] as? String ?? "暂无可识别发布")\(result["prerelease"] as? Bool == true ? "（验收版）" : "")。\n\(result["available"] as? Bool == true ? "有新版本，可打开发布页。" : "当前没有更高的已发布版本。")\nIPA 需要使用者自签安装。" } catch { self.output.text = "暂时无法读取发布信息，请稍后重试。" } }
+        task = Task { [weak self] in guard let self else { return }; defer { self.task = nil }; do { let result = try await self.tools.checkUpdate(); self.output.text = result["available"] as? Bool == true ? "有新版本" : "已是最新版本" } catch { self.output.text = "加载失败，请重试" } }
     }
     func documentPicker(_ controller: UIDocumentPickerViewController, didPickDocumentsAt urls: [URL]) {
         guard let source = urls.first, task == nil else { return }
@@ -179,7 +179,7 @@ enum GeminiOTA {
                     let access = source.startAccessingSecurityScopedResource(); defer { if access { source.stopAccessingSecurityScopedResource() } }
                     guard let size = try source.resourceValues(forKeys: [.fileSizeKey]).fileSize, size > 0, size <= 16 * 1024 * 1024 else { throw PanelError.invalid("ZIP 必须小于 16 MiB。") }
                     let data = try Data(contentsOf: source); try WallpaperArchive.validate(data)
-                    guard epoch == self.generation else { throw PanelError.cancelled }; self.output.text = "ZIP / PNG 校验通过，可保存后从壁纸模板入口推送。"
+                    guard epoch == self.generation else { throw PanelError.cancelled }; self.output.text = "壁纸文件可用，可保存"
                     controller.dismiss(animated: true) { [weak self] in
                         guard let self, epoch == self.generation else { return }; do { try self.tools.share(data, name: "GeometryPanel-wallpaper.zip") } catch { self.output.text = "校验通过，导出未完成。请重新选择后重试。" }
                     }; return
@@ -205,9 +205,9 @@ enum GeminiOTA {
                 }
                 try await socket.send(GeminiOTA.frame(0x10000007)); _ = try await GeminiOTA.read(socket, command: 0x10000006, timeout: 60)
                 guard epoch == self.generation else { throw PanelError.cancelled }
-                self.output.text = "收到仪表最终校验响应，这不代表升级成功。请保持供电，现场观察重启后版本变化。"
+                self.output.text = "传输结束，请保持供电并核对仪表版本"
             } catch {
-                if epoch == self.generation { self.output.text = self.began ? "升级请求已经发出，当前结果未知。保持供电，查看仪表，不要直接重复推送。" : (error as? PanelError)?.errorDescription ?? "操作没有完成，请检查文件、车辆热点和系统局域网权限。" }
+                if epoch == self.generation { self.output.text = self.began ? "未收到车辆确认，请保持供电，不要重复升级" : (error as? PanelError)?.errorDescription ?? "连接未完成，请检查车辆热点" }
             }
         }
     }
@@ -225,7 +225,7 @@ enum GeminiOTA {
         alert.addAction(UIAlertAction(title: "继续", style: .cancel)); alert.addAction(UIAlertAction(title: "停止", style: .destructive) { [weak self] _ in guard let self else { return }; self.cancel(); self.output.text = self.began ? "传输已中止，结果未知。请保持供电并观察仪表。" : "已取消。" }); present(alert, animated: true)
     }
     override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); if navigationController?.isBeingDismissed == true || isBeingDismissed { cancel() } }
-    @objc private func close() { if began, task != nil { output.text = "正在传输；如确需中止，请保持车辆供电后退出应用，结果将未知。"; return }; cancel(); dismiss(animated: true) }
+    @objc private func close() { if began, task != nil { output.text = "正在传输，请保持车辆供电"; return }; cancel(); dismiss(animated: true) }
 }
 
 @MainActor final class ScannerController: UIViewController, AVCaptureMetadataOutputObjectsDelegate {
@@ -237,10 +237,10 @@ enum GeminiOTA {
         navigationItem.rightBarButtonItem = UIBarButtonItem(title: "关闭", style: .done, target: self, action: #selector(close))
         result.isEditable = false; result.font = .preferredFont(forTextStyle: .body); result.translatesAutoresizingMaskIntoConstraints = false; view.addSubview(result)
         NSLayoutConstraint.activate([result.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16), result.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16), result.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor), result.heightAnchor.constraint(equalToConstant: 180)])
-        result.text = "扫描结果只在本机显示，可长按复制；不会自动打开链接、登录或执行车控。"
+        result.text = "扫描仪表上的配对码"
         Task { [weak self] in
             guard let self else { return }
-            guard await AVCaptureDevice.requestAccess(for: .video), !self.closed, self.view.window != nil, let camera = AVCaptureDevice.default(for: .video), let input = try? AVCaptureDeviceInput(device: camera), self.session.canAddInput(input) else { self.result.text = "相机未获允许或不可用，请在系统设置检查相机权限。"; return }
+            guard await AVCaptureDevice.requestAccess(for: .video), !self.closed, self.view.window != nil, let camera = AVCaptureDevice.default(for: .video), let input = try? AVCaptureDeviceInput(device: camera), self.session.canAddInput(input) else { self.result.text = "相机不可用，请在设置中允许"; return }
             self.session.addInput(input); let output = AVCaptureMetadataOutput(); guard self.session.canAddOutput(output) else { return }; self.session.addOutput(output)
             output.setMetadataObjectsDelegate(self, queue: .main); output.metadataObjectTypes = [.qr, .ean8, .ean13, .code128].filter { output.availableMetadataObjectTypes.contains($0) }
             let preview = AVCaptureVideoPreviewLayer(session: self.session); preview.videoGravity = .resizeAspectFill; preview.frame = CGRect(x: 0, y: self.view.safeAreaInsets.top, width: self.view.bounds.width, height: max(100, self.view.bounds.height - 240)); self.view.layer.insertSublayer(preview, at: 0)
@@ -248,7 +248,7 @@ enum GeminiOTA {
         }
     }
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {
-        guard let text = (metadataObjects.first as? AVMetadataMachineReadableCodeObject)?.stringValue else { return }; result.text = String(text.prefix(4096)) + "\n\n可长按选择和复制。不会自动打开或执行。"
+        guard let text = (metadataObjects.first as? AVMetadataMachineReadableCodeObject)?.stringValue else { return }; result.text = String(text.prefix(4096)) + "\n\n长按复制"
     }
     func stopCapture() { closed = true; let capture = session; captureQueue.async { capture.stopRunning() } }
     override func viewWillDisappear(_ animated: Bool) { super.viewWillDisappear(animated); stopCapture() }

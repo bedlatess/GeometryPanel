@@ -16,8 +16,8 @@ public final class NativeActionActivity extends Activity {
         catch (Exception error) { status.setText("桌面入口绑定已失效，请在面板中重新配置当前车辆。"); return; }
         worker.execute(() -> {
             String result;
-            try { NativeActions.execute(this, getIntent().getData(), () -> { if (cancelled) throw new IOException("cancelled"); }); result = "refresh".equals(getIntent().getData().getLastPathSegment()) ? "已安排本机读取，请查看组件更新时间。" : "服务端已接受请求，请以车辆实际状态为准。"; }
-            catch (Exception error) { result = "请求未确认完成，车辆可能已经收到。请先检查实际状态，避免重复操作。"; }
+            try { NativeActions.execute(this, getIntent().getData(), () -> { if (cancelled) throw new IOException("cancelled"); }); result = "refresh".equals(getIntent().getData().getLastPathSegment()) ? "正在读取，请查看组件更新时间" : "已发送，请查看车辆状态"; }
+            catch (Exception error) { result = "结果尚未确认，请查看车辆，勿重复操作"; }
             String message = result; runOnUiThread(() -> { if (!isFinishing()) status.setText(message); });
         });
     }

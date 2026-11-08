@@ -44,11 +44,11 @@ import WidgetKit
         }
         if enabled, Date().timeIntervalSince1970 * 1000 - time < 300000,
            let soc = snapshot.soc, soc <= lowBattery, lastLowBattery == nil || Date().timeIntervalSince(lastLowBattery!) > 3600 {
-            lastLowBattery = Date(); notify("low-battery", title: "车辆电量提醒", body: "最近一次读取的电量已低于你设置的提醒值，出发前请确认电量。")
+            lastLowBattery = Date(); notify("low-battery", title: snapshot.vehicleLabel, body: "电量 \(Int(soc))%，请及时充电")
         }
         return ["updated": widgetUpdated, "widgetAvailable": widgetAvailable]
     }
-    func bluetoothDisconnected() { if proximityEnabled { notify("ble-disconnected", title: "车辆蓝牙连接已断开", body: "可能超出距离或车辆关闭了蓝牙；车辆锁定状态请现场确认。") } }
+    func bluetoothDisconnected() { if proximityEnabled { notify("ble-disconnected", title: "车辆蓝牙连接已断开", body: "车辆蓝牙已断开") } }
     func clear() {
         generation += 1
         if let shared = WidgetSnapshot.sharedDefaults {

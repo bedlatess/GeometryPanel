@@ -82,7 +82,7 @@ import UIKit
             case 0x10:
                 guard body.count >= 30 else { throw PanelError.invalid("仪表视频配置过短。") }
                 let width = Int(try body.unsigned(0, 2)), height = Int(try body.unsigned(2, 2)), fps = Int(try body.unsigned(4, 4)), codec = Int(try body.unsigned(8, 4)), bitrate = Int(try body.unsigned(20, 4))
-                guard codec == 0 || codec == 2 else { throw PanelError.unavailable("仪表请求的视频编码不是恢复协议中的 H.264。") }
+                guard codec == 0 || codec == 2 else { throw PanelError.unavailable("此仪表暂不支持投屏") }
                 try encoder.configure(width: width, height: height, fps: fps, bitrate: bitrate); extended = body[29] != 0; configured = true
                 let dimensions = encoder.dimensions; var reply = Data(); reply.appendLE(UInt32(2)); reply.appendLE(UInt16(dimensions.0)); reply.appendLE(UInt16(dimensions.1)); reply.append(extended ? 1 : 0)
                 try await socket.send(MeterWire.media(0x11, seq, reply))
@@ -109,7 +109,7 @@ import UIKit
             let attributes: [String: Any] = [kSecAttrKeyType as String: kSecAttrKeyTypeRSA, kSecAttrKeySizeInBits as String: 1024]
             privateKey = SecKeyCreateRandomKey(attributes as CFDictionary, nil)
         }
-        guard let key = privateKey, let publicKey = SecKeyCopyPublicKey(key), let publicData = SecKeyCopyExternalRepresentation(publicKey, nil) as Data? else { throw PanelError.unavailable("仪表兼容握手密钥生成失败。") }
+        guard let key = privateKey, let publicKey = SecKeyCopyPublicKey(key), let publicData = SecKeyCopyExternalRepresentation(publicKey, nil) as Data? else { throw PanelError.unavailable("连接未完成，请重新连接") }
         // The legacy protocol uses RSA private PKCS#1 type-1 padding over raw HUID,
         // rather than a hash signature. Preserve that wire contract only here.
         var signed = Data(count: SecKeyGetBlockSize(key)), length = signed.count

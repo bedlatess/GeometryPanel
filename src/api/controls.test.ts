@@ -7,7 +7,7 @@ import { createUnlockSecret } from './legacy-unlock';
 import type { Session } from '../core/model';
 import type { CommandStep } from '../core/command-report';
 
-const contract = JSON.parse(readFileSync(new URL('../../verification/recovered-controls-contract.json', import.meta.url), 'utf8'));
+const contract = JSON.parse(readFileSync(new URL('../../docs/dev/verification/recovered-controls-contract.json', import.meta.url), 'utf8'));
 const fixture: Session = { token: 'synthetic-token', uid: 'synthetic-user', vehicle: { vin: contract.syntheticVin, name: '测试车', type: '', plate: '' } };
 const reply = (data: unknown, status = 200, code = 10000) => new Response(JSON.stringify({ code, data }), { status });
 

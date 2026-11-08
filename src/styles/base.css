@@ -18,3 +18,7 @@ p { overflow-wrap:anywhere; }
 .icon { width:var(--icon); height:var(--icon); flex:none; display:inline-block; vertical-align:middle; }
 .skip-link { position:fixed; left:var(--space-4); top:calc(var(--skip-offset) * -1); z-index:20; background:var(--accent); color:var(--accent-ink); padding:var(--space-3) var(--space-5); border-radius:var(--space-2); }
 .skip-link:focus-visible { top:var(--space-3); }
+
+:root[data-input="pointer"] :focus { outline:none; }
+.skip-link { transform:translateY(-200%); } .skip-link:focus-visible { transform:none; }
+a { text-decoration:none; }

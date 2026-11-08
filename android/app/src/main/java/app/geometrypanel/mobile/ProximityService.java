@@ -22,7 +22,7 @@ public final class ProximityService extends Service {
         threshold = Math.max(-90, Math.min(-35, intent.getIntExtra("threshold", -65)));
         generation = engine.generation;
         PendingIntent stop = PendingIntent.getService(this, 3, new Intent(this, ProximityService.class).setAction("stop"), PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        startForeground(510, NativeNotifications.builder(this, "geometry-device", "车辆靠近提醒运行中", "只检测绑定车辆的信号并提醒，不自动开锁。云授权过期后自动停止。")
+        startForeground(510, NativeNotifications.builder(this, "geometry-device", "车辆靠近提醒", "只检测绑定车辆的信号并提醒，不自动开锁。云授权过期后自动停止。")
                 .setOngoing(true).addAction(new android.app.Notification.Action.Builder(null, "停止", stop).build()).build());
         running = true; handler.removeCallbacksAndMessages(null); tick(); return START_NOT_STICKY;
     }

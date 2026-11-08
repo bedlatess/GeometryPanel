@@ -1,7 +1,9 @@
 import { defineConfig, devices } from '@playwright/test';
-import base from './playwright.config';
+import base from '../../playwright.config';
 export default defineConfig({
   ...base,
+  testDir:'../../tests',
+  webServer:{...base.webServer,cwd:process.cwd()},
   testMatch: '**/ui-audit.audit.ts',
   fullyParallel: false,
   workers: 1,

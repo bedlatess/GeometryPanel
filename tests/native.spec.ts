@@ -17,7 +17,7 @@ async function syntheticNative(page: Page) {
   });
 }
 test('Safari explains installation without pretending native functions are available', async ({ page, mocks }) => {
-  await open(page);
+  await open(page);await page.getByRole('button',{name:'体验演示',exact:true}).click();
   await navigate(page,'/vehicle/status');
   await navigate(page,'/tools/bluetooth');
   await expect(page.getByText('以下功能需在 App 中使用')).toBeVisible();
@@ -31,8 +31,8 @@ test('native demo remains read-only and never prepares cloud keys', async ({ pag
   await navigate(page,'/vehicle/status');
   await navigate(page,'/tools/bluetooth');
   await expect(page.getByRole('button', { name: '准备资料' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '登记手机钥匙' })).toBeDisabled();
-  await navigate(page,'/tools/meter');await expect(page.getByRole('button',{name:'设置仪表壁纸'})).toBeDisabled();expect(await page.evaluate(()=>(window as any).__nativeCalls)).toEqual([]);
+  await navigate(page,'/tools/bluetooth/more');await expect(page.getByRole('button', { name: '登记手机钥匙' })).toBeDisabled();
+  await navigate(page,'/tools/meter');await page.getByRole('button',{name:'仪表壁纸',exact:true}).click();await expect(page.getByRole('button',{name:'选择壁纸模板'})).toBeDisabled();expect(await page.evaluate(()=>(window as any).__nativeCalls)).toEqual([]);
   expect(mocks.calls).toHaveLength(0);
 });
 test('native snapshot contains only display data and logout clears native vehicle scope', async ({ page }) => {

@@ -5,12 +5,20 @@ enum PanelError: Error, LocalizedError {
     case coded(String, String)
     var errorDescription: String? {
         switch self {
-        case .invalid(let text), .unavailable(let text): return text
-        case .coded(_, let text): return text
+        case .invalid(let text), .unavailable(let text): return Self.userMessage(text)
+        case .coded(_, let text): return Self.userMessage(text)
         case .cancelled: return "已取消本轮操作。"
-        case .timeout: return "连接或回复超时；车辆执行结果需要观察确认。"
-        case .disconnected: return "连接已断开；请重新连接后再试。"
+        case .timeout: return "未收到车辆响应，请查看车辆"
+        case .disconnected: return "连接已断开，请重新连接"
         }
+    }
+    static func userMessage(_ detail: String) -> String {
+        DiagnosticEvent.record(detail)
+        if detail.contains("ZIP") || detail.contains("PNG") || detail.contains("MD5") { return "文件无法识别，请换一个壁纸文件" }
+        if detail.contains("OTA") || detail.contains("帧") || detail.contains("握手") || detail.contains("字段") { return "未收到车辆响应，请检查连接" }
+        if detail.contains("token") || detail.contains("登录") && detail.contains("过期") { return "登录已过期，请重新登录" }
+        if detail.contains("协议") || detail.contains("BLE") { return "此车型暂不支持此操作" }
+        return detail.count > 24 ? "未收到车辆响应，请检查连接" : detail
     }
     var code: String {
         switch self {
@@ -151,7 +159,17 @@ struct VehicleBinding: Codable {
     func requireKey() throws -> (Data, Data) {
         try requireFresh()
         guard let encryptValue, encryptValue.count == 128, let encrypted = Data(hex: encryptValue), encrypted.count == 64, let key, [16,24,32].contains(key.utf8.count) else { throw PanelError.coded("ble_material_missing", "该车辆没有返回可用的蓝牙认证材料。壁纸和组件仍可单独使用。") }
-        guard !inductiveGeneration.hasPrefix("3") else { throw PanelError.unavailable("旧版没有恢复 3.0 钥匙协议，当前不能登记或认证 3.0。") }
+        guard !inductiveGeneration.hasPrefix("3") else { throw PanelError.unavailable("此车型暂不支持手机登记") }
         return (encrypted, Data(key.utf8))
     }
+}
+
+final class DiagnosticEvent {
+    private static let lock = NSLock()
+    private static var latest = "none"
+    static func record(_ detail: String) {
+        let code = detail.contains("ZIP") ? "wallpaper_archive" : detail.contains("MD5") ? "asset_integrity" : detail.contains("OTA") ? "meter_transfer" : detail.contains("字段") || detail.contains("帧") ? "message_format" : "native_operation"
+        lock.lock(); latest = code; lock.unlock()
+    }
+    static func snapshot() -> String { lock.lock(); defer { lock.unlock() }; return latest }
 }

@@ -95,7 +95,7 @@ public final class MainActivity extends Activity {
         int space = Math.round(24 * getResources().getDisplayMetrics().density);
         errorPanel.setPadding(space, space, space, space);
         TextView description = new TextView(this);
-        description.setText("暂时无法打开几何面板。\n请检查网络后重试。首次打开需要联网；之后可使用网页缓存。\n已保存的登录和配置不会因此清除。");
+        description.setText("无法打开面板，请检查网络后重试");
         description.setTextColor(Color.rgb(24, 49, 37));
         description.setTextSize(17);
         description.setGravity(Gravity.CENTER);
@@ -238,7 +238,7 @@ public final class MainActivity extends Activity {
     private void showLoadError() {
         if (!snapshotFallback && panel != null) {
             PanelCache.Session candidate = PanelCache.acquire(this);
-            if (candidate != null) { snapshotSession = candidate; snapshotFallback = true; loadFailed = false; panel.post(() -> { if (panel != null) { panel.loadUrl(BuildConfig.PANEL_URL); Toast.makeText(this,"正在使用正式站点的本机网页快照；联网后可重新打开更新。",Toast.LENGTH_LONG).show(); } }); return; }
+            if (candidate != null) { snapshotSession = candidate; snapshotFallback = true; loadFailed = false; panel.post(() -> { if (panel != null) { panel.loadUrl(BuildConfig.PANEL_URL); Toast.makeText(this,"正在使用离线页面",Toast.LENGTH_LONG).show(); } }); return; }
         }
         loadFailed = true;
         if (panel != null) panel.setVisibility(View.GONE);

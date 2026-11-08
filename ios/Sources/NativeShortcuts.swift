@@ -38,7 +38,7 @@ import WidgetKit
         do { try request(action, vehicleId: items.first(where: { $0.name == "vehicleId" })?.value); return true } catch { return false }
     }
     static func widget(_ params: [String: Any]) throws -> [String: Any] {
-        guard let shared = WidgetSnapshot.sharedDefaults else { throw PanelError.unavailable("当前安装包未包含有效 App Groups 组件签名，请用组件版并配置自签资料。") }
+        guard let shared = WidgetSnapshot.sharedDefaults else { throw PanelError.unavailable("组件不可用，请安装正确签名的组件版") }
         guard let id = params["vehicleId"] as? String, let (account, vehicle) = NativeBackground.shared.accounts.vehicle(id), account.enabled, vehicle.enabled, let style = params["style"] as? String, ["1x1", "2x2", "4x2", "4x4"].contains(style), let controls = params["controls"] as? Bool else { throw PanelError.invalid("组件设置无效。") }
         shared.set(id, forKey: "widget.vehicle"); shared.set(style, forKey: "widget.style"); shared.set(controls, forKey: "widget.controls")
         if let sample = NativeHistory.last(account: account, vehicle: vehicle) {
@@ -52,7 +52,7 @@ import WidgetKit
 enum PanelShortcutAction: String, AppEnum {
     case refresh, unlock, lock, horn, seat
     static var typeDisplayRepresentation: TypeDisplayRepresentation = "车辆操作"
-    static var caseDisplayRepresentations: [PanelShortcutAction: DisplayRepresentation] = [.refresh: "刷新车况", .unlock: "开锁上电", .lock: "锁车下电", .horn: "鸣笛寻车", .seat: "开启座桶"]
+    static var caseDisplayRepresentations: [PanelShortcutAction: DisplayRepresentation] = [.refresh: "刷新车况", .unlock: "上电开锁", .lock: "关机锁车", .horn: "鸣笛寻车", .seat: "打开座桶"]
 }
 
 struct PanelVehicleIntent: AppIntent {

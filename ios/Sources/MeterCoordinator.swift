@@ -108,25 +108,25 @@ import ImageIO
         let stack = UIStackView(); stack.axis = .vertical; stack.spacing = 16; stack.translatesAutoresizingMaskIntoConstraints = false; scroll.addSubview(stack)
         NSLayoutConstraint.activate([stack.topAnchor.constraint(equalTo: scroll.contentLayoutGuide.topAnchor, constant: 24), stack.bottomAnchor.constraint(equalTo: scroll.contentLayoutGuide.bottomAnchor, constant: -24), stack.leadingAnchor.constraint(equalTo: scroll.contentLayoutGuide.leadingAnchor, constant: 24), stack.trailingAnchor.constraint(equalTo: scroll.contentLayoutGuide.trailingAnchor, constant: -24), stack.widthAnchor.constraint(equalTo: scroll.frameLayoutGuide.widthAnchor, constant: -48)])
         let guide = UILabel(); guide.numberOfLines = 0; guide.font = .preferredFont(forTextStyle: .body); guide.adjustsFontForContentSizeCategory = true
-        guide.text = "先在 iPhone 系统设置中手动连接车辆热点。当前仅连接该 Wi-Fi 下的 192.168.0.1，不能通过 VIN 证明热点身份；请在自己的车辆旁确认。iOS 不支持通用 Wi-Fi Direct。"
+        guide.text = "请在车旁连接自己的车辆热点"
         stack.addArrangedSubview(guide)
         if let profile = params["wifiAddress"] as? String, !profile.isEmpty {
             let info = UILabel(); info.numberOfLines = 0; info.font = .preferredFont(forTextStyle: .footnote); info.textColor = .secondaryLabel
-            if let data = profile.data(using: .utf8), let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any], let ssid = object["ssid"] as? String { info.text = "云端热点名称：\(String(ssid.prefix(64)))。请在系统 Wi-Fi 页面连接，不在本应用日志保存口令。" }
-            else { info.text = "已收到云端配对资料。系统不能直接使用 Android Wi-Fi Direct 配对信息；请手动连接车辆热点。" }
+            if let data = profile.data(using: .utf8), let object = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any], let ssid = object["ssid"] as? String { info.text = "请连接车辆热点：\(String(ssid.prefix(64)))" }
+            else { info.text = "请在系统设置中连接车辆热点" }
             stack.addArrangedSubview(info)
         }
         if mode == "wallpaper" {
             let detail = UILabel(); detail.numberOfLines = 0; detail.font = .preferredFont(forTextStyle: .footnote)
-            detail.text = "选择两张图片，替换网页中所选模板的两张壁纸。图片会在本机重新编码为 1.png 和 2.png，不上传到我们的服务器。"
+            detail.text = "选择两张图片作为仪表壁纸"
             if let w = dimension("width"), let h = dimension("height") { detail.text! += " 输出尺寸 \(w)×\(h)，按比例裁剪填满。" }
             stack.addArrangedSubview(detail)
             firstButton = button("选择第一张壁纸") { [weak self] in self?.choose(1) }; secondButton = button("选择第二张壁纸") { [weak self] in self?.choose(2) }
             stack.addArrangedSubview(firstButton); stack.addArrangedSubview(secondButton)
-            stack.addArrangedSubview(button("或选择本地壁纸 ZIP") { [weak self] in self?.choose(3) })
-            if let text = params["url"] as? String, let url = URL(string: text), NativeAsset.permitted(url) { stack.addArrangedSubview(button("下载并检查所选官方 ZIP") { [weak self] in self?.downloadOfficial(url) }) }
+            stack.addArrangedSubview(button("导入壁纸文件") { [weak self] in self?.choose(3) })
+            if let text = params["url"] as? String, let url = URL(string: text), NativeAsset.permitted(url) { stack.addArrangedSubview(button("下载原始壁纸") { [weak self] in self?.downloadOfficial(url) }) }
         } else {
-            let detail = UILabel(); detail.numberOfLines = 0; detail.font = .preferredFont(forTextStyle: .footnote); detail.text = "系统会请求录屏授权。本版本只传输几何面板自身画面；没有音频和触摸反控。切到后台立即停止。支持情况取决于仪表是否接受 iOS 协议握手。"; stack.addArrangedSubview(detail)
+            let detail = UILabel(); detail.numberOfLines = 0; detail.font = .preferredFont(forTextStyle: .footnote); detail.text = "允许录屏后开始投屏，切到后台停止"; stack.addArrangedSubview(detail)
         }
         startButton = button(mode == "wallpaper" ? "确认热点后推送壁纸" : "授权并开始投屏") { [weak self] in self?.start() }; stack.addArrangedSubview(startButton)
         let stop = button("停止当前仪表操作") { [weak self] in self?.coordinator.stop() }; stack.addArrangedSubview(stop)
@@ -144,10 +144,10 @@ import ImageIO
         do {
             let values = try url.resourceValues(forKeys: [.fileSizeKey]); guard let size = values.fileSize, size > 0, size <= 16 * 1024 * 1024 else { throw PanelError.invalid("原图片须小于 16 MiB。") }
             let data = try Data(contentsOf: url, options: [.mappedIfSafe])
-            if choosing == 3 { try WallpaperArchive.validate(data); try validate(); archive = data; output.text = "本地 ZIP / PNG 校验通过，将优先推送此 ZIP。选择图片可切回两图方式。"; return }
+            if choosing == 3 { try WallpaperArchive.validate(data); try validate(); archive = data; output.text = "壁纸文件已就绪"; return }
             archive = nil; let image = try normalizedPNG(data)
             if choosing == 1 { first = image; firstButton.setTitle("第一张已选择，点击更换", for: .normal) } else { second = image; secondButton.setTitle("第二张已选择，点击更换", for: .normal) }
-            output.text = "已在本机重新编码，大小 \(image.count / 1024) KiB。"
+            output.text = "图片已就绪"
         } catch { output.text = (error as? PanelError)?.errorDescription ?? "图片读取失败，请换一张图片。" }
     }
     private func downloadOfficial(_ url: URL) {
@@ -158,8 +158,8 @@ import ImageIO
                 try self.validate(); let data = try await NativeAsset.download(url); try Task.checkCancellation(); try self.validate()
                 if let digest = self.params["md5"] as? String, !digest.isEmpty, digest.lowercased() != MeterWire.md5(data) { throw PanelError.invalid("官方 ZIP 的 MD5 不符。") }
                 if let size = NativeCloud.number(self.params["fileSize"], range: 1...Double(16 * 1024 * 1024)), Int(size) != data.count { throw PanelError.invalid("官方 ZIP 长度不符。") }
-                try WallpaperArchive.validate(data); self.archive = data; self.output.text = "官方 ZIP 下载 / 校验通过，确认车辆热点后可推送。"
-            } catch { self.output.text = (error as? PanelError)?.errorDescription ?? "官方 ZIP 下载未完成。" }
+                try WallpaperArchive.validate(data); self.archive = data; self.output.text = "壁纸已就绪，请确认后发送"
+            } catch { self.output.text = (error as? PanelError)?.errorDescription ?? "壁纸下载未完成，请重试" }
         }
     }
     private func dimension(_ key: String) -> Int? { guard let value = params[key] as? Int, (1...8192).contains(value) else { return nil }; return value }
@@ -179,7 +179,7 @@ import ImageIO
         guard output.count <= 16 * 1024 * 1024 else { throw PanelError.invalid("重新编码后的 PNG 过大，请选择更小的图片。") }; return output
     }
     private func start() {
-        if mode == "wallpaper", archive == nil, first == nil || second == nil { output.text = "请先选择两张图片或有效的壁纸 ZIP。"; return }
+        if mode == "wallpaper", archive == nil, first == nil || second == nil { output.text = "请选择两张图片或壁纸文件"; return }
         let alert = UIAlertController(title: "确认当前车辆热点", message: mode == "wallpaper" ? "确认当前 Wi-Fi 是自己的仪表热点，车辆停稳且供电正常。推送后请查看仪表；中断时结果可能未知。" : "确认当前 Wi-Fi 是自己的仪表热点。系统授权后只采集本应用画面，可随时点击红色按钮停止。", preferredStyle: .alert)
         alert.addAction(UIAlertAction(title: "取消", style: .cancel)); alert.addAction(UIAlertAction(title: "确认", style: .default) { [weak self] _ in
             guard let self else { return }
@@ -188,7 +188,7 @@ import ImageIO
         }); present(alert, animated: true)
     }
     @objc private func closePanel() {
-        if coordinator.state == "transferring" { output.text = "正在传输，若要中止请点“停止当前仪表操作”；中止后结果可能未知。"; return }
+        if coordinator.state == "transferring" { output.text = "正在传输，请保持车辆供电"; return }
         download?.cancel(); download = nil; dismiss(animated: true)
     }
     override func viewDidDisappear(_ animated: Bool) { super.viewDidDisappear(animated); if navigationController?.isBeingDismissed == true || isBeingDismissed { download?.cancel(); download = nil } }

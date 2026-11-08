@@ -51,7 +51,7 @@ for(const file of [...await list('src/ui'),'src/main.ts']) {
   }
   visit(ast);
 }
-const parity=JSON.parse(await readFile('verification/original-parity.json','utf8'));
+const parity=JSON.parse(await readFile('docs/dev/verification/original-parity.json','utf8'));
 const missing=[];
 for(const e of parity.entries)for(const file of e.implementation)try{await readFile(file);}catch{missing.push({method:e.method,file});}
 const report={contrast,styles,banned,parity:{entries:parity.entries.length,categories:new Set(parity.entries.map(e=>e.category)).size,missing}};

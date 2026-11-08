@@ -87,7 +87,7 @@ public class PanelWidget extends AppWidgetProvider {
         String details = (snapshot.opt("range") instanceof Number ? "续航 " + Math.round(snapshot.optDouble("range")) + " km" : "续航 —")
                 + "  ·  " + (snapshot.opt("voltage") instanceof Number ? String.format(java.util.Locale.ROOT, "%.1f V", snapshot.optDouble("voltage")) : "电压 —");
         view.setTextViewText(R.id.widget_details, details);
-        view.setTextViewText(R.id.widget_time, time <= 0 ? "打开面板读取车况" : (old ? "历史读数 · " : "上次读取 · ") + android.text.format.DateFormat.format("MM-dd HH:mm", time));
+        view.setTextViewText(R.id.widget_time, time <= 0 ? "打开面板读取车况" : (old ? "更新于 · " : "更新于 · ") + android.text.format.DateFormat.format("M月d日 HH:mm", time));
         view.setOnClickPendingIntent(R.id.widget_root, NativeNotifications.open(context));
         view.setViewVisibility(R.id.widget_details, style.equals("1x1") ? View.GONE : View.VISIBLE);
         view.setViewVisibility(R.id.widget_actions, style.equals("1x1") ? View.GONE : View.VISIBLE);

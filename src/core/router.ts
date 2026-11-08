@@ -1,6 +1,6 @@
 export const roots = ['vehicle', 'records', 'tools', 'me'] as const;
 export type Root = typeof roots[number];
-const routes = /^\/(?:vehicle(?:\/(?:status|location|settings|info|messages))?|records(?:\/(?:rides(?:\/20\d{2}-\d{2}-\d{2})?|battery|tires))?|tools(?:\/(?:bluetooth|meter|monitor|widgets|diagnostics|tasks|android|scan))?|me(?:\/(?:accounts|appearance|home|art|backup|install|about|lab|components))?)$/;
+const routes = /^\/(?:vehicle(?:\/(?:status|location(?:\/coordinates)?|settings(?:\/unsupported)?|info|messages(?:\/[A-Za-z0-9_%.-]{1,200})?))?|records(?:\/(?:rides(?:\/20\d{2}-\d{2}-\d{2})?|battery(?:\/info)?|tires))?|tools(?:\/(?:bluetooth(?:\/more)?|meter(?:\/(?:wallpaper|cast|upgrade))?|monitor|widgets|diagnostics|tasks|android|scan))?|me(?:\/(?:accounts|appearance|home|art|backup|install|about(?:\/(?:privacy|disclaimer|licenses(?:\/(?:barlow|lucide|mit))?))?|lab|components))?)$/;
 export function validRoute(value: string): string { return routes.test(value) ? value : '/vehicle'; }
 export const routeRoot = (path: string): Root => validRoute(path).split('/')[1] as Root;
 export const parentRoute = (path: string) => path.split('/').slice(0, -1).join('/') || '/vehicle';

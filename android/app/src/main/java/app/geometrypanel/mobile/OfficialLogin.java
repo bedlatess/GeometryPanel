@@ -22,13 +22,13 @@ final class OfficialLogin {
     static void prepareCertificate(Activity activity) {
         NativeToolActivity.JOBS.execute(() -> { try { CaptureCertificate.material(activity); activity.runOnUiThread(() -> new AlertDialog.Builder(activity)
             .setTitle("本机临时登录证书")
-            .setMessage("下一步导出本机生成的公开 CA 证书。需在 Android 设置的安全/凭据中手动安装为 CA 证书，供官方 H5 登录识别。捕获结束后可移除。若官方应用拒绝用户证书，此方式无法读取登录，请继续使用面板验证码登录。证书私钥只保存在本机加密库。")
+            .setMessage("请导出证书，在系统安全设置中安装；连接结束后可移除")
             .setNegativeButton("返回", null).setPositiveButton("导出公开证书", (d,w) -> activity.startActivityForResult(new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("application/x-x509-ca-cert").putExtra(Intent.EXTRA_TITLE, "GeometryPanel-local-login-ca.cer"), 915)).show());
         } catch (Exception error) { toast(activity, "本机证书准备失败。"); } });
     }
     static void start(Activity activity) {
         new AlertDialog.Builder(activity).setTitle("临时捕获自己的官方登录")
-                .setMessage("仅路由官方 com.cfmoto 应用；只解析 h5.zeehoev.com 的 /H5/baseInfo 登录身份，其它 TLS 原样转发。期间会阻止 QUIC/加密 DNS 以使用 TCP。不会保存流量或启动车辆操作。系统还会要求 VPN 授权，最长运行 10 分钟，通知栏可随时停止。")
+                .setMessage("仅连接极核 App，需系统网络授权；最长10分钟，可随时停止")
                 .setNegativeButton("返回", null).setPositiveButton("开始", (d,w) -> {
                     try { activity.getPackageManager().getPackageInfo("com.cfmoto", 0); Intent permission = VpnService.prepare(activity); if (permission == null) launch(activity); else activity.startActivityForResult(permission, 916); }
                     catch (Exception error) { toast(activity, "未安装官方应用或系统未提供 VPN 权限。"); }
@@ -73,7 +73,7 @@ final class OfficialLogin {
     static void importToPanel(Activity activity, NativeJson.Result reply, java.util.function.BooleanSupplier current) {
         if (!status(activity).optBoolean("captured")) { reply.finish(status(activity), null); return; }
         new AlertDialog.Builder(activity).setTitle("将自己的登录资料交给本机面板")
-            .setMessage("只交给当前正式面板页面一次，由面板加密保存并进入车辆选择。不会输出到日志或诊断。")
+            .setMessage("登录信息将加密保存在本机")
             .setNegativeButton("取消", (d,w) -> reply.finish(null, "cancelled"))
             .setOnCancelListener(d -> reply.finish(null, "cancelled"))
             .setPositiveButton("导入本机面板", (d,w) -> {

@@ -13,7 +13,7 @@
 | 投屏控制/媒体/拉帧 | `METER_CAST.md` 第 5 节；旧 `k1/q1/s2/w1` | 保留帧格式和协议响应，适配 iOS 自身屏幕采集和 H.264 编码 |
 | Gemini OTA | `METER_CAST.md` 第3节；旧 `h9/i/f0` | 固定10086、大端10字节头、版本查询、元数据ACK、4096字节块、结束 / 最终响应；512MiB上限，二次确认，中断结果未知 |
 | 云监控 / 历史 | `VEHICLE_API.md`，现网页已确证读取模型 | 原生固定APP签名与端点；无任意请求桥。Keychain凭据、AES-GCM本地历史；缺测与未知值保留为未知 |
-| 自动任务 | `verification/parity-bridge-v2.md`；旧 `k0/j0/ta` | APP / H5签名分开，逐步读后核实，资格不明跳过，每日尝试门闩；新文章以ID/作者/原文/时间/基线严格确证，仅本次帖子可清理 |
+| 自动任务 | `docs/dev/verification/parity-bridge-v2.md`；旧 `k0/j0/ta` | APP / H5签名分开，逐步读后核实，资格不明跳过，每日尝试门闩；新文章以ID/作者/原文/时间/基线严格确证，仅本次帖子可清理 |
 
 这些本地文档追溯到 REA 原包证据 `ev_da00a0bbe6c5b51c3cc180ceca2764803730ac7c189818cbc21f025a94986e48`；原 APK SHA256 为 `50138c01db2d51f27cf0e8c9ae4eba475b8ccea3a97cc399b8b9334f843f566c`。静态证据不能确认服务端、车型、蓝牙响应或仪表兼容率。
 

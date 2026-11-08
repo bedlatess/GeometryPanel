@@ -1,0 +1,32 @@
+name: 问题反馈
+description: 记录遇到的问题
+title: "[问题] "
+body:
+  - type: dropdown
+    id: platform
+    attributes:
+      label: 平台
+      options: [iPhone 网页, Android, iOS App]
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: 版本
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: 车型
+  - type: textarea
+    id: problem
+    attributes:
+      label: 现象
+    validations:
+      required: true
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截图
+      description: 请遮住手机号、车架号和停车位置。
