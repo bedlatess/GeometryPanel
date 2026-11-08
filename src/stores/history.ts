@@ -1,15 +1,15 @@
 import { defineStore } from 'pinia';
-import { ref, shallowRef, computed, watch, reactive } from 'vue';
-import { useSessionStore } from './session';
-import { readLocalHistory, clearLocalHistory } from '../core/history-store';
+import { computed, reactive, ref, shallowRef, watch } from 'vue';
+import { nativeAccountsAuthorized } from '../core/background';
 import {
   emptyHistory,
   historyCsv,
   type BatterySample,
   type ChargingSession,
 } from '../core/history';
-import { nativeAccountsAuthorized } from '../core/background';
+import { clearLocalHistory, readLocalHistory } from '../core/history-store';
 import type { NativeCapabilities } from '../core/native';
+import { useSessionStore } from './session';
 export const useHistoryStore = defineStore('history', () => {
   const session = useSessionStore();
   const samples = shallowRef<BatterySample[]>([]),

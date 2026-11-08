@@ -23,7 +23,7 @@ test('extensions load month records and actual track geometry with exact recover
   await expect.poll(() => mocks.calls.filter(call => call.path.endsWith('/myRideInfo')).at(-1)?.query?.month).toBe('2026.10');
   expect(mocks.calls.filter(call => call.path.endsWith('/myRideInfo')).at(-1)?.query).toEqual({ month: '2026.10', vinNo: VIN_A });
   await panel(page).locator('ion-item').filter({hasText:'12.4 km'}).click();
-  await expect(panel(page).getByRole('heading',{name:/10月6日/})).toBeVisible();
+  await expect(panel(page).getByRole('heading',{name:/08:10 — 08:38/})).toBeVisible();
   await expect(panel(page).getByRole('img', { name: '行程轨迹' })).toBeVisible();
   const path = await panel(page).locator('svg.track-drawing path').getAttribute('d');
   expect(path?.split('M').length).toBe(3);
@@ -42,9 +42,9 @@ test('account-wide message actions require scope confirmation and never run mere
   mocks.extensions = sample(); await open(page); await login(page); await show(page);
   await navigate(page,'/vehicle/messages');
   const messageWrites = () => mocks.calls.filter(call => /\/Message\/(read|delete)$/.test(call.path));
-  await expect(panel(page)).toContainText('车辆消息'); expect(messageWrites()).toEqual([]);
-  await page.getByRole('button', { name: '全部标为已读', exact: true }).click(); expect(messageWrites()).toEqual([]);
-  await expect(page.locator('ion-modal:not(.overlay-hidden)')).toContainText('此账号全部车辆');await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'全部标为已读',exact:true}).click();
+  await expect(panel(page)).toContainText('车辆账号'); expect(messageWrites()).toEqual([]);
+  await page.getByRole('button', { name: '全部已读', exact: true }).click(); expect(messageWrites()).toEqual([]);
+  await expect(page.locator('ion-modal:not(.overlay-hidden)')).toContainText('此账号全部车辆');await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'全部已读',exact:true}).click();
   await expect(panel(page).getByRole('status')).toContainText('已更新');
   expect(messageWrites()[0].query).toEqual({ messageKind: '3' });
   await panel(page).getByRole('button',{name:'删除全部',exact:true}).click();
@@ -63,7 +63,7 @@ test('tires, scoped alerts and failed categories retain clear states and escape 
   await navigate(page,'/vehicle/messages');
   await expect(panel(page).getByText('<img src=x onerror=alert(1)>', { exact: true })).toBeVisible();
   await expect(panel(page).getByText('其他车辆消息不应显示')).toHaveCount(0);
-  await panel(page).getByRole('button',{name:'账号消息',exact:true}).click();await expect(panel(page).getByText('未注明车辆的合成消息',{exact:true})).toBeVisible();
+  await panel(page).getByRole('tab',{name:'账号',exact:true}).click();await expect(panel(page).getByText('未注明车辆的合成消息',{exact:true})).toBeVisible();
   expect(await panel(page).locator('img').count()).toBe(0);
   mocks.extensions.fail = 'tires';
   await navigate(page,'/records/tires');

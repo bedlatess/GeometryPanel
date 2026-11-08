@@ -19,7 +19,7 @@ test('token and sign-in URL stay masked and validate the vehicle list before sav
 });
 
 test('renewing a login keeps the existing vehicle and preferences',async({page,mocks})=>{
- await ready(page,mocks,'/me/accounts');await page.getByRole('button',{name:'更新登录信息',exact:true}).click();await page.getByRole('button',{name:'使用 token 登录'}).click();
+ await ready(page,mocks,'/me/accounts');await page.getByRole('link',{name:/1 台车/}).click();await page.getByRole('button',{name:'更新登录信息',exact:true}).click();await page.getByRole('button',{name:'使用 token 登录'}).click();
  await page.locator('#login-secret').fill('synthetic-renewed');await page.getByRole('button',{name:'登录',exact:true}).click();
  await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();await expect(page.getByRole('button',{name:/^测试极核 A/})).toBeVisible();
  await navigate(page,'/vehicle');await page.getByRole('button',{name:'刷新车况'}).click();
@@ -28,14 +28,14 @@ test('renewing a login keeps the existing vehicle and preferences',async({page,m
 
 test('encrypted account backup can be restored and never exports plaintext',async({page,mocks})=>{
  await ready(page,mocks,'/me/backup');await page.getByRole('button',{name:'备份账号',exact:true}).click();
- await expect(page.locator('ion-modal:not(.overlay-hidden)')).toContainText('备份包含登录信息');await page.locator('[data-account-password]').fill('synthetic-backup-password');
+ await expect(page.locator('[data-account-password]')).toHaveAttribute('type','password');await page.locator('[data-account-password]').fill('synthetic-backup-password');
  const download=page.waitForEvent('download');await page.getByRole('button',{name:'加密并导出'}).click();const artifact=await download;
  const stream=await artifact.createReadStream();const chunks:Buffer[]=[];for await(const c of stream!)chunks.push(Buffer.from(c));const text=Buffer.concat(chunks).toString();
  expect(artifact.suggestedFilename()).toMatch(/\.gpbackup$/);expect(text).not.toContain('synthetic-token');expect(JSON.parse(text).kdf).toBe('PBKDF2-SHA256');
  await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();await page.getByRole('button',{name:'恢复账号',exact:true}).click();
  await page.locator('[data-account-file]').setInputFiles({name:'test.gpbackup',mimeType:'application/octet-stream',buffer:Buffer.from(text)});
  await page.locator('[data-account-password]').fill('synthetic-backup-password');await page.getByRole('button',{name:'解密并恢复'}).click();
- await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();await navigate(page,'/me/accounts');await expect(page.getByRole('button',{name:/^测试极核 A/})).toBeVisible();
+ await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();await navigate(page,'/me/accounts');await page.getByRole('link',{name:/1 台车/}).click();await expect(page.getByRole('button',{name:/^测试极核 A/})).toBeVisible();
 });
 
 const pages:[string,string][]=[['/vehicle/status','距下次保养'],['/vehicle/info','设备'],['/vehicle/health','测试电气系统'],['/vehicle/firmware','测试仪表'],['/records/battery/score','测试扣分项'],['/records/battery/official','34.5 A·h'],['/records/rides','骑行习惯'],['/records/tires','胎压与胎温曲线'],['/vehicle/settings/phone-keys','测试手机'],['/vehicle/settings/card-keys','测试卡钥匙'],['/vehicle/location/fences','测试围栏'],['/vehicle/settings/charge-plan','07:00–21:00'],['/vehicle/settings/sharing','测试家人']];

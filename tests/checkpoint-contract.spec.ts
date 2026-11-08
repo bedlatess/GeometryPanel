@@ -36,7 +36,7 @@ test('R2 retains every reminder and saved shortcut without issuing control reque
     '胎压过低',
     '智能服务已到期',
     '流量卡已到期',
-    '1 项异常',
+    '体检发现：测试电气系统',
     '距下次保养 100 km',
   ]) {
     await expect(page.locator('ion-modal:not(.overlay-hidden)')).toContainText(label);

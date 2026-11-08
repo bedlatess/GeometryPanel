@@ -12,6 +12,8 @@ import QuickAction from '../../components/QuickAction.vue';
 import MetricValue from '../../components/MetricValue.vue';
 import BrandRefresh from '../../components/BrandRefresh.vue';
 import { shortcutMap } from '../../app/shortcuts';
+import { useHomeButtons } from '../../stores/home-buttons';
+const homeButtons = useHomeButtons();
 const session = useSessionStore(),
   vehicle = useVehiclePresentation();
 onIonViewWillEnter(vehicle.updateClock);
@@ -19,10 +21,8 @@ const scrolled = ref(false);
 const signedIn = computed(() => session.state.preview || session.state.session);
 const loading = computed(() => !vehicle.reading && !session.state.preview && session.state.busy);
 const quick = computed(() => [
-  shortcutMap.horn,
-  shortcutMap.seat,
-  shortcutMap[session.state.preferences.shortcut[0]] || shortcutMap.location,
-  ['more', '更多', 'more'],
+  ...homeButtons.buttons.map((id) => shortcutMap[id] || shortcutMap.location),
+  shortcutMap.more,
 ]);
 function activate(action: string, value?: string) {
   if (!vehicle.online) {

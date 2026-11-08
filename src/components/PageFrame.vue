@@ -6,13 +6,18 @@ import BrandRefresh from './BrandRefresh.vue';
 import { useSessionStore } from '../stores/session';
 import { useRoute } from 'vue-router';
 const ownPath = useRoute().path;
-defineProps<{ title: string; root?: boolean; refresh?: () => Promise<unknown> }>();
+defineProps<{
+  title: string;
+  root?: boolean;
+  map?: boolean;
+  refresh?: () => Promise<unknown>;
+}>();
 const session = useSessionStore();
 const scrolled = ref(false);
 </script>
 <template>
   <IonPage :data-page="ownPath">
-    <PageHeader :title="title" :large="root" :class="{ expanded: root && !scrolled }">
+    <PageHeader v-if="!map" :title="title" :large="root" :class="{ expanded: root && !scrolled }">
       <slot name="toolbar" />
     </PageHeader>
     <IonContent
@@ -21,12 +26,13 @@ const scrolled = ref(false);
       @ion-scroll="scrolled = $event.detail.scrollTop > 35"
     >
       <BrandRefresh v-if="refresh" :refresh="refresh" />
-      <IonHeader v-if="root" collapse="condense" class="large-heading">
+      <IonHeader v-if="root" :translucent="true" collapse="condense" class="large-heading">
         <IonToolbar
-          ><IonTitle size="large" role="heading" aria-level="1">{{ title }}</IonTitle></IonToolbar
-        >
+          ><IonTitle size="large" role="heading" aria-level="1">{{ title }}</IonTitle>
+          <div v-if="!scrolled" slot="end" class="large-action"><slot name="toolbar" /></div>
+        </IonToolbar>
       </IonHeader>
-      <main class="page-body" :class="{ root }"><slot /></main>
+      <main class="page-body" :class="{ root, 'map-body': map }"><slot /></main>
     </IonContent>
   </IonPage>
 </template>

@@ -3,6 +3,11 @@
   font-size: 13px;
   color: var(--t2);
 }
+.vehicle-group {
+  background: var(--fill);
+  border-radius: 14px;
+  overflow: hidden;
+}
 .vehicle-choice {
   display: flex;
   gap: 12px;
@@ -11,7 +16,7 @@
   width: 100%;
   text-align: left;
   color: var(--t1);
-  background: var(--card);
+  background: transparent;
   padding: 0;
 }
 .car-art {

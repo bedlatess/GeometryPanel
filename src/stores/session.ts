@@ -1,12 +1,12 @@
 import { defineStore } from 'pinia';
 import { markRaw, shallowRef } from 'vue';
 import type { Router } from 'vue-router';
-import { createRuntime } from './runtime';
-import type { Session, Snapshot } from '../core/model';
 import type { AccountBook } from '../core/accounts';
 import { emptyAccounts } from '../core/accounts';
-import { defaultPreferences } from '../core/preferences';
+import type { Session, Snapshot } from '../core/model';
 import type { NativeMethod } from '../core/native';
+import { defaultPreferences } from '../core/preferences';
+import { createRuntime } from './runtime';
 
 export interface RuntimeState {
   developer?: boolean;
@@ -34,7 +34,7 @@ export interface RuntimeState {
   secondsRemaining: number;
   phone: string;
   pending: { token: string; uid: string; vehicles: Session['vehicle'][] } | null;
-  sheet: { title: string; body: string } | null;
+  sheet: { title: string; body: any } | null;
 }
 
 export const useSessionStore = defineStore('session', () => {
@@ -111,14 +111,19 @@ export const useSessionStore = defineStore('session', () => {
     modalEvent({ type: 'click', target: button } as unknown as Event);
   }
   const refresh = () => runtime.refresh();
+  const importOfficial = (value: unknown) => runtime.importOfficial(value);
+  const selectSaved = (id: string) => runtime.selectSaved(id);
+  const removeSaved = (id: string) => runtime.removeSaved(id);
+  const changeSaved = (next: AccountBook, before: AccountBook) => runtime.changeSaved(next, before);
+  const accountLogin = (id?: string) => runtime.accountLogin(id);
   const expire = () => runtime?.panelExpired();
   const toast = (text: string) => runtime?.toast(text);
   const nativeCall = <T>(method: NativeMethod, params: object = {}, signal?: AbortSignal) =>
     runtime.native.call<T>(method, params, signal);
+  const nativeClient = () => runtime.native;
   const close = () => runtime.close();
   const control = (mode: 'powerOn' | 'powerOff' | 'seat', drag = false) =>
     runtime.presentControl(mode, drag);
-  const legacy = (host: HTMLElement, path: string) => runtime?.legacy(host, path);
   const toolbar = (button: HTMLElement) => runtime?.toolbar(button);
   const haptic = (type: string) => {
     if (!state.value.preview && state.value.nativeAvailable) {
@@ -133,13 +138,18 @@ export const useSessionStore = defineStore('session', () => {
     modalAction,
     modalEvent,
     refresh,
+    importOfficial,
+    selectSaved,
+    removeSaved,
+    changeSaved,
+    accountLogin,
     close,
     control,
-    legacy,
     toolbar,
     haptic,
     expire,
     toast,
     nativeCall,
+    nativeClient,
   };
 });

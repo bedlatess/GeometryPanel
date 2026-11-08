@@ -1,8 +1,7 @@
 import { createRouter, createWebHashHistory } from '@ionic/vue-router';
 import type { RouteRecordRaw } from 'vue-router';
-import LegacyView from '../components/LegacyView.vue';
 
-const legacy: [string, string, string][] = [
+const pages: [string, string, string][] = [
   ['/vehicle/status/firmware', '固件', '车况'],
   ['/vehicle/location', '车辆位置', '车辆'],
   ['/vehicle/location/coordinates', '坐标', '车辆位置'],
@@ -46,6 +45,32 @@ const legacy: [string, string, string][] = [
   ['/me/lab', '状态模拟器', '开发者选项'],
   ['/me/components', '组件一览', '开发者选项'],
 ];
+function pageComponent(path: string) {
+  if (/^\/tools\/(bluetooth|meter)/.test(path))
+    return () => import('../views/tools/NativeView.vue');
+  if (path === '/tools/tasks') return () => import('../views/tools/TasksView.vue');
+  if (path === '/tools/picture') return () => import('../views/tools/PictureView.vue');
+  if (path.startsWith('/tools/')) return () => import('../views/tools/BackgroundView.vue');
+  if (path.startsWith('/vehicle/messages'))
+    return () => import('../views/vehicle/MessagesView.vue');
+  if (path === '/vehicle/settings/unsupported')
+    return () => import('../views/vehicle/UnsupportedView.vue');
+  if (path === '/vehicle/location' || path === '/vehicle/location/coordinates')
+    return () => import('../views/vehicle/LocationView.vue');
+  if (path.startsWith('/records/ride/')) return () => import('../views/records/TripView.vue');
+  if (path === '/records/battery/info') return () => import('../views/vehicle/StatusView.vue');
+  if (path.startsWith('/vehicle/') || path === '/records/battery/score')
+    return () => import('../views/vehicle/OwnerView.vue');
+  if (path.startsWith('/me/accounts')) return () => import('../views/me/AccountsView.vue');
+  if (path === '/me/appearance') return () => import('../views/me/AppearanceView.vue');
+  if (path === '/me/home') return () => import('../views/me/HomeButtonsView.vue');
+  if (path === '/me/backup') return () => import('../views/me/BackupView.vue');
+  if (path === '/me/install') return () => import('../views/me/InstallView.vue');
+  if (path === '/me/developer') return () => import('../views/me/DeveloperView.vue');
+  if (path === '/me/lab') return () => import('../views/me/LabView.vue');
+  if (path === '/me/components') return () => import('../views/me/ComponentsView.vue');
+  return () => import('../views/me/AboutView.vue');
+}
 const routes: RouteRecordRaw[] = [
   { path: '/', redirect: '/vehicle' },
   {
@@ -78,9 +103,9 @@ const routes: RouteRecordRaw[] = [
     component: () => import('../views/me/MeView.vue'),
     meta: { title: '我的', root: true },
   },
-  ...legacy.map(([path, title, back]) => ({
+  ...pages.map(([path, title, back]) => ({
     path,
-    component: LegacyView,
+    component: pageComponent(path),
     meta: { title, back, parent: path.split('/').slice(0, -1).join('/') || '/vehicle' },
   })),
   { path: '/vehicle/info', redirect: '/vehicle/status?tab=device' },

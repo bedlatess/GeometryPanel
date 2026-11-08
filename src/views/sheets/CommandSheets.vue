@@ -8,7 +8,7 @@ const session = useSessionStore(),
   vehicle = useVehiclePresentation();
 const title = computed(() => session.state.sheet?.title || '');
 const selected = computed(() =>
-  session.state.sheet?.body.includes('data-value="high"') ? 'high' : 'normal',
+  session.state.sheet?.body.selected === 'high' ? 'high' : 'normal',
 );
 const mode = computed(() =>
   title.value === '上电开锁' ? 'powerOn' : title.value === '关机锁车' ? 'powerOff' : 'seat',

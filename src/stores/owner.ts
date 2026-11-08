@@ -1,16 +1,16 @@
 import { defineStore } from 'pinia';
-import { ref, reactive, watch } from 'vue';
-import { OwnerApi, type OwnerRead } from '../api/owner';
+import { reactive, ref, watch } from 'vue';
 import { ApiError } from '../api/client';
+import { OwnerApi, type OwnerRead } from '../api/owner';
 import {
   changeOnce,
+  ownerNumber as num,
   ownerObject as obj,
   ownerRows as rows,
-  ownerNumber as num,
   ownerText as txt,
 } from '../core/owner-model';
 import { useSessionStore } from './session';
-export { obj, rows, num, txt };
+export { num, obj, rows, txt };
 export const useOwnerStore = defineStore('owner', () => {
   const session = useSessionStore(),
     api = new OwnerApi();

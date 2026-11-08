@@ -1,0 +1,74 @@
+.workflow-row {
+  display: block;
+  width: 100%;
+  padding: 14px 16px;
+  min-height: 52px;
+  background: var(--card);
+  text-align: left;
+  color: var(--t1);
+  font-size: 17px;
+  border-bottom: 0.5px solid var(--line);
+}
+.workflow-row:last-child {
+  border-bottom: 0;
+}
+.workflow-row:active {
+  background: var(--fill);
+}
+.workflow-row:disabled,
+.workflow-primary:disabled,
+.workflow-secondary:disabled {
+  opacity: 0.42;
+}
+.workflow-row.danger {
+  color: var(--alert);
+}
+.workflow-primary {
+  display: block;
+  width: 100%;
+  min-height: 56px;
+  background: var(--ink);
+  color: var(--ink-t);
+  border-radius: 28px;
+  font-size: 17px;
+  font-weight: 600;
+  margin-top: 24px;
+}
+.workflow-secondary {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  border-radius: 24px;
+  background: var(--fill);
+  color: var(--t1);
+  font-size: 17px;
+  margin-top: 16px;
+  padding: 12px 16px;
+}
+.workflow label:not(.toggle-field) {
+  display: block;
+  color: var(--t1);
+  font-size: 15px;
+  margin-block: 12px;
+}
+.workflow input:not([type='checkbox']),
+.workflow textarea {
+  display: block;
+  width: 100%;
+  color: var(--t1);
+  background: var(--fill);
+  border: 0;
+  padding: 12px;
+  margin-top: 8px;
+  border-radius: 12px;
+}
+.workflow .switch-input {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 16px;
+}
+.workflow .switch-input input {
+  accent-color: var(--ink);
+  width: 24px;
+  height: 24px;
+}

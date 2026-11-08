@@ -1,3 +1,0 @@
-import {ListGroup,ListRow}from '../kit';
-import {icon}from '../icons';
-export function installPage(version:string,installed:boolean,checking:boolean){return ListGroup('',ListRow('当前版本',version,'',undefined,true)+ListRow('运行方式',installed?'已添加到主屏幕':'在浏览器中使用','',undefined,true)+ListRow('下载 App','','data-action="download-app"')+ListRow('检查更新',checking?'正在加载':'','data-action="check-update"')+ListRow('离线数据','','data-action="cache-status"')+ListRow('清理离线数据','','data-action="cache-clear"'))+`<section class="install-steps"><h2>添加到主屏幕</h2><ol><li>${icon('share')} 打开分享菜单</li><li>${icon('plus')} 添加到主屏幕</li><li>添加</li></ol></section>`;}

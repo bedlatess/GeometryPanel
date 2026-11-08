@@ -24,7 +24,7 @@ function tapTab(path: string) {
   <IonPage>
     <IonTabs>
       <IonRouterOutlet />
-      <IonTabBar v-if="signedIn" slot="bottom" aria-label="主导航">
+      <IonTabBar v-if="signedIn" slot="bottom" :translucent="true" aria-label="主导航">
         <IonTabButton
           v-for="tab in tabs"
           :key="tab.path"

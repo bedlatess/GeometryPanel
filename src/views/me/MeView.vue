@@ -3,7 +3,7 @@ import { computed } from 'vue';
 import { IonButton } from '@ionic/vue';
 import { useSessionStore } from '../../stores/session';
 import { useVehiclePresentation } from '../../stores/presentation';
-import { vehicleImageSources } from '../../ui/vehicle-art';
+import { vehicleImageSources } from '../../app/vehicle-art';
 import PageFrame from '../../components/PageFrame.vue';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';

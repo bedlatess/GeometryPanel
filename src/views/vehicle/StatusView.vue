@@ -24,7 +24,7 @@ const route = useRoute(),
   router = useRouter(),
   resetOpen = ref(false);
 const tab = usePageQuery('/vehicle/status', 'tab', 'state');
-const { examination: count } = useOwnerPresentation();
+const { examination: count, summary } = useOwnerPresentation();
 const warn = computed(() => (count.value ?? 0) > 0 || (vehicle.reading?.soc ?? 100) <= 20);
 const metrics = computed(() => [
   { label: '电量', value: vehicle.reading?.soc, unit: '%' },
@@ -104,13 +104,7 @@ onIonViewWillEnter(() => {
           :title="warn ? `${count || 1} 项需要留意` : count === 0 ? '一切正常' : '车况'"
           :warning="warn"
           :icon="count === 0 ? 'check' : 'pulse'"
-          :subtitle="
-            warn
-              ? (vehicle.reading?.soc ?? 100) <= 20
-                ? '电量低，记得充电'
-                : '体检有异常'
-              : undefined
-          "
+          :subtitle="warn ? summary : undefined"
           :metrics="metrics"
         />
         <GroupList title="锁">

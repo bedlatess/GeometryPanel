@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue';
 import { useVehiclePresentation } from '../stores/presentation';
-import { vehicleImageSources } from '../ui/vehicle-art';
+import { vehicleImageSources } from '../app/vehicle-art';
 import BrandAsset from './BrandAsset.vue';
 import { useSessionStore } from '../stores/session';
 const vehicle = useVehiclePresentation();

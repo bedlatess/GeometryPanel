@@ -12,6 +12,7 @@ const props = defineProps<{
   to?: string;
   action?: boolean;
   disabled?: boolean;
+  readonly?: boolean;
   danger?: boolean;
   numeric?: boolean;
   toggle?: boolean;
@@ -30,12 +31,13 @@ function changed(event: CustomEvent) {
 <template>
   <IonItem
     class="list-row"
-    :button="Boolean(to || action || toggle)"
+    :button="!readonly && Boolean(to || action || toggle)"
     :router-link="to"
     :detail="Boolean(to)"
     :disabled="disabled"
-    :class="{ danger, tall: detail, 'with-icon': icon }"
-    @click="!to && !toggle && $emit('activate')"
+    :class="{ danger, tall: detail, 'with-icon': icon, readonly }"
+    :aria-disabled="readonly || disabled"
+    @click="!readonly && !to && !toggle && $emit('activate')"
   >
     <span v-if="icon" slot="start" class="tile"><AppIcon :name="icon" /></span>
     <IonLabel

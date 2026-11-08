@@ -1,4 +1,5 @@
 export const shortcutMap: Record<string, [string, string, string, string?]> = {
+  more: ['more', '更多', 'more'],
   horn: ['horn', '寻车', 'horn'],
   seat: ['seat', '座桶', 'vehicle-action', 'seat'],
   location: ['pin', '位置', 'route', '/vehicle/location'],

@@ -3,7 +3,6 @@ import { ref, shallowRef, watch } from 'vue';
 import { ApiError } from '../api/client';
 import { ExtensionsApi } from '../api/extensions';
 import { NativeMaterialsApi } from '../api/native-materials';
-import { changeOnce } from '../core/owner-model';
 import {
   chinaDay,
   rideMonth,
@@ -15,6 +14,7 @@ import {
   type TireReading,
   type VehicleSetting,
 } from '../core/extensions-model';
+import { changeOnce } from '../core/owner-model';
 import { useSessionStore } from './session';
 
 export const useExtensionsStore = defineStore('extensions', () => {

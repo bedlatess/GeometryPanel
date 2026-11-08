@@ -91,7 +91,8 @@ watch(period, (value) => {
       label="前后轮胎压历史曲线"
     />
     <div class="legend">
-      <span class="front">前轮</span><span>后轮</span> <span>┄ 建议不低于 2.2 bar</span>
+      <span class="front" :style="{ '--dot': color('前轮') }">前轮</span>
+      <span class="rear-dot">后轮</span><span class="reference">建议不低于 2.2 bar</span>
     </div>
   </section>
   <EmptyState

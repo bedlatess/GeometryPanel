@@ -6,6 +6,7 @@ import { useSessionStore } from '../../stores/session';
 import ListRow from '../../components/ListRow.vue';
 import Sheet from '../../components/Sheet.vue';
 import AppIcon from '../../components/AppIcon.vue';
+const props = defineProps<{ periodOnly?: boolean }>();
 const owner = useOwnerStore(),
   session = useSessionStore();
 const choosing = ref(false),
@@ -23,7 +24,8 @@ function prepare() {
   start.value = txt(settings.value.withdrawalStartTime).slice(0, 5) || '07:00';
   end.value = txt(settings.value.withdrawalEndTime).slice(0, 5) || '21:00';
   next.value = on.value;
-  choosing.value = true;
+  if (props.periodOnly) period.value = true;
+  else choosing.value = true;
 }
 function selected(value: boolean) {
   next.value = value;
@@ -53,10 +55,18 @@ async function confirm() {
 </script>
 <template>
   <ListRow
-    label="电话提醒"
-    :value="value"
+    :label="periodOnly ? '撤防时段' : '电话提醒'"
+    :value="
+      periodOnly
+        ? available
+          ? `${txt(settings.withdrawalStartTime).slice(0, 5)}–` +
+            txt(settings.withdrawalEndTime).slice(0, 5)
+          : '—'
+        : value
+    "
     :action="available"
-    :disabled="!available || owner.busy || session.state.preview"
+    :disabled="owner.busy || session.state.preview"
+    :readonly="!available"
     @activate="prepare"
   />
   <IonActionSheet

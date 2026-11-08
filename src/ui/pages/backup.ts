@@ -1,2 +1,0 @@
-import {ListGroup,ListRow} from '../kit';
-export function backupPage(_backup:string){return ListGroup('',ListRow('导出配置','','data-action="export-preferences"')+ListRow('导入配置','','data-action="import-preferences"')+ListRow('复制配置','','data-action="copy-preferences"'))+ListGroup('账号',ListRow('备份账号','','data-action="account-backup-export"')+ListRow('恢复账号','','data-action="account-backup-import"'))+ListGroup('',`<button class="list-row danger" data-action="reset-preferences">恢复默认</button>`);}

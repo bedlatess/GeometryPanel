@@ -106,7 +106,7 @@ function inputPhone(event: Event) {
   </form>
   <div v-else-if="title === '图形验证码'">
     <canvas
-      v-if="session.state.sheet?.body.includes('<canvas')"
+      v-if="session.state.sheet?.body.ready"
       class="captcha"
       width="720"
       height="360"
@@ -132,9 +132,9 @@ function inputPhone(event: Event) {
     </button>
     <p v-if="!session.state.busy && !session.state.pending?.vehicles.length">
       {{
-        session.state.sheet?.body.includes('车辆信息未识别')
+        session.state.sheet?.body.result?.receivedCount
           ? '车辆信息未识别'
-          : session.state.sheet?.body.includes('未找到车辆')
+          : session.state.sheet?.body.result
             ? '未找到车辆'
             : session.state.notice || '正在加载'
       }}

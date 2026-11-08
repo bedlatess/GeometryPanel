@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, watch } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { onIonViewWillLeave, onIonViewWillEnter } from '@ionic/vue';
+import { IonButton, onIonViewWillLeave, onIonViewWillEnter } from '@ionic/vue';
+import AppIcon from '../../components/AppIcon.vue';
 import { usePageQuery } from '../../app/page-query';
 import PageFrame from '../../components/PageFrame.vue';
 import SegmentControl from '../../components/SegmentControl.vue';
@@ -18,6 +19,7 @@ const route = useRoute(),
 const owner = useOwnerStore(),
   history = useHistoryStore();
 const tab = usePageQuery('/records', 'tab', 'ride');
+const battery = ref<InstanceType<typeof BatteryRecords>>();
 async function refresh() {
   if (tab.value === 'ride') {
     await Promise.all([ext.load('ride'), owner.load(['analysis'], { month: ext.month })]);
@@ -41,6 +43,11 @@ onIonViewWillLeave(() => ext.cancel('/records'));
 </script>
 <template>
   <PageFrame title="记录" root :refresh="refresh">
+    <template #toolbar>
+      <IonButton v-if="tab === 'battery'" aria-label="更多电池操作" @click="battery?.openMenu()"
+        ><AppIcon name="more"
+      /></IonButton>
+    </template>
     <SegmentControl
       v-model="tab"
       :options="[
@@ -50,7 +57,8 @@ onIonViewWillLeave(() => ext.cancel('/records'));
       ]"
     />
     <EmptyState v-if="owner.failed && tab !== 'tire'" text="加载失败" retry @retry="refresh" />
-    <RideRecords v-if="tab === 'ride'" /><BatteryRecords v-else-if="tab === 'battery'" />
+    <RideRecords v-if="tab === 'ride'" />
+    <BatteryRecords v-else-if="tab === 'battery'" ref="battery" />
     <TireRecords v-else />
   </PageFrame>
 </template>

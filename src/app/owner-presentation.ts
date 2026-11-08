@@ -1,6 +1,6 @@
 import { computed } from 'vue';
+import { num, rows, txt, useOwnerStore } from '../stores/owner';
 import { useVehiclePresentation } from '../stores/presentation';
-import { useOwnerStore, num, rows, txt } from '../stores/owner';
 
 // Display aggregation moved from src/ui/owner.ts; thresholds and order are unchanged.
 export function useOwnerPresentation() {
@@ -44,11 +44,20 @@ export function useOwnerPresentation() {
     const simDays = num(owner.get('sim').lastUseDate);
     if (simDays !== null && simDays <= 30)
       result.push(simDays <= 0 ? '流量卡已到期' : `流量卡 ${simDays} 天后到期`);
-    if (examination.value !== null && examination.value > 0)
-      result.push(`${examination.value} 项异常`);
+    if (examination.value !== null && examination.value > 0) {
+      const abnormal = rows(owner.get('examination').systemList)
+        .flatMap((row) => [row, ...rows(row.list)])
+        .filter((row) => num(row.abnormalState) !== null && num(row.abnormalState) !== 0);
+      result.push(`体检发现：${txt(abnormal[0]?.inspectionName) || '异常'}`);
+    }
     const km = num(owner.get('maintenance').keepMileage);
     if (km !== null && km <= 200) result.push(`距下次保养 ${km} km`);
     return result;
   });
-  return { examination, reminders };
+  const summary = computed(() =>
+    reminders.value.length > 1
+      ? `${reminders.value[0]}等 ${reminders.value.length} 项`
+      : reminders.value[0],
+  );
+  return { examination, reminders, summary };
 }

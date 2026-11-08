@@ -45,7 +45,12 @@ const group = (item: VehicleSetting) =>
               ? '安全'
               : '骑行';
 const items = (name: string) =>
-  ext.settings?.filter((item) => group(item) === name && !unsupported.value.includes(item)) || [];
+  ext.settings?.filter(
+    (item) =>
+      group(item) === name &&
+      !unsupported.value.includes(item) &&
+      !item.key.startsWith('withdrawal'),
+  ) || [];
 const title = (item: VehicleSetting) =>
   ({
     cloudInductiveEnabled: '车辆感应钥匙',
@@ -104,6 +109,7 @@ onIonViewWillLeave(() => ext.cancel('/vehicle/settings'));
         :title="name"
       >
         <SafetySettings v-if="name === '安全'" />
+        <LowPhoneSetting v-if="name === '安全'" period-only />
         <ListRow
           v-for="item in items(name)"
           :key="item.key"
@@ -112,7 +118,8 @@ onIonViewWillLeave(() => ext.cancel('/vehicle/settings'));
           :toggle="Boolean(binary(item))"
           :checked="item.value === '1'"
           :action="item.writable"
-          :disabled="ext.busy || session.state.preview || item.value == null"
+          :disabled="ext.busy || session.state.preview"
+          :readonly="item.value == null"
           :busy="ext.writing && pending?.setting.key === item.key"
           @change="choose(item)"
           @activate="choose(item)"

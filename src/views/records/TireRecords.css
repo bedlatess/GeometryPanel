@@ -55,7 +55,25 @@
   margin-top: 8px;
 }
 .legend > span:first-child {
-  color: var(--attn);
+  color: var(--t2);
+}
+.front::before,
+.rear-dot::before {
+  content: '';
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--dot, var(--t1));
+  margin-right: 5px;
+}
+.reference::before {
+  content: '';
+  display: inline-block;
+  width: 14px;
+  border-top: 1px dashed var(--t3);
+  vertical-align: middle;
+  margin-right: 5px;
 }
 .foot {
   text-align: center;

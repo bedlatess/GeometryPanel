@@ -1,8 +1,8 @@
-import { computed, ref } from 'vue';
 import { defineStore } from 'pinia';
-import { useSessionStore } from './session';
+import { computed, ref } from 'vue';
+import { DAILY_FUTURE_TOLERANCE_MS, DAILY_STALE_AFTER_MS } from '../core/daily-model';
 import { demoSnapshot, demoVehicle } from '../core/model';
-import { DAILY_STALE_AFTER_MS, DAILY_FUTURE_TOLERANCE_MS } from '../core/daily-model';
+import { useSessionStore } from './session';
 export const format = (v: number | null | undefined, unit = '') =>
   v == null
     ? '—'

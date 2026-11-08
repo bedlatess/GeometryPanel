@@ -7,6 +7,7 @@ const route = useRoute();
 const session = useSessionStore();
 const online = () => navigator.onLine;
 const message = computed(() => displayCopy(session.state.notice));
+let startY = 0;
 </script>
 <template>
   <div
@@ -32,7 +33,8 @@ const message = computed(() => displayCopy(session.state.notice));
       v-if="message && message !== '正在加载'"
       class="result-toast notice"
       role="status"
-      @pointerup="session.state.notice = ''"
+      @pointerdown="startY = $event.clientY"
+      @pointerup="$event.clientY < startY - 20 && (session.state.notice = '')"
     >
       {{ message }}
     </div>

@@ -2,6 +2,9 @@
   padding: 6px 16px 32px;
   min-height: 100%;
 }
+.map-body {
+  padding: 0;
+}
 .page-body > :deep(ion-segment) {
   margin-inline: 4px;
   width: calc(100% - 8px);
@@ -32,4 +35,15 @@
 .expanded {
   opacity: 0;
   pointer-events: none;
+}
+.large-action {
+  position: absolute;
+  right: 16px;
+  bottom: 0;
+}
+.large-action :deep(ion-button) {
+  width: 44px;
+  height: 44px;
+  margin: 0;
+  --color: var(--t1);
 }

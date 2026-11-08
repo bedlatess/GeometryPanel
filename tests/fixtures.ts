@@ -319,6 +319,17 @@ export async function report(page:Page) {
 export async function developerLab(page:Page) {
  await navigate(page,'/me/about');
  for(let i=0;i<5;i++)await page.getByRole('button',{name:/版本/}).click();
+ await page.getByRole('button',{name:'开发者选项',exact:true}).click();
  await page.getByRole('button',{name:'状态模拟器',exact:true}).click();
  await expect(page.locator('#design-lab')).toBeVisible();
+}
+export async function selectIon(page: Page, name: string, value: string) {
+ const select = page.locator(`ion-select[name="${name}"]`);
+ const label = await select.locator('ion-select-option').evaluateAll((items, chosen) =>
+   items.find(item => (item as HTMLIonSelectOptionElement).value === chosen)?.textContent, value);
+ if (!label) throw new Error(`Missing option ${name}:${value}`);
+ await select.click();
+ await page.locator('ion-action-sheet:not(.overlay-hidden)')
+   .getByRole('button', { name: label.trim(), exact: true }).click();
+ await expect(page.locator('ion-action-sheet:not(.overlay-hidden)')).not.toBeVisible();
 }

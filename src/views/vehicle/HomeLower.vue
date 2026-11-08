@@ -11,7 +11,7 @@ import Sheet from '../../components/Sheet.vue';
 const session = useSessionStore(),
   vehicle = useVehiclePresentation(),
   owner = useOwnerStore();
-const { reminders: reasons } = useOwnerPresentation();
+const { reminders: reasons, summary } = useOwnerPresentation();
 const remindersOpen = ref(false);
 watch(
   () => session.state.session,
@@ -36,7 +36,7 @@ watch(
       ><ListRow
         icon="alert"
         :label="`${reasons.length} 项需要留意`"
-        :detail="reasons[0]"
+        :detail="summary"
         action
         @activate="remindersOpen = true"
     /></GroupList>

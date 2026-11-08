@@ -46,16 +46,19 @@
   background-clip: text;
   color: transparent;
   background-size: 300% 100%;
-  animation: idle-shine 5.6s linear infinite;
+  animation: idle-shine 4s linear infinite;
 }
 @keyframes idle-shine {
   0% {
     background-position: 100% 0;
   }
-  28.6%,
+  40%,
   100% {
     background-position: 0 0;
   }
+}
+.phase-success .lever-label {
+  color: var(--t1);
 }
 .right .lever-label {
   inset: 0 70px 0 22px;

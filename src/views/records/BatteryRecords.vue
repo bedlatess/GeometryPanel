@@ -26,6 +26,11 @@ const menu = ref(false),
   clearOpen = ref(false),
   custom = ref(false),
   sourceMenu = ref(false);
+defineExpose({
+  openMenu: () => {
+    menu.value = true;
+  },
+});
 const categoryMenu = ref(false),
   categoryAction = ref(''),
   category = ref<'battery' | 'charge'>('battery');
@@ -45,14 +50,15 @@ const points = computed(() =>
     .flatMap((sample) => (sample.soc == null ? [] : [{ t: sample.at, v: sample.soc }]))
     .sort((a, b) => a.t - b.t),
 );
-const time = (value: number) =>
-  new Date(value).toLocaleString('zh-CN', {
-    month: 'numeric',
-    day: 'numeric',
+const time = (value: number) => {
+  const date = new Date(value);
+  const clock = date.toLocaleTimeString('zh-CN', {
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
   });
+  return `${date.getMonth() + 1} 月 ${date.getDate()} 日 ${clock}`;
+};
 const duration = (value: number) =>
   `${Math.floor(value / 3600000)} 小时 ${Math.floor(value / 60000) % 60} 分`;
 const buttons = [
@@ -89,9 +95,6 @@ onMounted(() => {
 <template>
   <div class="record-top">
     <MetricValue :value="vehicle.reading?.soc" unit="%" />
-    <IonButton fill="clear" aria-label="更多电池操作" @click="menu = true">
-      <AppIcon name="more"
-    /></IonButton>
   </div>
   <p class="record-sub">
     健康度 {{ format(vehicle.daily?.healthPercent) }}%　本月评分

@@ -15,9 +15,9 @@ const mutations = (calls: Call[]) => calls.filter(call => /\/(?:H5\/signin|likeF
 test('task entry reads synthetic status while every automatic action stays off and content is escaped', async ({ page, mocks }) => {
   mocks.tasks = sample(); mocks.tasks.summary.ps0003_01_002_VOList[0].name = '<img src=x onerror=alert(1)>';
   await open(page); await login(page); await show(page);
-  await expect(panel(page)).toContainText('1,280积分');
-  await expect(panel(page).getByLabel('每日签到', { exact: true })).not.toBeChecked();
-  await expect(panel(page).getByLabel('发布我的文字动态', { exact: true })).not.toBeChecked();
+  await expect(panel(page)).toContainText('积分1,280');
+  await expect(panel(page).getByRole('switch', { name: '每日签到', exact: true })).not.toBeChecked();
+  await expect(panel(page).getByRole('switch', { name: '发布我的文字动态', exact: true })).not.toBeChecked();
   await expect(panel(page)).toContainText('<img src=x onerror=alert(1)>');
   expect(await panel(page).locator('img').count()).toBe(0);
   expect(mutations(mocks.calls)).toEqual([]);
@@ -27,8 +27,8 @@ test('task entry reads synthetic status while every automatic action stays off a
 });
 test('signin is confirmed separately, uses the fixed H5 origin and rereads actual completion', async ({ page, mocks }) => {
   mocks.tasks = sample(); await open(page); await login(page); await show(page);
-  await panel(page).getByLabel('每日签到', { exact: true }).check();
-  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('switch', { name: '每日签到', exact: true }).check();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   expect(mutations(mocks.calls)).toEqual([]);
@@ -42,10 +42,10 @@ test('signin is confirmed separately, uses the fixed H5 origin and rereads actua
 });
 test('post and cleanup require exact user text and delete only the unique new article', async ({ page, mocks }) => {
   mocks.tasks = sample(); await open(page); await login(page); await show(page);
-  await panel(page).getByLabel('发布我的文字动态', { exact: true }).check();
-  await panel(page).getByLabel('清理本次发布的动态', { exact: true }).check();
+  await panel(page).getByRole('switch', { name: '发布我的文字动态', exact: true }).check();
+  await panel(page).getByRole('switch', { name: '清理本次发布的动态', exact: true }).check();
   await panel(page).getByLabel('要发布的文字').fill('只用于合成浏览器测试的动态');
-  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   expect(mutations(mocks.calls)).toEqual([]);
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
@@ -60,10 +60,10 @@ test('post and cleanup require exact user text and delete only the unique new ar
 test('unsafe publishing evidence and persisted daily gate prevent guessing a deletion or repeating publication', async ({ page, mocks }) => {
   mocks.tasks = sample(); mocks.tasks.unsafePost = true; mocks.tasks.noConfirm = true;
   await open(page); await login(page); await show(page);
-  await panel(page).getByLabel('发布我的文字动态', { exact: true }).check();
-  await panel(page).getByLabel('清理本次发布的动态', { exact: true }).check();
+  await panel(page).getByRole('switch', { name: '发布我的文字动态', exact: true }).check();
+  await panel(page).getByRole('switch', { name: '清理本次发布的动态', exact: true }).check();
   await panel(page).getByLabel('要发布的文字').fill('证据不完整测试');
-  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
@@ -76,13 +76,13 @@ test('unsafe publishing evidence and persisted daily gate prevent guessing a del
 });
 test('legacy like behavior needs its own saved opt-in before any request', async ({ page, mocks }) => {
   mocks.tasks = sample(); await open(page); await login(page); await show(page);
-  await panel(page).getByLabel('点赞广场动态', { exact: true }).check();
-  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('switch', { name: '点赞广场动态', exact: true }).check();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
   await expect(panel(page)).toContainText('状态未知'); expect(mutations(mocks.calls)).toEqual([]);
-  await panel(page).getByLabel('允许取消已有的点赞', { exact: false }).check();
+  await panel(page).getByRole('switch', { name: '允许取消已有的点赞', exact: false }).check();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
@@ -93,10 +93,10 @@ test('closing during a post stops later evidence and cleanup while retaining the
   mocks.tasks = sample(); let release!: () => void;
   mocks.tasks.hold = { kind: 'post', wait: new Promise<void>(resolve => { release = resolve; }) };
   await open(page); await login(page); await show(page);
-  await panel(page).getByLabel('发布我的文字动态', { exact: true }).check();
-  await panel(page).getByLabel('清理本次发布的动态', { exact: true }).check();
+  await panel(page).getByRole('switch', { name: '发布我的文字动态', exact: true }).check();
+  await panel(page).getByRole('switch', { name: '清理本次发布的动态', exact: true }).check();
   await panel(page).getByLabel('要发布的文字').fill('取消时的合成内容');
-  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
+  await panel(page).getByRole('button',{name:/执行间隔/}).click();await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'0 秒',exact:true}).click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   await page.getByRole('button',{name:'执行所选任务',exact:true}).click();
@@ -119,8 +119,8 @@ test('native task activation syncs credentials only after explicit consent and s
   });
   await open(page); await login(page); await show(page);
   expect(await page.evaluate(() => (window as any).__taskNativeCalls.filter((call: any) => call.method === 'accounts.sync').length)).toBe(0);
-  await panel(page).getByLabel('每日签到', { exact: true }).check();
-  await panel(page).getByLabel('定时执行', { exact: true }).check();
+  await panel(page).getByRole('switch', { name: '每日签到', exact: true }).check();
+  await panel(page).getByRole('switch', { name: '定时执行', exact: true }).check();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   expect(await page.evaluate(() => (window as any).__taskNativeCalls.filter((call: any) => call.method === 'accounts.sync').length)).toBe(0);
   await page.getByRole('button',{name:'启用并保存',exact:true}).click();

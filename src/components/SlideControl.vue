@@ -5,8 +5,9 @@ import { motion, reducedMotion } from '../theme/motion';
 import AppIcon from './AppIcon.vue';
 import { useSessionStore } from '../stores/session';
 import { useVehiclePresentation } from '../stores/presentation';
-const session = useSessionStore(),
-  vehicle = useVehiclePresentation();
+const props = defineProps<{ driver?: any; presentation?: any }>();
+const session = props.driver || useSessionStore(),
+  vehicle = props.presentation || useVehiclePresentation();
 const route = useRoute(),
   trackWidth = ref(350),
   snapping = ref(false);
@@ -131,7 +132,8 @@ function up(event: PointerEvent) {
     snapTimer = setTimeout(
       () => {
         snapping.value = false;
-        if (route.path === '/vehicle' && vin === vehicle.vehicle?.vin) session.control(mode, true);
+        if ((props.driver || route.path === '/vehicle') && vin === vehicle.vehicle?.vin)
+          session.control(mode, true);
         else offset.value = null;
       },
       reducedMotion() ? 0 : motion.snap,

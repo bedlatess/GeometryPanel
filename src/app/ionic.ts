@@ -1,6 +1,6 @@
 import { IonicVue } from '@ionic/vue';
 import type { App } from 'vue';
-import { motion, springCurve, reducedMotion } from '../theme/motion';
+import { motion, reducedMotion, springCurve } from '../theme/motion';
 
 export function installIonic(app: App) {
   app.use(IonicVue, { mode: 'ios', swipeBackEnabled: true, animated: !reducedMotion() });

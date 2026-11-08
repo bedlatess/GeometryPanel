@@ -2,7 +2,7 @@
 import { IonButton } from '@ionic/vue';
 import { useSessionStore } from '../../stores/session';
 import AppIcon from '../../components/AppIcon.vue';
-import { vehicleImageSources } from '../../ui/vehicle-art';
+import { vehicleImageSources } from '../../app/vehicle-art';
 import type { SavedVehicle } from '../../core/accounts';
 import { useVehiclePresentation } from '../../stores/presentation';
 const session = useSessionStore();
@@ -18,34 +18,41 @@ const image = (car: SavedVehicle) =>
     true,
   )[0];
 const mask = (value: string) => value.replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
+const accountTitle = (account: { label: string; uid: string }) => {
+  const name = /^账号 \d+$/.test(account.label) ? '' : account.label;
+  const phone = /^1\d{10}$/.test(account.uid) ? mask(account.uid) : '';
+  return [name, phone].filter(Boolean).join('　') || '账号';
+};
 </script>
 <template>
   <section v-for="account in session.state.accountBook.accounts" :key="account.id">
     <p class="account-name">
-      {{ account.label }}　{{ /^1\d{10}$/.test(account.uid) ? mask(account.uid) : '' }}
+      {{ accountTitle(account) }}
     </p>
-    <button
-      v-for="car in account.vehicles"
-      :key="car.id"
-      class="vehicle-choice"
-      :aria-label="car.label"
-      :disabled="session.state.busy"
-      @click.stop="session.modalAction('saved-vehicle', car.id)"
-    >
-      <span class="car-art num"
-        ><img v-if="image(car)" :src="image(car)" alt="" referrerpolicy="no-referrer" />
-        <template v-else>{{ car.type }}</template></span
+    <div class="vehicle-group">
+      <button
+        v-for="car in account.vehicles"
+        :key="car.id"
+        class="vehicle-choice"
+        :aria-label="car.label"
+        :disabled="session.state.busy"
+        @click.stop="session.modalAction('saved-vehicle', car.id)"
       >
-      <span class="name"
-        ><b>{{ car.label }}</b
-        ><small>{{
-          session.state.accountBook.selectedVehicleId === car.id
-            ? `${session.state.reading?.soc ?? '—'}%　${vehicle.lockText}`
-            : `尾号 ${car.vin.slice(-6)}`
-        }}</small></span
-      >
-      <AppIcon v-if="session.state.accountBook.selectedVehicleId === car.id" name="check" />
-    </button>
+        <span class="car-art num"
+          ><img v-if="image(car)" :src="image(car)" alt="" referrerpolicy="no-referrer" />
+          <template v-else>{{ car.type }}</template></span
+        >
+        <span class="name"
+          ><b>{{ car.label }}</b
+          ><small>{{
+            session.state.accountBook.selectedVehicleId === car.id
+              ? `${session.state.reading?.soc ?? '—'}%　${vehicle.lockText}`
+              : `尾号 ${car.vin.slice(-6)}`
+          }}</small></span
+        >
+        <AppIcon v-if="session.state.accountBook.selectedVehicleId === car.id" name="check" />
+      </button>
+    </div>
   </section>
   <IonButton
     expand="block"
