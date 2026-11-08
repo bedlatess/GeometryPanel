@@ -387,12 +387,14 @@ for (const theme of ['light', 'dark'])
     await page.context().setOffline(false);
     await state(page, original);
     await state(page, { preview: true });
+    // Date stays deterministic for this scene; Ionic's elapsed timers keep ticking.
+    await page.clock.setSystemTime(new Date(1794110400000));
     await page.evaluate(async () => {
       const pinia = (document.querySelector('#app') as any).__vue_app__.config.globalProperties
         .$pinia;
       const session = pinia._s.get('session');
       const demo = pinia._s.get('vehicle-presentation').reading;
-      const time = Date.now() - 180000;
+      const time = Date.now() - 181000;
       demo.daily.reportedAt = time;
       demo.daily.batteryReportedAt = time;
       if (demo.daily.location) demo.daily.location.reportedAt = time;
@@ -401,6 +403,7 @@ for (const theme of ['light', 'dark'])
       await new Promise(requestAnimationFrame);
       session.state = { ...session.state, preview: true };
     });
+    await expect(page.locator('.home-heading')).toContainText('3 分钟前更新');
     await shot('01-首页-演示');
     await lever.screenshot({ path: `${dir}/18-滑动条-演示-${theme}.png` });
     await state(page, { ...original, preview: false });

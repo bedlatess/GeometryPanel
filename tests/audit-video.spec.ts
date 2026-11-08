@@ -89,10 +89,20 @@ test('02-页面切换', async ({ page }) => {
     .evaluate((el: HTMLIonContentElement) => el.scrollToBottom(300));
   await page.getByText('电池健康', { exact: true }).click();
   await expect(page.locator('[data-page="/vehicle/status"]')).toBeVisible();
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)')
+        .evaluateAll((pages) => pages.map((element) => element.getAttribute('data-page'))),
+    )
+    .toEqual(['/vehicle/status']);
   await page.waitForTimeout(1000);
   await page.mouse.move(3, 350);
   await page.mouse.down();
-  await page.mouse.move(370, 350, { steps: 35 });
+  for (let x = 13; x <= 373; x += 10) {
+    await page.mouse.move(x, 350);
+    await page.waitForTimeout(16);
+  }
   await page.mouse.up();
   await expect(page).toHaveURL(/#\/vehicle$/);
   await page.waitForTimeout(1000);
