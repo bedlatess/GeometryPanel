@@ -119,9 +119,19 @@ test('a failed vehicle list retries the verified account without consuming SMS a
   mocks,
 }) => {
   mocks.listFailures = 1;
+  let releaseList!: () => void;
+  mocks.holdList = new Promise<void>((resolve) => {
+    releaseList = resolve;
+  });
   await open(page);
   await loginToList(page);
-  await expect(page.locator('#modal-message')).toBeVisible();
+  await expect(page.getByRole('heading', { name: '选择车辆', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: '重新读取' })).toBeDisabled();
+  // Release the synthetic failure after the loading view and observer are ready.
+  const failureShown = expect(page.locator('#modal-message')).toBeVisible();
+  releaseList();
+  mocks.holdList = undefined;
+  await failureShown;
   await page.getByRole('button', { name: '重新读取' }).click();
   await page.getByRole('button', { name: '测试极核 A' }).click();
   await expect(page.locator('.battery-number')).toHaveText('82%');

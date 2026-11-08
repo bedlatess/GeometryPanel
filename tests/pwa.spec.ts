@@ -73,9 +73,12 @@ test('separate project paths do not share sessions or preferences', async ({ pag
   await page.goto('http://127.0.0.1:4174/other/');
   await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeEnabled();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+  // Finish Ionic's local startup imports before replacing this entire document.
+  await page.waitForLoadState('networkidle');
   await page.goto('./');
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
   await expect(page.locator('html')).toHaveAttribute('data-theme', 'light');
+  await page.waitForLoadState('networkidle');
 });
 
 test('cache management keeps the active shell, other projects and encrypted login', async ({
