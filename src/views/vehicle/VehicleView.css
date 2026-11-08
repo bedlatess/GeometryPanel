@@ -82,11 +82,22 @@
   align-items: center;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 150ms;
+  transition: opacity var(--motion-header);
   border-bottom: 0.5px solid var(--line);
 }
 .folded-header.visible {
   opacity: 1;
+}
+.folded-header::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  /* Nested WebKit compositors may omit blur across the content shadow root. */
+  background:
+    linear-gradient(var(--bar), var(--bar)), linear-gradient(var(--bar), var(--bar)), var(--bar);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
 }
 .folded-header b {
   font-size: 17px;

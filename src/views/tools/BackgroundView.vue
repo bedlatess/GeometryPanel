@@ -5,16 +5,16 @@ import { computed } from 'vue';
 import { useRoute } from 'vue-router';
 import { useWorkflowPage } from '../../app/workflow-page';
 import { useSessionStore } from '../../stores/session';
-import { format, age } from '../../stores/presentation';
+import { age } from '../../stores/presentation';
 import PageFrame from '../../components/PageFrame.vue';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
 import StatusCard from '../../components/StatusCard.vue';
-import BrandAsset from '../../components/BrandAsset.vue';
 import { version } from '../../../package.json';
 const route = useRoute(),
   path = route.path,
   session = useSessionStore();
+const title = String(route.meta.title);
 const initial =
   path === '/tools/monitor' ? 'monitor' : path === '/tools/widgets' ? 'desktop' : 'tools';
 const toolGroup = path.endsWith('/android')
@@ -40,7 +40,7 @@ const selected = computed(() =>
 );
 </script>
 <template>
-  <PageFrame :title="String(route.meta.title)">
+  <PageFrame :title="title">
     <div id="background-panel" ref="host" class="workflow">
       <StatusCard
         v-if="initial === 'monitor'"
@@ -62,15 +62,16 @@ const selected = computed(() =>
       <HistoryPanel v-if="v.section === 'history'" :view="v" :disabled="disabled" />
       <template v-else-if="initial === 'monitor'">
         <GroupList>
-          <button
-            class="workflow-row"
-            data-background="toggle-monitor"
-            role="switch"
-            :aria-checked="Boolean(v.monitorEnabled)"
+          <ListRow
+            label="后台提醒"
+            toggle
+            :checked="Boolean(v.monitorEnabled)"
             :disabled="disabled || !has('background')"
-          >
-            后台提醒 <span class="right-value">{{ v.monitorEnabled ? '开启' : '关闭' }}</span>
-          </button>
+            @change="
+              host?.querySelector<HTMLButtonElement>('[data-background=toggle-monitor]')?.click()
+            "
+          />
+          <button hidden data-background="toggle-monitor" />
         </GroupList>
         <template v-if="v.monitorEnabled">
           <GroupList title="提醒分类">
@@ -109,11 +110,16 @@ const selected = computed(() =>
       </template>
       <template v-else-if="initial === 'desktop'">
         <section class="widget-preview" :data-size="v.style" aria-label="组件内容预览">
-          <BrandAsset name="mark" />
-          <h2>{{ selected?.label || '—' }}</h2>
-          <b class="num">{{ format(snapshot?.soc) }}<small>%</small></b>
-          <p>可行驶 {{ format(snapshot?.range, 'km') }}　{{ format(snapshot?.voltage, 'V') }}</p>
-          <time>{{ age(snapshot?.receivedAt) }}</time>
+          <StatusCard
+            :title="selected?.label || '—'"
+            :subtitle="age(snapshot?.receivedAt)"
+            icon="batt"
+            :metrics="[
+              { label: '电量', value: snapshot?.soc, unit: '%' },
+              { label: '可行驶', value: snapshot?.range, unit: 'km' },
+              { label: '电压', value: snapshot?.voltage, unit: 'V' },
+            ]"
+          />
         </section>
         <GroupList
           ><button
@@ -249,27 +255,6 @@ const selected = computed(() =>
 <style scoped>
 .right-value {
   float: right;
-  color: var(--t2);
-}
-.widget-preview {
-  padding: 24px;
-  border-radius: 20px;
-  background: var(--card);
-}
-.widget-preview :deep(img) {
-  width: 32px;
-}
-.widget-preview b {
-  display: block;
-  font-size: 48px;
-}
-.widget-preview small {
-  font-size: 17px;
-  color: var(--t2);
-}
-.widget-preview p,
-.widget-preview time {
-  font-size: 13px;
   color: var(--t2);
 }
 </style>

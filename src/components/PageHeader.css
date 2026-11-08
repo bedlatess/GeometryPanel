@@ -1,6 +1,12 @@
 ion-toolbar {
   --min-height: 44px;
 }
+ion-header {
+  background:
+    linear-gradient(var(--bar), var(--bar)), linear-gradient(var(--bar), var(--bar)), var(--bar);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  backdrop-filter: blur(24px) saturate(1.6);
+}
 ion-title {
   font-size: 17px;
   font-weight: 600;

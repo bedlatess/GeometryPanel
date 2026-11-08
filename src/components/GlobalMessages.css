@@ -42,11 +42,21 @@
 .toast-enter-active,
 .toast-leave-active {
   transition:
-    opacity 150ms,
+    opacity var(--motion-header),
     transform var(--spring-duration) var(--spring);
 }
 .toast-enter-from,
 .toast-leave-to {
   opacity: 0;
   transform: translate(-50%, -64px);
+}
+@media (prefers-reduced-motion: reduce) {
+  .toast-enter-active,
+  .toast-leave-active {
+    transition: opacity var(--motion-reduced);
+  }
+  .toast-enter-from,
+  .toast-leave-to {
+    transform: translateX(-50%);
+  }
 }

@@ -2,6 +2,8 @@
 import { ref, watch } from 'vue';
 import { IonDatetime } from '@ionic/vue';
 import Sheet from './Sheet.vue';
+import { useSessionStore } from '../stores/session';
+const session = useSessionStore();
 const props = defineProps<{ label: string; name: string; value: string; disabled?: boolean }>();
 const open = ref(false),
   time = ref(props.value);
@@ -23,7 +25,10 @@ watch(
       hour-cycle="h23"
       :prefer-wheel="true"
       :value="`2026-01-01T${time}:00`"
-      @ion-change="time = String($event.detail.value).slice(11, 16)"
+      @ion-change="
+        time = String($event.detail.value).slice(11, 16);
+        session.haptic('selection');
+      "
     />
   </Sheet>
 </template>

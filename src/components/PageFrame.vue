@@ -18,7 +18,7 @@ const scrolled = ref(false);
 <template>
   <IonPage :data-page="ownPath">
     <PageHeader v-if="!map" :title="title" :large="root" :class="{ expanded: root && !scrolled }">
-      <slot name="toolbar" />
+      <slot v-if="!root || scrolled" name="toolbar" />
     </PageHeader>
     <IonContent
       :fullscreen="true"

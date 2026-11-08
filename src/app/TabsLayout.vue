@@ -4,6 +4,7 @@ import { IonPage, IonRouterOutlet, IonTabs, IonTabBar, IonTabButton } from '@ion
 import { useRouter, useRoute } from 'vue-router';
 import AppIcon from '../components/AppIcon.vue';
 import { useSessionStore } from '../stores/session';
+import { reducedMotion } from '../theme/motion';
 const session = useSessionStore();
 const route = useRoute();
 const signedIn = computed(() => session.state.preview || Boolean(session.state.session));
@@ -16,7 +17,7 @@ const tabs = [
 function tapTab(path: string) {
   if (route.path === `/${path}`) {
     const content = document.querySelector('.ion-page:not(.ion-page-hidden) ion-content');
-    void (content as HTMLIonContentElement | null)?.scrollToTop(350);
+    void (content as HTMLIonContentElement | null)?.scrollToTop(reducedMotion() ? 0 : 350);
   }
 }
 </script>

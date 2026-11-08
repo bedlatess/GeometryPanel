@@ -128,6 +128,7 @@ function reset() {
           >平台形态<IonSelect
             name="lab-platform"
             interface="action-sheet"
+            cancel-text="取消"
             :value="platform"
             @ion-change="platform = $event.detail.value"
           >
@@ -140,6 +141,7 @@ function reset() {
           >主题<IonSelect
             name="lab-theme"
             interface="action-sheet"
+            cancel-text="取消"
             :value="theme"
             @ion-change="theme = $event.detail.value"
           >
@@ -151,6 +153,7 @@ function reset() {
           >状态<IonSelect
             name="lab-scene"
             interface="action-sheet"
+            cancel-text="取消"
             :value="scene"
             @ion-change="setScene($event.detail.value)"
           >

@@ -1,6 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue';
-import { IonPage, IonContent, onIonViewWillEnter } from '@ionic/vue';
+import {
+  IonPage,
+  IonContent,
+  onIonViewWillEnter,
+  onIonViewDidEnter,
+  onIonViewWillLeave,
+} from '@ionic/vue';
 import WelcomeView from '../welcome/WelcomeView.vue';
 import { useSessionStore } from '../../stores/session';
 import { useVehiclePresentation, format } from '../../stores/presentation';
@@ -17,6 +23,9 @@ const homeButtons = useHomeButtons();
 const session = useSessionStore(),
   vehicle = useVehiclePresentation();
 onIonViewWillEnter(vehicle.updateClock);
+const entered = ref(false);
+onIonViewDidEnter(() => (entered.value = true));
+onIonViewWillLeave(() => (entered.value = false));
 const scrolled = ref(false);
 const signedIn = computed(() => session.state.preview || session.state.session);
 const loading = computed(() => !vehicle.reading && !session.state.preview && session.state.busy);
@@ -41,8 +50,8 @@ function activate(action: string, value?: string) {
 }
 </script>
 <template>
-  <IonPage data-page="/vehicle">
-    <WelcomeView v-if="!signedIn" />
+  <IonPage data-page="/vehicle" :data-ready="entered">
+    <WelcomeView v-if="!signedIn" :ready="entered" />
     <template v-else>
       <div class="folded-header" :class="{ visible: scrolled }">
         <b>{{ vehicle.vehicle?.name }}</b

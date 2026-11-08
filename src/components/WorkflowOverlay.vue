@@ -4,6 +4,8 @@ import { IonActionSheet, IonButton, IonDatetime } from '@ionic/vue';
 import { useWorkflowOverlay } from '../stores/workflow-actions';
 import Sheet from './Sheet.vue';
 import AppIcon from './AppIcon.vue';
+import { useSessionStore } from '../stores/session';
+const session = useSessionStore();
 const overlay = useWorkflowOverlay();
 const value = ref('');
 const fieldValues = ref<Record<string, string>>({});
@@ -17,6 +19,7 @@ watch(
   },
 );
 function accept(event?: Event, chosen?: string) {
+  if (overlay.sheet?.body.kind === 'choose') session.haptic('selection');
   const button = (event?.currentTarget as HTMLElement) || document.createElement('button');
   Object.assign(button.dataset, overlay.sheet?.body.data, { value: chosen ?? value.value });
   overlay.submit(button);
@@ -73,7 +76,10 @@ const buttons = computed(() => [
             hour-cycle="h23"
             :prefer-wheel="true"
             :value="`2026-01-01T${fieldValues[field.name]}:00`"
-            @ion-change="fieldValues[field.name] = String($event.detail.value).slice(11, 16)"
+            @ion-change="
+              fieldValues[field.name] = String($event.detail.value).slice(11, 16);
+              session.haptic('selection');
+            "
           />
           <input type="hidden" :name="field.name" :value="fieldValues[field.name]" />
         </template>
@@ -84,7 +90,10 @@ const buttons = computed(() => [
         presentation="date"
         :value="value || undefined"
         :prefer-wheel="true"
-        @ion-change="value = String($event.detail.value).slice(0, 10)"
+        @ion-change="
+          value = String($event.detail.value).slice(0, 10);
+          session.haptic('selection');
+        "
       />
       <button
         class="workflow-primary primary"

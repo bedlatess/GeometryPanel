@@ -17,6 +17,7 @@ import ListRow from '../../components/ListRow.vue';
 const route = useRoute(),
   path = route.path,
   session = useSessionStore();
+const title = String(route.meta.title);
 const kind = path.split('/').at(-1) || '';
 const licenses: Record<string, [string, string]> = {
   mit: ['几何面板　MIT', license],
@@ -33,7 +34,7 @@ const copy = computed(() =>
 const legal = computed(() => licenses[kind]?.[1] || '');
 </script>
 <template>
-  <PageFrame :title="String(route.meta.title)">
+  <PageFrame :title="title">
     <template v-if="path === '/me/about'">
       <div class="about-brand">
         <BrandAsset name="mark" />

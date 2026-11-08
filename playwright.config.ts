@@ -2,6 +2,7 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
+  snapshotPathTemplate: '../docs/audit/0.9.0/候审视觉基准/{projectName}/{testFilePath}/{arg}{ext}',
   timeout: 60000,
   expect: { timeout: 7000 },
   fullyParallel: true,
@@ -16,8 +17,16 @@ export default defineConfig({
     screenshot: 'only-on-failure',
   },
   projects: [
-    { name: 'chromium-mobile', use: { ...devices['iPhone 13'], browserName: 'chromium',
-      launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {} } },
+    {
+      name: 'chromium-mobile',
+      use: {
+        ...devices['iPhone 13'],
+        browserName: 'chromium',
+        launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
+          ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH }
+          : {},
+      },
+    },
     { name: 'webkit-mobile', use: { ...devices['iPhone 13'], browserName: 'webkit' } },
   ],
   webServer: {

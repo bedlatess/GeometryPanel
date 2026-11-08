@@ -77,7 +77,7 @@ ion-list {
   *::before,
   *::after {
     animation: none !important;
-    transition-duration: 150ms !important;
+    transition-duration: var(--motion-reduced) !important;
     scroll-behavior: auto !important;
   }
 }
@@ -94,7 +94,7 @@ ion-list {
   inset: 0;
   transform: translateX(-100%);
   background: linear-gradient(90deg, transparent, var(--card), transparent);
-  animation: shimmer 1.2s infinite;
+  animation: shimmer var(--motion-shimmer) infinite;
 }
 @keyframes shimmer {
   to {
@@ -110,6 +110,8 @@ ion-list {
 .car-name,
 .identity-card,
 .sheet-close,
+.workflow-primary,
+.workflow-secondary,
 ion-button::part(native) {
   transition:
     transform var(--spring-duration) var(--spring),
@@ -120,6 +122,8 @@ ion-button::part(native) {
 .car-name:active,
 .identity-card:active,
 .sheet-close:active,
+.workflow-primary:active,
+.workflow-secondary:active,
 ion-button:active::part(native) {
   transform: scale(0.96);
   opacity: 0.85;
@@ -131,6 +135,8 @@ ion-button:active::part(native) {
   .car-name:active,
   .identity-card:active,
   .sheet-close:active,
+  .workflow-primary:active,
+  .workflow-secondary:active,
   ion-button:active::part(native) {
     transform: none;
   }

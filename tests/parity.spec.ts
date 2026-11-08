@@ -1,170 +1,393 @@
-import { navigate, control, report, developerLab, test, expect, open, login, VIN_A, VIN_B } from './fixtures';
+import {
+  navigate,
+  control,
+  report,
+  developerLab,
+  test,
+  expect,
+  open,
+  login,
+  VIN_A,
+  VIN_B,
+} from './fixtures';
 import type { Page } from '@playwright/test';
 
-async function settings(page: Page) { await navigate(page,'/me'); }
-async function background(page: Page) { await settings(page); await navigate(page,'/tools/monitor'); }
-async function nativeMock(page: Page, imported = false) {
-  await page.addInitScript(({ imported }) => {
-    const scope = window as any; scope.__parityCalls = [];
-    scope.GeometryNative = { postMessage(raw: string) {
-      const call = JSON.parse(raw); scope.__parityCalls.push(call);
-      const result = call.method === 'capabilities' ? { platform: 'android', version: 1, features: { background: true, history: true, widget: true, shortcuts: true, officialLogin: true } }
-        : call.method === 'background.status' || call.method === 'background.configure' ? { enabled: call.params.enabled === true, running: false, backgroundMode: 'foreground-service' }
-        : call.method === 'officialLogin.result' && imported ? { imported: true, accountId: 'native-synthetic', session: { uid: 'imported-user', token: 'imported-token', vehicles: [] } }
-        : call.method === 'background.history' ? { items: [], total: 0 } : {};
-      queueMicrotask(() => scope.GeometryNative.onmessage?.({ data: JSON.stringify({ id: call.id, ok: true, result }) }));
-    } };
-  }, { imported });
+async function settings(page: Page) {
+  await navigate(page, '/me');
 }
-const calls = (page: Page) => page.evaluate(() => (window as any).__parityCalls as { method: string; params: any }[]);
+async function background(page: Page) {
+  await settings(page);
+  await navigate(page, '/tools/monitor');
+}
+async function nativeMock(page: Page, imported = false) {
+  await page.addInitScript(
+    ({ imported }) => {
+      const scope = window as any;
+      scope.__parityCalls = [];
+      scope.GeometryNative = {
+        postMessage(raw: string) {
+          const call = JSON.parse(raw);
+          scope.__parityCalls.push(call);
+          const result =
+            call.method === 'capabilities'
+              ? {
+                  platform: 'android',
+                  version: 1,
+                  features: {
+                    background: true,
+                    history: true,
+                    widget: true,
+                    shortcuts: true,
+                    officialLogin: true,
+                  },
+                }
+              : call.method === 'background.status' || call.method === 'background.configure'
+                ? {
+                    enabled: call.params.enabled === true,
+                    running: false,
+                    backgroundMode: 'foreground-service',
+                  }
+                : call.method === 'officialLogin.result' && imported
+                  ? {
+                      imported: true,
+                      accountId: 'native-synthetic',
+                      session: { uid: 'imported-user', token: 'imported-token', vehicles: [] },
+                    }
+                  : call.method === 'background.history'
+                    ? { items: [], total: 0 }
+                    : {};
+          queueMicrotask(() =>
+            scope.GeometryNative.onmessage?.({
+              data: JSON.stringify({ id: call.id, ok: true, result }),
+            }),
+          );
+        },
+      };
+    },
+    { imported },
+  );
+}
+const calls = (page: Page) =>
+  page.evaluate(() => (window as any).__parityCalls as { method: string; params: any }[]);
 async function secondLogin(page: Page, car = '测试极核 B') {
-  await settings(page); await navigate(page,'/me/accounts');
+  await settings(page);
+  await navigate(page, '/me/accounts');
   await page.getByRole('button', { name: '添加账号', exact: true }).click();
-  await page.getByRole('textbox', { name: '手机号', exact: true }).fill('13900000000'); await page.getByRole('button', { name: '获取验证码' }).click();
-  await page.getByRole('slider').focus(); await page.keyboard.press('ArrowRight'); await page.keyboard.press('Enter');
+  await page.getByRole('textbox', { name: '手机号', exact: true }).fill('13900000000');
+  await page.getByRole('button', { name: '获取验证码' }).click();
+  await page.getByRole('slider').focus();
+  await page.keyboard.press('ArrowRight');
+  await page.keyboard.press('Enter');
   await page.getByRole('textbox', { name: '输入验证码', exact: true }).fill('123456');
   await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: car }).click();
   await expect(page.getByRole('heading', { name: car, exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
 }
 
-test('multiple encrypted accounts survive reload and saved switching uses the owning credential', async ({ page, mocks }) => {
-  mocks.loginReplies = [{ uid: 'user-a', token: 'token-a' }, { uid: 'user-b', token: 'token-b' }];
-  await open(page); await login(page); await secondLogin(page);
-  await page.reload(); await expect(page.getByRole('heading', { name: '测试极核 B', exact: true })).toBeVisible();
-  const sms = mocks.calls.filter(call => call.path.endsWith('/authCode/V2')).length;
-  await settings(page); await navigate(page,'/me/accounts');
-  await expect(page.getByRole('heading', { name: '账号 2', exact: true })).toBeVisible();
+test('multiple encrypted accounts survive reload and saved switching uses the owning credential', async ({
+  page,
+  mocks,
+}) => {
+  mocks.loginReplies = [
+    { uid: 'user-a', token: 'token-a' },
+    { uid: 'user-b', token: 'token-b' },
+  ];
+  await open(page);
+  await login(page);
+  await secondLogin(page);
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '测试极核 B', exact: true })).toBeVisible();
+  const sms = mocks.calls.filter((call) => call.path.endsWith('/authCode/V2')).length;
+  await settings(page);
+  await navigate(page, '/me/accounts');
+  await expect(page.getByRole('link', { name: /账号 2/ })).toBeVisible();
+  await page.getByRole('link', { name: /账号 1/ }).click();
   await page.locator('[data-account-select]').first().click();
   await expect(page.getByRole('heading', { name: '测试极核 A', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
-  const reads = mocks.calls.filter(call => call.path.includes('/vehicleHomePageV2/'));
-  expect(reads.at(-1)).toMatchObject({ authorization: 'Bearer token-a', path: expect.stringContaining(VIN_A) });
-  expect(reads.some(call => call.authorization === 'Bearer token-b' && call.path.endsWith(VIN_B))).toBe(true);
-  expect(mocks.calls.filter(call => call.path.endsWith('/authCode/V2')).length).toBe(sms);
+  const reads = mocks.calls.filter((call) => call.path.includes('/vehicleHomePageV2/'));
+  expect(reads.at(-1)).toMatchObject({
+    authorization: 'Bearer token-a',
+    path: expect.stringContaining(VIN_A),
+  });
+  expect(
+    reads.some((call) => call.authorization === 'Bearer token-b' && call.path.endsWith(VIN_B)),
+  ).toBe(true);
+  expect(mocks.calls.filter((call) => call.path.endsWith('/authCode/V2')).length).toBe(sms);
   const local = await page.evaluate(() => JSON.stringify(localStorage));
-  expect(local).not.toContain('token-a'); expect(local).not.toContain('token-b');
+  expect(local).not.toContain('token-a');
+  expect(local).not.toContain('token-b');
 });
 
-test('native account consent precedes credential handoff; pause persists and logout revokes all accounts', async ({ page }) => {
-  await nativeMock(page); await open(page); await login(page);
-  expect((await calls(page)).some(call => call.method === 'accounts.sync')).toBe(false);
-  await background(page); await page.getByRole('switch',{name:'后台提醒',exact:true}).click();await page.getByRole('button',{name:'保存',exact:true}).click();
-  await expect(page.locator('#background-panel').getByRole('status').filter({hasText:/已更新|已保存/})).toBeVisible();
-  const handoff = (await calls(page)).find(call => call.method === 'accounts.sync')!;
-  expect(handoff.params.accounts[0]).toMatchObject({ token: 'synthetic-token', uid: 'synthetic-user' });
+test('native account consent precedes credential handoff; pause persists and logout revokes all accounts', async ({
+  page,
+}) => {
+  await nativeMock(page);
+  await open(page);
+  await login(page);
+  expect((await calls(page)).some((call) => call.method === 'accounts.sync')).toBe(false);
+  await background(page);
+  await page.getByRole('switch', { name: /^后台提醒/ }).click();
+  await page.getByRole('button', { name: '保存', exact: true }).click();
+  await expect(
+    page
+      .locator('#background-panel')
+      .getByRole('status')
+      .filter({ hasText: /已更新|已保存/ }),
+  ).toBeVisible();
+  const handoff = (await calls(page)).find((call) => call.method === 'accounts.sync')!;
+  expect(handoff.params.accounts[0]).toMatchObject({
+    token: 'synthetic-token',
+    uid: 'synthetic-user',
+  });
   expect(handoff.params.accounts[0].id).not.toContain('synthetic-user');
   expect(handoff.params.accounts[0].vehicles[0].id).not.toContain(VIN_A);
-  await navigate(page,'/me');
-  await navigate(page,'/me/accounts');
-  await page.locator('[data-account-enabled]').uncheck();
-  await expect(page.locator('#accounts-panel').getByText('已保存')).toBeVisible();
-  await navigate(page,'/me');
-  await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
-  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '测试极核 A' }).click();
+  await navigate(page, '/me');
+  await navigate(page, '/me/accounts');
+  await page.getByRole('link', { name: /台车/ }).click();
+  await page.getByRole('switch', { name: '后台使用此账号', exact: true }).click();
+  await expect(page.getByRole('switch', { name: '后台使用此账号', exact: true })).not.toBeChecked();
+  await expect(page.locator('.workflow:visible').getByText('已保存')).toBeVisible();
+  await navigate(page, '/me');
+  await navigate(page, '/vehicle');
+  await page.getByRole('button', { name: '切换车辆', exact: true }).click();
+  await page
+    .locator('ion-modal:not(.overlay-hidden)')
+    .getByRole('button', { name: '测试极核 A' })
+    .click();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
-  expect((await calls(page)).filter(call => call.method === 'accounts.sync').at(-1)!.params.accounts[0].enabled).toBe(false);
-  await settings(page); await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click();
-  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '退出全部账号', exact: true }).click();
+  expect(
+    (await calls(page)).filter((call) => call.method === 'accounts.sync').at(-1)!.params.accounts[0]
+      .enabled,
+  ).toBe(false);
+  await settings(page);
+  await navigate(page, '/me/accounts');
+  await page.getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await page
+    .locator('ion-modal:not(.overlay-hidden)')
+    .getByRole('button', { name: '退出全部账号', exact: true })
+    .click();
   await expect(page.getByText('已退出全部账号', { exact: true })).toBeVisible();
-  expect((await calls(page)).filter(call => call.method === 'accounts.sync').at(-1)!.params).toEqual({ accounts: [], selectedVehicleId: null });
+  expect(
+    (await calls(page)).filter((call) => call.method === 'accounts.sync').at(-1)!.params,
+  ).toEqual({ accounts: [], selectedVehicleId: null });
 });
 
-test('browser history distinguishes battery from charge records and clearing one category retains the other', async ({ page, mocks }) => {
-  mocks.battery = { chargeState: 1 }; await open(page); await login(page);
-  await navigate(page,'/records/battery');
-  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count','1');
-  await navigate(page,'/vehicle');
-  mocks.battery = { chargeState: 0 }; await page.getByRole('button', { name: '刷新车况', exact: true }).click();
+test('browser history distinguishes battery from charge records and clearing one category retains the other', async ({
+  page,
+  mocks,
+}) => {
+  mocks.battery = { chargeState: 1 };
+  await open(page);
+  await login(page);
+  await navigate(page, '/records/battery');
+  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count', '1');
+  await navigate(page, '/vehicle');
+  mocks.battery = { chargeState: 0 };
+  await page.getByRole('button', { name: '刷新车况', exact: true }).click();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
-  await background(page); await navigate(page,'/records/battery');
-  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count','2');
-  await page.getByRole('button',{name:'更多电池操作',exact:true}).click();
-  await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'清除本机记录',exact:true}).click();
-  await page.locator('ion-action-sheet:not(.overlay-hidden)').getByRole('button',{name:'电量',exact:true}).click();
-  await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button',{name:'清除本机记录',exact:true}).click();
-  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count','0');
-  await expect(page.locator('main:visible ion-item').filter({hasText:'82% → 82%'})).toHaveCount(1);
-  await expect(page.getByText('中途拔掉',{exact:true})).toBeVisible();
-  await navigate(page,'/me');
-  await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click(); await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await background(page);
+  await navigate(page, '/records/battery');
+  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count', '2');
+  await page.getByRole('button', { name: '更多电池操作', exact: true }).click();
+  await page
+    .locator('ion-action-sheet:not(.overlay-hidden)')
+    .getByRole('button', { name: '清除本机记录', exact: true })
+    .click();
+  await page
+    .locator('ion-action-sheet:not(.overlay-hidden)')
+    .getByRole('button', { name: '电量', exact: true })
+    .click();
+  await page
+    .locator('ion-modal:not(.overlay-hidden)')
+    .getByRole('button', { name: '清除本机记录', exact: true })
+    .click();
+  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count', '0');
+  await expect(page.locator('main:visible ion-item').filter({ hasText: '82% → 82%' })).toHaveCount(
+    1,
+  );
+  await expect(page.getByText('中途拔掉', { exact: true })).toBeVisible();
+  await navigate(page, '/me');
+  await navigate(page, '/me/accounts');
+  await page.getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await page
+    .locator('ion-modal:not(.overlay-hidden)')
+    .getByRole('button', { name: '退出全部账号', exact: true })
+    .click();
   await expect(page.getByText('已退出全部账号', { exact: true })).toBeVisible();
   const count = await page.evaluate(async () => {
     const request = indexedDB.open('zeeho-panel:/panel/:vault-v2', 1);
-    const db = await new Promise<IDBDatabase>(resolve => { request.onsuccess = () => resolve(request.result); });
-    const tx = db.transaction('local', 'readonly'), q = tx.objectStore('local').count();
-    const result = await new Promise<number>(resolve => { q.onsuccess = () => resolve(q.result); }); db.close(); return result;
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      request.onsuccess = () => resolve(request.result);
+    });
+    const tx = db.transaction('local', 'readonly'),
+      q = tx.objectStore('local').count();
+    const result = await new Promise<number>((resolve) => {
+      q.onsuccess = () => resolve(q.result);
+    });
+    db.close();
+    return result;
   });
   expect(count).toBe(0);
 });
 
-test('legacy encrypted session migrates once and retains its opaque account identity across reloads', async ({ page }) => {
+test('legacy encrypted session migrates once and retains its opaque account identity across reloads', async ({
+  page,
+}) => {
   await open(page);
   await page.evaluate(async () => {
-    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, ['encrypt', 'decrypt']);
+    const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, false, [
+      'encrypt',
+      'decrypt',
+    ]);
     const iv = crypto.getRandomValues(new Uint8Array(12));
-    const ciphertext = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, new TextEncoder().encode(JSON.stringify({ token: 'legacy-synthetic', uid: 'legacy-user', vehicle: { vin: 'LAAAAAAAAAAAAAAA1', name: '迁移测试车辆', type: 'AE8', plate: '' } })));
+    const ciphertext = await crypto.subtle.encrypt(
+      { name: 'AES-GCM', iv },
+      key,
+      new TextEncoder().encode(
+        JSON.stringify({
+          token: 'legacy-synthetic',
+          uid: 'legacy-user',
+          vehicle: { vin: 'LAAAAAAAAAAAAAAA1', name: '迁移测试车辆', type: 'AE8', plate: '' },
+        }),
+      ),
+    );
     const request = indexedDB.open('zeeho-panel:/panel/:vault-v2', 1);
-    const db = await new Promise<IDBDatabase>(resolve => { request.onsuccess = () => resolve(request.result); });
-    await new Promise<void>((resolve, reject) => { const tx = db.transaction('local', 'readwrite'); tx.objectStore('local').put({ key, iv: iv.buffer, ciphertext }, 'session'); tx.oncomplete = () => resolve(); tx.onerror = () => reject(new Error('storage')); }); db.close();
+    const db = await new Promise<IDBDatabase>((resolve) => {
+      request.onsuccess = () => resolve(request.result);
+    });
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction('local', 'readwrite');
+      tx.objectStore('local').put({ key, iv: iv.buffer, ciphertext }, 'session');
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(new Error('storage'));
+    });
+    db.close();
   });
-  await navigate(page,'/vehicle'); await page.reload(); await expect(page.getByRole('heading', { name: '迁移测试车辆', exact: true })).toBeVisible();
+  await navigate(page, '/vehicle');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '迁移测试车辆', exact: true })).toBeVisible();
   async function identity() {
     await background(page);
-    const id = await page.locator('[data-selected-vehicle]:visible').getAttribute('data-selected-vehicle');
-    await navigate(page,'/me'); return id;
+    const id = await page
+      .locator('[data-selected-vehicle]:visible')
+      .getAttribute('data-selected-vehicle');
+    await navigate(page, '/me');
+    return id;
   }
-  const id = await identity(); await navigate(page,'/vehicle'); await page.reload(); await expect(page.getByRole('heading', { name: '迁移测试车辆', exact: true })).toBeVisible();
-  expect(await identity()).toBe(id); expect(id).not.toContain('legacy');
+  const id = await identity();
+  await navigate(page, '/vehicle');
+  await page.reload();
+  await expect(page.getByRole('heading', { name: '迁移测试车辆', exact: true })).toBeVisible();
+  expect(await identity()).toBe(id);
+  expect(id).not.toContain('legacy');
 });
 
-test('official native login hands off once locally then uses normal verified vehicle selection', async ({ page, mocks }) => {
-  await nativeMock(page, true); await open(page);await login(page); await background(page);
-  await navigate(page,'/tools/android');
+test('official native login hands off once locally then uses normal verified vehicle selection', async ({
+  page,
+  mocks,
+}) => {
+  await nativeMock(page, true);
+  await open(page);
+  await login(page);
+  await background(page);
+  await navigate(page, '/tools/android');
   await page.getByRole('button', { name: '读取结果', exact: true }).click();
   await expect(page.getByRole('heading', { name: '选择车辆', exact: true })).toBeVisible();
-  expect(mocks.calls.filter(call => call.path.endsWith('/vehicle/list')).at(-1)!.authorization).toBe('Bearer imported-token');
-  await page.getByRole('button', { name: '测试极核 A' }).click();
+  expect(
+    mocks.calls.filter((call) => call.path.endsWith('/vehicle/list')).at(-1)!.authorization,
+  ).toBe('Bearer imported-token');
+  await page.getByRole('button', { name: /^测试极核 A/ }).click();
   await expect(page.getByRole('heading', { name: '测试极核 A', exact: true })).toBeVisible();
   expect(await page.locator('body').innerText()).not.toContain('imported-token');
-  expect((await calls(page)).find(call => call.method === 'officialLogin.result')!.params).toEqual({ importToPanel: true });
+  expect(
+    (await calls(page)).find((call) => call.method === 'officialLogin.result')!.params,
+  ).toEqual({ importToPanel: true });
 });
 
-test('system shortcut rejects unknown vehicles and requires visible confirmation before a command', async ({ page, mocks }) => {
-  await nativeMock(page); await open(page); await login(page); await background(page);
-  const id = await page.locator('[data-selected-vehicle]:visible').getAttribute('data-selected-vehicle');
-  await navigate(page,'/me');
-  await page.evaluate(() => window.dispatchEvent(new CustomEvent('geometry:native-shortcut', { detail: { vehicleId: 'unknown', action: 'horn' } })));
+test('system shortcut rejects unknown vehicles and requires visible confirmation before a command', async ({
+  page,
+  mocks,
+}) => {
+  await nativeMock(page);
+  await open(page);
+  await login(page);
+  await background(page);
+  const id = await page
+    .locator('[data-selected-vehicle]:visible')
+    .getAttribute('data-selected-vehicle');
+  await navigate(page, '/me');
+  await page.evaluate(() =>
+    window.dispatchEvent(
+      new CustomEvent('geometry:native-shortcut', {
+        detail: { vehicleId: 'unknown', action: 'horn' },
+      }),
+    ),
+  );
   await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();
-  await page.evaluate(vehicleId => window.dispatchEvent(new CustomEvent('geometry:native-shortcut', { detail: { vehicleId, action: 'horn' } })), id);
+  await page.evaluate(
+    (vehicleId) =>
+      window.dispatchEvent(
+        new CustomEvent('geometry:native-shortcut', { detail: { vehicleId, action: 'horn' } }),
+      ),
+    id,
+  );
   await expect(page.getByRole('heading', { name: '系统快捷指令', exact: true })).toBeVisible();
-  expect(mocks.calls.some(call => call.path.endsWith('/dbpoint/send'))).toBe(false);
+  expect(mocks.calls.some((call) => call.path.endsWith('/dbpoint/send'))).toBe(false);
   await page.getByRole('button', { name: '继续', exact: true }).click();
   await expect(page.getByRole('button', { name: '鸣笛寻车', exact: true })).toBeVisible();
-  expect(mocks.calls.some(call => call.path.endsWith('/dbpoint/send'))).toBe(false);
+  expect(mocks.calls.some((call) => call.path.endsWith('/dbpoint/send'))).toBe(false);
 });
 
 test('status picture exports only a bounded PNG through the native save flow', async ({ page }) => {
-  await nativeMock(page); await open(page); await login(page); await settings(page);
-  await navigate(page,'/tools/picture');await page.getByRole('button',{name:'导出车况图片',exact:true}).click();
+  await nativeMock(page);
+  await open(page);
+  await login(page);
+  await settings(page);
+  await navigate(page, '/tools/picture');
+  await page.getByRole('button', { name: '分享车况图片', exact: true }).click();
   await expect(page.getByText('已导出')).toBeVisible();
-  const params = (await calls(page)).find(call => call.method === 'asset.export')!.params;
+  const params = (await calls(page)).find((call) => call.method === 'asset.export')!.params;
   expect(Object.keys(params).sort()).toEqual(['data', 'fileName', 'kind']);
   expect(params).toMatchObject({ kind: 'panel', fileName: 'geometry-status.png' });
-  const data = Buffer.from(params.data, 'base64'); expect(data.length).toBeLessThanOrEqual(1048576);
+  const data = Buffer.from(params.data, 'base64');
+  expect(data.length).toBeLessThanOrEqual(1048576);
   expect(data.subarray(0, 8).toString('hex')).toBe('89504e470d0a1a0a');
 });
 
-test('desktop preview, configuration and read-only reset use the selected opaque vehicle', async ({ page }) => {
-  await nativeMock(page); await open(page); await login(page); await background(page);
-  await navigate(page,'/tools/widgets');
-  await expect(page.getByRole('region', { name: '组件内容预览' })).toContainText('82%电量');
-  const id = await page.locator('[data-selected-vehicle]:visible').getAttribute('data-selected-vehicle');
-  await page.getByRole('button',{name:'大',exact:true}).click(); await page.locator('[data-background-controls]').check();
+test('desktop preview, configuration and read-only reset use the selected opaque vehicle', async ({
+  page,
+}) => {
+  await nativeMock(page);
+  await open(page);
+  await login(page);
+  await background(page);
+  await navigate(page, '/tools/widgets');
+  await expect(page.getByRole('region', { name: '组件内容预览' })).toContainText('82%');
+  const id = await page
+    .locator('[data-selected-vehicle]:visible')
+    .getAttribute('data-selected-vehicle');
+  await page.getByRole('button', { name: '大', exact: true }).click();
+  await page.getByRole('switch', { name: '车辆操作入口', exact: true }).click();
+  await expect(page.getByRole('switch', { name: '车辆操作入口', exact: true })).toBeChecked();
   await page.getByRole('button', { name: '保存组件', exact: true }).click();
-  await expect(page.locator('#background-panel').getByRole('status').filter({hasText:/已更新|已保存/})).toBeVisible();
-  expect((await calls(page)).filter(call => call.method === 'widget.configure').at(-1)!.params).toEqual({ vehicleId: id, style: '4x4', controls: true });
+  await expect(
+    page
+      .locator('#background-panel')
+      .getByRole('status')
+      .filter({ hasText: /已更新|已保存/ }),
+  ).toBeVisible();
+  expect(
+    (await calls(page)).filter((call) => call.method === 'widget.configure').at(-1)!.params,
+  ).toEqual({ vehicleId: id, style: '4x4', controls: true });
   await page.getByRole('button', { name: '恢复只读', exact: true }).click();
-  await expect(page.locator('#background-panel').getByRole('status').filter({hasText:/已更新|已保存/})).toBeVisible();
-  expect((await calls(page)).filter(call => call.method === 'widget.configure').at(-1)!.params).toEqual({ vehicleId: id, style: '4x4', controls: false });
+  await expect(
+    page
+      .locator('#background-panel')
+      .getByRole('status')
+      .filter({ hasText: /已更新|已保存/ }),
+  ).toBeVisible();
+  expect(
+    (await calls(page)).filter((call) => call.method === 'widget.configure').at(-1)!.params,
+  ).toEqual({ vehicleId: id, style: '4x4', controls: false });
 });

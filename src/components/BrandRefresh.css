@@ -4,7 +4,7 @@
   height: 30px;
   margin: 17px auto;
   opacity: 0;
-  transition: opacity 150ms;
+  transition: opacity var(--motion-header);
 }
 .refresher-active .brand-refresh {
   opacity: 1;
@@ -33,10 +33,15 @@
   transform: translateX(calc((1 - var(--pull-progress)) * -6px));
 }
 .refreshing .g-bar {
-  animation: refresh-bar 800ms linear infinite;
+  animation: refresh-bar var(--motion-refreshSpin) linear infinite;
 }
 @keyframes refresh-bar {
   to {
     rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .g-bar {
+    transform: none;
   }
 }

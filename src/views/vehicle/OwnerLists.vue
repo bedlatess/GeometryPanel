@@ -1,11 +1,18 @@
 <script setup lang="ts">
-import { computed } from 'vue';
+import { computed, ref } from 'vue';
 import { rows, txt, num } from '../../stores/owner';
 import { useSessionStore } from '../../stores/session';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
 const props = defineProps<{ view: any; path: string }>();
 const session = useSessionStore();
+const action = ref<HTMLButtonElement>();
+function toggle(name: string, index: number) {
+  if (!action.value || disabled.value) return;
+  action.value.dataset.owner = name;
+  action.value.dataset.index = String(index);
+  action.value.click();
+}
 const list = (key: string) => rows(props.view.data?.[key]);
 const disabled = computed(
   () => props.view.busy || session.state.preview || !session.state.session || !navigator.onLine,
@@ -26,6 +33,7 @@ const shares = computed(() =>
 const mask = (value: unknown) => txt(value).replace(/^(\d{3})\d{4}(\d{4})$/, '$1****$2');
 </script>
 <template>
+  <button ref="action" hidden />
   <template v-if="path.endsWith('/phone-keys')">
     <GroupList
       v-for="(row, index) in phones"
@@ -86,16 +94,13 @@ const mask = (value: unknown) => txt(value).replace(/^(\d{3})\d{4}(\d{4})$/, '$1
       :key="index"
       :title="txt(row.rideRangeName) || '电子围栏'"
     >
-      <button
-        class="workflow-row"
-        data-owner="fence-use"
-        :data-index="index"
-        role="switch"
-        :aria-checked="String(row.delFlag) === '0'"
+      <ListRow
+        label="已启用"
+        toggle
+        :checked="String(row.delFlag) === '0'"
         :disabled="disabled"
-      >
-        已启用
-      </button>
+        @change="toggle('fence-use', index)"
+      />
       <ListRow
         label="半径"
         :value="num(row.radius) === null ? '—' : `${Number(row.radius) * 1000} m`"
@@ -127,16 +132,13 @@ const mask = (value: unknown) => txt(value).replace(/^(\d{3})\d{4}(\d{4})$/, '$1
         label="充电时段"
         :value="`${txt(row.startTime) || '—'}–${txt(row.endTime) || '—'}`"
       />
-      <button
-        class="workflow-row"
-        data-owner="plan-use"
-        :data-index="index"
-        role="switch"
-        :aria-checked="String(row.delFlag) === '0'"
+      <ListRow
+        label="已启用"
+        toggle
+        :checked="String(row.delFlag) === '0'"
         :disabled="disabled"
-      >
-        已启用
-      </button>
+        @change="toggle('plan-use', index)"
+      />
       <button class="workflow-row" data-owner="plan-edit" :data-index="index" :disabled="disabled">
         编辑
       </button>

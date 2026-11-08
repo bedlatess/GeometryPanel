@@ -8,22 +8,22 @@ import PageFrame from '../../components/PageFrame.vue';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
 import AppIcon from '../../components/AppIcon.vue';
+import { onIonViewWillLeave } from '@ionic/vue';
 const route = useRoute(),
   router = useRouter(),
   vehicle = useVehiclePresentation();
+const coordinates = route.path.endsWith('/coordinates');
 const session = useSessionStore(),
   loaded = ref(false);
 const point = computed(() => vehicle.daily?.location);
 const links = computed(() =>
   !session.state.preview && navigator.onLine ? navigationLinks(point.value || null) : null,
 );
+onIonViewWillLeave(() => (loaded.value = false));
 </script>
 <template>
-  <PageFrame
-    :title="route.path.endsWith('/coordinates') ? '坐标' : '车辆位置'"
-    :map="!route.path.endsWith('/coordinates')"
-  >
-    <template v-if="route.path.endsWith('/coordinates')">
+  <PageFrame :title="coordinates ? '坐标' : '车辆位置'" :map="!coordinates">
+    <template v-if="coordinates">
       <GroupList v-if="point">
         <ListRow label="纬度" :value="point.latitude.toFixed(6)" numeric />
         <ListRow label="经度" :value="point.longitude.toFixed(6)" numeric />
@@ -90,10 +90,19 @@ const links = computed(() =>
       </div>
       <section class="location-panel">
         <span class="handle" />
-        <h1>{{ point?.address || '停车位置' }}</h1>
+        <h1>{{ session.state.preview ? '示例位置' : point?.address || '停车位置' }}</h1>
         <p>{{ age(point?.reportedAt, '定位') }}</p>
-        <button class="workflow-primary" :disabled="!links?.walk" @click="session.action('walk')">
-          步行找车
+        <a
+          v-if="links?.walk"
+          class="workflow-primary external"
+          :href="links.walk"
+          target="_blank"
+          rel="noopener noreferrer"
+          referrerpolicy="no-referrer"
+          >步行找车</a
+        >
+        <button v-else class="workflow-primary" disabled>
+          {{ session.state.preview ? '演示中' : '步行找车' }}
         </button>
         <GroupList
           ><ListRow label="电子围栏" icon="fence" to="/vehicle/location/fences" />
@@ -108,6 +117,7 @@ const links = computed(() =>
           referrerpolicy="no-referrer"
           >在地图中打开</a
         >
+        <button v-if="loaded" class="workflow-secondary" @click="loaded = false">关闭地图</button>
       </section>
     </div>
   </PageFrame>

@@ -104,4 +104,21 @@ export function initializeState(ctx: RuntimeContext) {
       parseFloat(getComputedStyle(document.documentElement).fontSize) >= 24,
     );
   };
+  ctx.foreground = function () {
+    if (document.visibilityState !== 'visible') return;
+    ctx.render();
+    if (navigator.onLine && Date.now() - ctx.lastUpdateCheck > 60000) {
+      ctx.lastUpdateCheck = Date.now();
+      void ctx.updates?.check();
+    }
+    if (
+      ctx.preferences.foregroundRefresh &&
+      !ctx.busy &&
+      !ctx.booting &&
+      !ctx.modal.open &&
+      navigator.onLine &&
+      Date.now() - ctx.lastReadAttempt > 60000
+    )
+      void ctx.refresh();
+  };
 }

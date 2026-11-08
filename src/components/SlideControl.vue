@@ -79,14 +79,20 @@ let start = 0,
   crossed = false,
   pointer = -1;
 let observer: ResizeObserver | undefined, snapTimer: ReturnType<typeof setTimeout> | undefined;
+let resizeFrame = 0;
 onMounted(() => {
   observer = new ResizeObserver((entries) => {
-    trackWidth.value = entries[0].contentRect.width;
+    const measured = entries[0].contentRect.width;
+    cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+      if (measured > 0) trackWidth.value = measured;
+    });
   });
   if (track.value) observer.observe(track.value);
 });
 onBeforeUnmount(() => {
   observer?.disconnect();
+  cancelAnimationFrame(resizeFrame);
   clearTimeout(snapTimer);
 });
 const progress = computed(() =>

@@ -11,6 +11,17 @@ export const motion = Object.freeze({
   digitStagger: 30,
   toast: 2500,
   reduced: 150,
+  list: 250,
+  header: 150,
+  vehicle: 500,
+  stale: 600,
+  swap: 150,
+  charge: 2400,
+  ground: 2000,
+  shine: 4000,
+  shimmer: 1200,
+  refreshSpin: 800,
+  spin: 1000,
 });
 
 export const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
+import { motion } from '../theme/motion';
 const props = defineProps<{ value: string | number | null | undefined; unit?: string }>();
 const revision = ref(0);
 watch(
@@ -15,7 +16,7 @@ watch(
       <i
         v-for="(digit, index) in String(value ?? '—')"
         :key="index"
-        :style="{ animationDelay: `${index * 30}ms` }"
+        :style="{ animationDelay: `${index * motion.digitStagger}ms` }"
         >{{ digit }}</i
       > </span
     ><small v-if="unit">{{ unit }}</small></span

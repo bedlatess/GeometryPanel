@@ -7,7 +7,7 @@ i {
   font-style: normal;
 }
 .changed i {
-  animation: number-in 300ms var(--out) both;
+  animation: number-in var(--motion-number) var(--out) both;
 }
 small {
   color: var(--t2);

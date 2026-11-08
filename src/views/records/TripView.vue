@@ -85,7 +85,7 @@ function links(point: RideTrack['points'][number] | undefined) {
         <div class="map-actions">
           <a
             v-if="links(item.points[0])"
-            :href="links(item.points[0])!.map"
+            :href="links(item.points[0])?.map"
             target="_blank"
             rel="noopener noreferrer"
             referrerpolicy="no-referrer"
@@ -93,7 +93,7 @@ function links(point: RideTrack['points'][number] | undefined) {
           >
           <a
             v-if="links(item.points.at(-1))"
-            :href="links(item.points.at(-1))!.map"
+            :href="links(item.points.at(-1))?.map"
             target="_blank"
             rel="noopener noreferrer"
             referrerpolicy="no-referrer"

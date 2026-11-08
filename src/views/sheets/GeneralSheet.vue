@@ -11,10 +11,10 @@ const body = computed(() => session.state.sheet?.body || {});
 const dataRows = computed(() => {
   const data = body.value.snapshot;
   return [
-    ['车辆状态', data?.daily.reportedAt],
-    ['电池', data?.daily.batteryReportedAt],
-    ['位置', data?.daily.location?.reportedAt],
-    ['刷新于', data?.receivedAt],
+    ['车辆状态', data?.daily.reportedAt, data?.daily.reportState],
+    ['电池', data?.daily.batteryReportedAt, data?.daily.batteryReportState],
+    ['位置', data?.daily.location?.reportedAt, data?.daily.location?.reportState],
+    ['刷新于', data?.receivedAt, 'fresh'],
   ] as const;
 });
 function submit(event: Event) {
@@ -24,6 +24,9 @@ function submit(event: Event) {
 }
 const releases = 'https://github.com/bedlatess/GeometryPanel/releases/latest';
 const online = () => navigator.onLine;
+function selectText(event: FocusEvent) {
+  (event.target as HTMLTextAreaElement).select();
+}
 </script>
 <template>
   <GroupList v-if="body.kind === 'actions'">
@@ -40,17 +43,22 @@ const online = () => navigator.onLine;
     <GroupList>
       <ListRow label="网络" :value="online() ? '已连接' : '不可用'" />
       <ListRow
-        v-for="[label, at] in dataRows"
+        v-for="[label, at, state] in dataRows"
         :key="label"
         :label="label"
-        :value="age(at) + (at && Date.now() - at > 1800000 ? '　超过 30 分钟' : '')"
+        :value="
+          state === 'future'
+            ? '时间异常'
+            : state === 'unknown'
+              ? '时间未知'
+              : age(at) + (at && Date.now() - at > 1800000 ? '　超过 30 分钟' : '')
+        "
       />
     </GroupList>
   </template>
   <template v-if="body.kind === 'confirm'">
     <div class="confirm-content">
       <span class="confirm-icon"><AppIcon name="alert" /></span>
-      <h2>{{ session.state.sheet?.title }}</h2>
       <p>{{ body.name }}<br />{{ body.detail }}</p>
       <button class="workflow-primary" :disabled="session.state.busy" @click.stop="submit">
         {{ body.label }}
@@ -79,12 +87,7 @@ const online = () => navigator.onLine;
   </template>
   <label v-if="body.kind === 'copyPreferences'"
     >设置
-    <textarea
-      id="preferences-backup"
-      readonly
-      :value="body.value"
-      @focus="($event.target as HTMLTextAreaElement).select()"
-    />
+    <textarea id="preferences-backup" readonly :value="body.value" @focus="selectText" />
   </label>
   <template v-if="body.kind === 'accountBackup'">
     <label v-if="!body.exporting"

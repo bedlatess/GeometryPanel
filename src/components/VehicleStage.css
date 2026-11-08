@@ -22,11 +22,20 @@
   max-width: 90%;
   transform: translateX(-50%);
 }
+.car-enter-active,
+.car-leave-active {
+  animation: none;
+  transition: opacity var(--motion-swap) var(--ease-out);
+}
+.car-enter-from,
+.car-leave-to {
+  opacity: 0;
+}
 .vehicle-image {
-  animation: arrive 500ms var(--out);
+  animation: arrive var(--motion-vehicle) var(--out);
   transition:
-    opacity 600ms,
-    filter 600ms;
+    opacity var(--motion-stale),
+    filter var(--motion-stale);
 }
 .reflection {
   bottom: -172px;
@@ -72,7 +81,7 @@
   bottom: 6px;
   height: 60px;
   background: radial-gradient(50% 50% at 50% 50%, var(--charge-glow), transparent 70%);
-  animation: charge 2.4s ease-in-out infinite alternate;
+  animation: charge var(--motion-charge) ease-in-out infinite alternate;
 }
 .charge-line {
   position: absolute;
@@ -81,7 +90,7 @@
   bottom: 32px;
   height: 2px;
   background: linear-gradient(90deg, transparent, var(--energy), transparent);
-  animation: flow 2s linear infinite;
+  animation: flow var(--motion-ground) linear infinite;
 }
 @keyframes charge {
   from {

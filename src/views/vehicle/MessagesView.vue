@@ -4,13 +4,18 @@ import { useRoute } from 'vue-router';
 import { IonItemSliding, IonItem, IonItemOptions, IonItemOption } from '@ionic/vue';
 import { useWorkflowPage } from '../../app/workflow-page';
 import { useSessionStore } from '../../stores/session';
+import { useWorkflowStore } from '../../stores/workflows';
 import PageFrame from '../../components/PageFrame.vue';
 import SegmentControl from '../../components/SegmentControl.vue';
 import GroupList from '../../components/GroupList.vue';
 import EmptyState from '../../components/EmptyState.vue';
+import ListMotion from '../../components/ListMotion.vue';
 const route = useRoute(),
   id = route.params.id;
 const session = useSessionStore();
+const cached = useWorkflowStore().data.extensions?.alerts?.alerts.find(
+  (item: any) => item.id === id,
+);
 const { host, view: v } = useWorkflowPage('extensions', {
   initial: 'alerts',
   view: id ? `message:${id}` : undefined,
@@ -20,7 +25,9 @@ const visible = computed(() =>
     v.value.messageTab === 'vehicle' ? Boolean(item.vin) : !item.vin,
   ),
 );
-const selected = computed(() => v.value.alerts?.alerts.find((item: any) => item.id === id));
+const selected = computed(
+  () => v.value.alerts?.alerts.find((item: any) => item.id === id) || cached,
+);
 function click(action: string) {
   host.value?.querySelector<HTMLElement>(`[data-ext="${action}"]`)?.click();
 }
@@ -58,25 +65,27 @@ function tab(value: string) {
           @update:model-value="tab"
         />
         <GroupList v-if="visible.length">
-          <IonItemSliding v-for="(item, index) in visible" :key="item.id">
-            <IonItem
-              lines="none"
-              :button="true"
-              :detail="true"
-              @click="session.action('route', '/vehicle/messages/' + encodeURIComponent(item.id))"
-            >
-              <span class="unread" :class="{ active: item.unread }" />
-              <div class="message-copy" :class="{ unreadTitle: item.unread }">
-                <span>{{ item.title }}</span
-                ><time>{{ item.time }}</time>
-              </div>
-            </IonItem>
-            <IonItemOptions side="end"
-              ><IonItemOption class="delete" @click="click('delete-messages')"
-                >删除全部</IonItemOption
-              ></IonItemOptions
-            >
-          </IonItemSliding>
+          <ListMotion>
+            <IonItemSliding v-for="item in visible" :key="item.id">
+              <IonItem
+                lines="none"
+                :button="true"
+                :detail="true"
+                @click="session.action('route', '/vehicle/messages/' + encodeURIComponent(item.id))"
+              >
+                <span class="unread" :class="{ active: item.unread }" />
+                <div class="message-copy" :class="{ unreadTitle: item.unread }">
+                  <span>{{ item.title }}</span
+                  ><time>{{ item.time }}</time>
+                </div>
+              </IonItem>
+              <IonItemOptions side="end"
+                ><IonItemOption class="delete" @click="click('delete-messages')"
+                  >删除全部</IonItemOption
+                ></IonItemOptions
+              >
+            </IonItemSliding>
+          </ListMotion>
         </GroupList>
         <button
           v-if="v.alerts?.receivedCount >= 20"

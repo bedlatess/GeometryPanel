@@ -2,7 +2,14 @@ import { test, expect, open, login, auditData, ownerData } from './fixtures';
 import { mkdir } from 'node:fs/promises';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { join } from 'node:path';
+import { createRequire } from 'node:module';
+import { dirname, join } from 'node:path';
+
+const require = createRequire(import.meta.url);
+const {
+  registry: { registry },
+} = require(join(dirname(require.resolve('playwright-core/package.json')), 'lib/coreBundle.js'));
+test.setTimeout(120000);
 
 test.use({
   viewport: { width: 390, height: 844 },
@@ -31,12 +38,23 @@ test.afterEach(async ({ page, mocks }, info) => {
   if (info.status !== 'passed' || !video) return;
   const source = info.outputPath('viewport.webm');
   await video.saveAs(source);
-  const ffmpeg = join(process.env.LOCALAPPDATA!,
-    'ms-playwright/ffmpeg-1013/ffmpeg-win64.exe');
-  // Scale the continuous recording; no generated/interpolated frames or blank padding.
-  await promisify(execFile)(ffmpeg, ['-y', '-i', source, '-vf', 'scale=780:1688',
-    '-c:v', 'libvpx-vp9', '-crf', '24', '-b:v', '0',
-    `${directory}/${info.title}-${info.project.name}.webm`]);
+  // Match the viewport to avoid padding, then scale the continuous recording without new frames.
+  await promisify(execFile)(registry.findExecutable('ffmpeg').executablePath(), [
+    '-y',
+    '-i',
+    source,
+    '-vf',
+    'scale=780:1688',
+    '-c:v',
+    'libvpx-vp9',
+    '-threads',
+    '2',
+    '-crf',
+    '24',
+    '-b:v',
+    '0',
+    `${directory}/${info.title}-${info.project.name}.webm`,
+  ]);
 });
 
 test('01-滑动开锁', async ({ page, mocks }) => {
@@ -52,11 +70,13 @@ test('01-滑动开锁', async ({ page, mocks }) => {
   mocks.home!.iotProperties = [{ identify: 'VehicleLock_S', value: 0 }];
   mocks.home!.refreshTime = Date.now();
   mocks.owner!.data.home = { ...(mocks.owner!.data.home as object), ...mocks.home };
-  await page.locator('ion-content:visible').evaluate((el: HTMLIonContentElement) =>
-    el.scrollToBottom(300));
+  await page
+    .locator('ion-content:visible')
+    .evaluate((el: HTMLIonContentElement) => el.scrollToBottom(300));
   await page.getByRole('button', { name: '刷新车况', exact: true }).click();
-  await page.locator('ion-content:visible').evaluate((el: HTMLIonContentElement) =>
-    el.scrollToTop(300));
+  await page
+    .locator('ion-content:visible')
+    .evaluate((el: HTMLIonContentElement) => el.scrollToTop(300));
   await expect(lever).toContainText('已开锁');
   await expect(lever).toContainText('滑动关机锁车');
   await page.waitForTimeout(4500);
@@ -64,8 +84,9 @@ test('01-滑动开锁', async ({ page, mocks }) => {
 });
 
 test('02-页面切换', async ({ page }) => {
-  await page.locator('ion-content:visible').evaluate((el: HTMLIonContentElement) =>
-    el.scrollToBottom(300));
+  await page
+    .locator('ion-content:visible')
+    .evaluate((el: HTMLIonContentElement) => el.scrollToBottom(300));
   await page.getByText('电池健康', { exact: true }).click();
   await expect(page.locator('[data-page="/vehicle/status"]')).toBeVisible();
   await page.waitForTimeout(1000);
@@ -80,7 +101,8 @@ test('02-页面切换', async ({ page }) => {
 test('03-弹层下拉', async ({ page }) => {
   await page.getByRole('button', { name: '寻车', exact: true }).click();
   await page.waitForTimeout(1000);
-  const handle = (await page.locator('ion-modal:not(.overlay-hidden) [part=handle]')
+  const handle = (await page
+    .locator('ion-modal:not(.overlay-hidden) [part=handle]')
     .boundingBox())!;
   await page.mouse.move(handle.x + handle.width / 2, handle.y + 3);
   await page.mouse.down();
@@ -92,7 +114,9 @@ test('03-弹层下拉', async ({ page }) => {
 
 test('04-下拉刷新', async ({ page, mocks }) => {
   let release!: () => void;
-  mocks.holdRead = new Promise<void>((resolve) => { release = resolve; });
+  mocks.holdRead = new Promise<void>((resolve) => {
+    release = resolve;
+  });
   await page.mouse.move(195, 180);
   await page.mouse.down();
   for (let y = 200; y <= 380; y += 10) {

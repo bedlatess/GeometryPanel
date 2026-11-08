@@ -20,6 +20,11 @@ const props = defineProps<{
   busy?: boolean;
 }>();
 const emit = defineEmits<{ activate: []; change: [value: boolean] }>();
+function activate(event: Event) {
+  if (props.to) return;
+  event.preventDefault();
+  if (!props.readonly && !props.toggle) emit('activate');
+}
 function changed(event: CustomEvent) {
   session.haptic('selection');
   emit('change', event.detail.checked);
@@ -32,12 +37,12 @@ function changed(event: CustomEvent) {
   <IonItem
     class="list-row"
     :button="!readonly && Boolean(to || action || toggle)"
-    :router-link="to"
+    v-bind="to ? { routerLink: to } : {}"
     :detail="Boolean(to)"
     :disabled="disabled"
     :class="{ danger, tall: detail, 'with-icon': icon, readonly }"
     :aria-disabled="readonly || disabled"
-    @click="!readonly && !to && !toggle && $emit('activate')"
+    @click="activate"
   >
     <span v-if="icon" slot="start" class="tile"><AppIcon :name="icon" /></span>
     <IonLabel

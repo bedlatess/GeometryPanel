@@ -11,6 +11,7 @@ import OwnerInfo from './OwnerInfo.vue';
 import LowPhoneSetting from './LowPhoneSetting.vue';
 const route = useRoute(),
   path = route.path;
+const title = String(route.meta.title);
 const session = useSessionStore();
 const { host, view } = useWorkflowPage('owner', {
   path: path === '/vehicle/status/firmware' ? '/vehicle/firmware' : path,
@@ -21,7 +22,7 @@ onMounted(() => {
 });
 </script>
 <template>
-  <PageFrame :title="String(route.meta.title)">
+  <PageFrame :title="title">
     <div ref="host" class="workflow">
       <p v-if="view.note" class="foot" role="status">{{ view.note }}</p>
       <button v-if="view.failed" class="workflow-row" data-owner="retry">加载失败　重试</button>

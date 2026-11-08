@@ -44,7 +44,8 @@ export function register(ctx: Context) {
           ctx.s!.vehicle.name,
           ctx.s!.vehicle.vin.slice(-6),
           'data-plan-confirm',
-          `从 ${old ? txt(old.startTime) + '–' + txt(old.endTime) : '无计划'} 改为 ${txt(r.startTime)}–${txt(r.endTime)}`,
+          `从 ${old ? txt(old.startTime) + '–' + txt(old.endTime) : '无计划'} ` +
+            `改为 ${txt(r.startTime)}–${txt(r.endTime)}`,
         ),
         (button) => {
           if (button.hasAttribute('data-plan-confirm') && !ctx.busy) {

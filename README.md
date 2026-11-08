@@ -1,6 +1,8 @@
-<p align="center"><img src="docs/assets/readme-hero.png" width="720" alt="几何面板"></p>
+<p align="center"><img src="docs/assets/readme-hero.png" width="720" alt="几何面板 0.9.0，合成数据界面"></p>
 
 # 几何面板
+
+首图为 0.9.0 深浅主题的合成数据截图。
 
 极核电动车的第三方车控工具。查看电量和车况、远程开关锁、寻车、看停车位置，没有广告。
 

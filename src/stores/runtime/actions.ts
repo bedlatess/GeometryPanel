@@ -67,10 +67,20 @@ export function registeractions(ctx: RuntimeContext) {
       ctx.show(
         '更多',
         ActionSheet([
+          ['寻车', 'horn', 'horn'],
+          ['座桶', 'seat', 'vehicle-action', 'seat'],
+          ['位置', 'pin', 'route', '/vehicle/location'],
+          ['车况', 'pulse', 'route', '/vehicle/status'],
+          ['车辆设置', 'gear', 'route', '/vehicle/settings'],
+          ['骑行', 't-rec', 'route', '/records?tab=ride'],
+          ['电池', 'batt', 'route', '/records?tab=battery'],
+          ['胎压', 'tire', 'route', '/records?tab=tire'],
+          ['消息', 'bell', 'route', '/vehicle/messages'],
+          ['高声寻车', 'horn', 'horn-high'],
           ['打开储物箱', 'seat', 'storage'],
-          ['分享车况图片', 'grid', 'status-export'],
+          ['分享车况图片', 'image', 'status-export'],
           ['查看上次车控结果', 'info', 'command-report'],
-          ['首页按键设置', 'settings', 'route', '/me/home'],
+          ['首页按钮', 'gear', 'route', '/me/home'],
         ]),
       );
     if (action === 'walk' && !ctx.preview) {

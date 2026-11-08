@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, defineAsyncComponent } from 'vue';
 import { useSessionStore } from '../../stores/session';
 import { useVehiclePresentation, format } from '../../stores/presentation';
 import { useOwnerStore } from '../../stores/owner';
@@ -7,12 +7,16 @@ import { useOwnerPresentation } from '../../app/owner-presentation';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
 import LocationCard from '../../components/LocationCard.vue';
-import Sheet from '../../components/Sheet.vue';
+const Sheet = defineAsyncComponent(() => import('../../components/Sheet.vue'));
+const remindersMounted = ref(false);
 const session = useSessionStore(),
   vehicle = useVehiclePresentation(),
   owner = useOwnerStore();
 const { reminders: reasons, summary } = useOwnerPresentation();
 const remindersOpen = ref(false);
+watch(remindersOpen, (open) => {
+  if (open) remindersMounted.value = true;
+});
 watch(
   () => session.state.session,
   (bound) => {
@@ -40,7 +44,12 @@ watch(
         action
         @activate="remindersOpen = true"
     /></GroupList>
-    <Sheet :open="remindersOpen" title="车辆提醒" @close="remindersOpen = false">
+    <Sheet
+      v-if="remindersMounted"
+      :open="remindersOpen"
+      title="车辆提醒"
+      @close="remindersOpen = false"
+    >
       <GroupList>
         <ListRow v-for="reason in reasons" :key="reason" :label="reason" />
         <ListRow label="车况" to="/vehicle/status" @click="remindersOpen = false" />

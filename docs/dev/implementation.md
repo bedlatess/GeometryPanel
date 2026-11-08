@@ -4,11 +4,11 @@
 
 [打开网页](https://bedlatess.github.io/GeometryPanel/) · [下载APK / unsigned IPA](https://github.com/bedlatess/GeometryPanel/releases/tag/v0.8.0) · 集中验收见工作区 docs/ACCEPTANCE.md · [原版功能逐项对照](verification/original-parity.md)
 
-当前网页及安装包版本 **0.8.0**。新增功能、协议证据及暂缓建议见 [原网页版对照](web-parity.md) 和 [接口查证](owner-endpoints.md)。按设计规范 v1.3 完成 UI 重构：车辆 / 记录 / 工具 / 我的四栏、影棚首页、双向拨杆、深浅主题、完整页面导航和 G 品牌图标。业务协议保留原实现；旧偏好兼容迁移。设计规则见 [DESIGN.md](DESIGN.md)，自测记录见 [UI 验证](verification/ui-review.md)。
+正式网页及安装包仍为 **0.8.0**；`ui-v3` 的 **0.9.0** 按设计规范 v2.0 用 Vue 3 + Ionic 重建，待 Claude 最终审计。通过前不合并 main、不部署正式网站、不发布正式安装包。新增功能、协议证据及既有暂缓边界见 [原网页版对照](web-parity.md) 和 [接口查证](owner-endpoints.md)。业务 API/core 原样保留，唯一例外为 haptic 方法名。设计规则见 [DESIGN.md](DESIGN.md)，0.9.0 审计材料在工作区 `docs/audit/0.9.0/`。
 
 iPhone 可在分享菜单中添加到主屏幕。Android 使用本项目稳定签名，可覆盖本项目旧版。iOS 提供标准版和桌面组件版两个未签名设备包，使用者自行签名。
 
-演示入口：未登录点“体验演示”；“我的 → 关于”连续点版本 5 次出现开发者选项，可进入状态模拟器和组件一览。演示与账号、偏好、网络和原生操作隔离。
+演示入口：未登录点“先看看演示”；“我的 → 关于”连续点版本 5 次出现开发者选项，可进入状态模拟器和组件一览。演示与账号、偏好、网络和原生操作隔离。
 
 ## 功能与平台
 
@@ -46,7 +46,8 @@ iPhone 可在分享菜单中添加到主屏幕。Android 使用本项目稳定�
 |---|---|
 | `src/api/` | 官方接口、签名、登录、车控、扩展与任务 |
 | `src/core/` | 车况、多账号/加密存储、历史、任务及原生RPC |
-| `src/ui/`、`src/main.ts`、`src/styles.css` | 各功能面板、页面编排及基础样式 |
+| `src/app/`、`src/views/`、`src/components/` | Vue 入口、路由与 Ionic 页面组件 |
+| `src/stores/`、`src/theme/` | Pinia 状态、原编排拆分、主题和动效参数 |
 | `android/`、`ios/` | 系统能力、测试和安装包工程 |
 | `tests/`、`verification/` | 模拟回归、恢复协议、对照和验证记录 |
 | `scripts/`、`.github/workflows/` | 离线生成、构建、验证与部署 |

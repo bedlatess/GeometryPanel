@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue';
 import { IonToggle } from '@ionic/vue';
+import { useSessionStore } from '../stores/session';
 defineOptions({ inheritAttrs: false });
 const props = defineProps<{
   label: string;
@@ -10,11 +11,13 @@ const props = defineProps<{
 }>();
 const input = ref<HTMLInputElement>(),
   checked = ref(Boolean(props.checked));
+const session = useSessionStore();
 watch(
   () => props.checked,
   (value) => (checked.value = Boolean(value)),
 );
 function change(value: boolean) {
+  session.haptic('selection');
   checked.value = value;
   if (input.value) {
     input.value.checked = value;
@@ -23,8 +26,8 @@ function change(value: boolean) {
 }
 </script>
 <template>
-  <label class="toggle-field"
-    ><span>{{ label }}</span>
+  <div class="toggle-field">
+    <span>{{ label }}</span>
     <input
       ref="input"
       v-bind="$attrs"
@@ -32,13 +35,15 @@ function change(value: boolean) {
       hidden
       :name="name"
       :checked="checked"
-      :disabled="disabled" />
+      :disabled="disabled"
+    />
     <IonToggle
       :aria-label="label"
       :checked="checked"
       :disabled="disabled"
       @ion-change="change($event.detail.checked)"
-  /></label>
+    />
+  </div>
 </template>
 <style scoped>
 .toggle-field {

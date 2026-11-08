@@ -19,13 +19,13 @@
   display: grid;
   place-items: center;
   color: var(--knob-ink);
-  transition: transform 350ms var(--spring);
+  transition: transform var(--spring-duration) var(--spring);
 }
 .dragging .knob {
   transition: none;
 }
 .snapping .knob {
-  transition: transform 180ms var(--out);
+  transition: transform var(--motion-snap) var(--out);
 }
 .knob .app-icon {
   width: 22px;
@@ -46,7 +46,7 @@
   background-clip: text;
   color: transparent;
   background-size: 300% 100%;
-  animation: idle-shine 4s linear infinite;
+  animation: idle-shine var(--motion-shine) linear infinite;
 }
 @keyframes idle-shine {
   0% {
@@ -99,10 +99,20 @@
   border-radius: 50%;
   border: 2.4px solid currentColor;
   border-right-color: transparent;
-  animation: spin 1s linear infinite;
+  animation: spin var(--motion-spin) linear infinite;
 }
 @keyframes spin {
   to {
     rotate: 360deg;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .knob,
+  .snapping .knob {
+    transition: opacity var(--motion-reduced);
+  }
+  .phase-idle:not(.off):not(.middle):not(.dragging) .lever-label {
+    background: none;
+    color: var(--t2);
   }
 }

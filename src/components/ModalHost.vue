@@ -8,7 +8,6 @@ import LoginContent from '../views/welcome/LoginContent.vue';
 import GeneralSheet from '../views/sheets/GeneralSheet.vue';
 import CommandSheets from '../views/sheets/CommandSheets.vue';
 import VehiclePicker from '../views/sheets/VehiclePicker.vue';
-import MoreShortcuts from '../views/sheets/MoreShortcuts.vue';
 const confirm = computed(() =>
   ['打开座桶', '上电开锁', '关机锁车'].includes(session.state.sheet?.title ?? ''),
 );
@@ -50,6 +49,16 @@ const login = computed(() =>
     session.state.sheet?.title ?? '',
   ),
 );
+const choiceButtons = computed(() => [
+  ...(session.state.sheet?.body.items || []).map(([value, text]: string[]) => ({
+    text,
+    handler: () => {
+      session.haptic('selection');
+      session.modalAction(session.state.sheet?.body.action, value);
+    },
+  })),
+  { text: '取消', role: 'cancel', handler: () => session.close() },
+]);
 </script>
 <template>
   <IonModal
@@ -91,7 +100,6 @@ const login = computed(() =>
       <CommandSheets v-else-if="confirm || session.state.sheet?.title === '寻车'" />
       <VehiclePicker v-else-if="session.state.sheet?.title === '切换车辆'" />
       <GeneralSheet v-else-if="session.state.sheet" />
-      <MoreShortcuts v-if="session.state.sheet?.title === '更多'" />
       <p v-if="session.sheetOpen && session.state.notice" id="modal-message" role="status">
         {{ displayCopy(session.state.notice) }}
       </p>
@@ -100,13 +108,7 @@ const login = computed(() =>
   <IonActionSheet
     :is-open="session.sheetOpen && session.state.sheet?.body.kind === 'choice'"
     :header="session.state.sheet?.title"
-    :buttons="[
-      ...(session.state.sheet?.body.items || []).map(([value, text]: string[]) => ({
-        text,
-        handler: () => session.modalAction(session.state.sheet?.body.action, value),
-      })),
-      { text: '取消', role: 'cancel', handler: () => session.close() },
-    ]"
+    :buttons="choiceButtons"
     @did-dismiss="$event.detail.role === 'backdrop' && session.close()"
   />
 </template>

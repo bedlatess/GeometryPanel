@@ -1,10 +1,16 @@
 <script setup lang="ts">
+import { computed } from 'vue';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
 import LineChart from '../../components/LineChart.vue';
 import EmptyState from '../../components/EmptyState.vue';
 import { format } from '../../stores/presentation';
-defineProps<{ view: any; disabled?: boolean }>();
+const props = defineProps<{ view: any; disabled?: boolean }>();
+const points = computed(() =>
+  (props.view.items || [])
+    .filter((item: any) => item.soc != null)
+    .map((item: any) => ({ t: item.at, v: item.soc })),
+);
 const time = (value: number) => (!value ? '—' : new Date(value).toLocaleString('zh-CN'));
 </script>
 <template>
@@ -43,14 +49,7 @@ const time = (value: number) => (!value ? '—' : new Date(value).toLocaleString
       自选时段
     </button>
   </GroupList>
-  <LineChart
-    v-if="view.kind === 'battery'"
-    label="电量历史"
-    energy
-    :points="
-      (view.items || []).filter((v: any) => v.soc != null).map((v: any) => ({ t: v.at, v: v.soc }))
-    "
-  />
+  <LineChart v-if="view.kind === 'battery'" label="电量历史" energy :points="points" />
   <GroupList v-if="view.items?.length" title="记录">
     <ListRow
       v-for="(item, index) in view.items"

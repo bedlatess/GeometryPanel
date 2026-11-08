@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import ToggleField from '../../components/ToggleField.vue';
 import TimeField from '../../components/TimeField.vue';
+import AppIcon from '../../components/AppIcon.vue';
 import { computed } from 'vue';
 import { useWorkflowPage } from '../../app/workflow-page';
 import { useSessionStore } from '../../stores/session';
@@ -17,7 +18,17 @@ const disabled = computed(
 </script>
 <template>
   <PageFrame title="签到与积分">
+    <template #toolbar>
+      <button
+        class="toolbar-refresh"
+        aria-label="刷新"
+        @click="host?.querySelector<HTMLButtonElement>('[data-task=refresh]')?.click()"
+      >
+        <AppIcon name="refresh" />
+      </button>
+    </template>
     <div id="tasks-panel" ref="host" class="workflow">
+      <button hidden data-task="refresh" />
       <StatusCard
         :title="
           v.sign?.signed === true
@@ -132,5 +143,13 @@ const disabled = computed(
     </div>
   </PageFrame>
 </template>
+<style scoped>
+.toolbar-refresh {
+  width: 44px;
+  height: 44px;
+  background: transparent;
+  color: var(--t1);
+}
+</style>
 
 <style scoped src="../../theme/workflows.css"></style>

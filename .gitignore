@@ -3,5 +3,6 @@ dist/
 *.local
 .env*
 test-results/
+test-results-checkpoint/
 playwright-report/
 .tools/

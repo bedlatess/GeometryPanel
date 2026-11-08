@@ -1,4 +1,25 @@
-# 0.8.0 部署与发布
+# 0.9.0 审计与发布
+
+当前开发分支 `ui-v3`，回滚基点 `pre-0.9.0`。**Claude 最终审计通过前，不合并 main，不部署正式网页，不发布正式安装包或 Release。** main 推送会自动部署。
+
+审计包放在工作区 `docs/audit/0.9.0/`，包括完整合成检查、18 图对应的双主题实际截图、候审视觉基准、连续交互录屏、功能对照及真机清单。候审视觉基准在 Claude 批准后才提交，不把设计参考图放进本仓库。
+
+审计通过后的顺序：
+
+1. 核对 ui-v3 审计提交与回滚标签。将获批的候审视觉基准复制到仓库 `tests/visual-baselines/`，把 playwright.config.ts 的 snapshotPathTemplate 同步改为该仓库路径，重跑三项检查并提交。基准仍为实际合成截图，不能把设计参考图复制进仓库。完成后再合并 main。
+2. 等待 Pages 工作流测试、构建、浏览器回归及部署完成，验证正式域名和版本。
+3. 用原稳定签名重新构建 Android APK，执行签名和对齐检查。
+4. macOS Actions 构建标准版、widget 版两个未签名 IPA；核对版本、来源提交、SHA-256。
+5. 按既有 Release 模板发布 v0.9.0，附三个安装包及实机验收清单，再由用户集中实测。
+
+审批前 snapshotPathTemplate 指向工作区候审目录；因此尚未在只有 web 仓库的远端跑完整视觉回归。正式 CI 的前置条件是上一步批准并提交基准，本地检查不跳过视觉比较。
+
+本轮视觉基准来自 Windows、Chrome 156（本机 executable override）和 Playwright WebKit 27.2。
+Linux CI 采用其固定浏览器构建时，应先复现并由 Claude 复核平台差异，不能自动覆盖为通过。
+
+本轮 macOS CI 已验证 haptic 桥接编译，普通版和 widget 版均成功；这是编译验证产物，正式发布仍要等待最终审计。网页及容器测试只用合成数据，不发送真实短信、登录、车控或蓝牙请求。
+
+# 0.8.0 历史发布流程
 
 正式网页：https://bedlatess.github.io/GeometryPanel/
 发布下载：https://github.com/bedlatess/GeometryPanel/releases/tag/v0.8.0

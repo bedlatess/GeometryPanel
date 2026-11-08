@@ -12,6 +12,7 @@ import { IonButton } from '@ionic/vue';
 import { age } from '../../stores/presentation';
 const route = useRoute(),
   path = route.path;
+const title = String(route.meta.title);
 const meter = path.startsWith('/tools/meter'),
   section = path.split('/')[3];
 const session = useSessionStore();
@@ -73,7 +74,7 @@ const readings = computed(() => {
 });
 </script>
 <template>
-  <PageFrame :title="String(route.meta.title)">
+  <PageFrame :title="title">
     <template #toolbar>
       <IonButton
         v-if="!meter && !section"

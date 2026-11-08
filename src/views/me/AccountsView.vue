@@ -7,6 +7,7 @@ import { useSessionStore } from '../../stores/session';
 import PageFrame from '../../components/PageFrame.vue';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
+import ListMotion from '../../components/ListMotion.vue';
 import { useWorkflowOverlay } from '../../stores/workflow-actions';
 const route = useRoute(),
   id = String(route.params.id || ''),
@@ -46,14 +47,16 @@ function rename() {
     <div ref="host" class="workflow">
       <template v-if="!id">
         <GroupList>
-          <ListRow
-            v-for="item in v.book?.accounts || []"
-            :key="item.id"
-            :label="item.label"
-            :detail="phone(item.uid)"
-            :value="`${item.vehicles.length} 台车`"
-            :to="`/me/accounts/${item.id}`"
-          />
+          <ListMotion>
+            <ListRow
+              v-for="item in v.book?.accounts || []"
+              :key="item.id"
+              :label="item.label"
+              :detail="phone(item.uid)"
+              :value="`${item.vehicles.length} 台车`"
+              :to="`/me/accounts/${item.id}`"
+            />
+          </ListMotion>
         </GroupList>
         <button
           class="workflow-primary"
