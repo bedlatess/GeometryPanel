@@ -674,9 +674,18 @@ export async function navigate(page: Page, path: string) {
       .locator(`[data-page="${target.split('?')[0]}"]:not(.ion-page-hidden) :is(main, .welcome)`)
       .last(),
   ).toBeVisible();
-  await expect(
-    page.locator('[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)'),
-  ).toHaveCount(1);
+  // During a tab transition the only active page can still be the outgoing page.
+  // Wait until the target itself is the sole active page before the next navigation.
+  await expect
+    .poll(() =>
+      page
+        .locator('[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)')
+        .evaluateAll((pages) => pages.map((element) => element.getAttribute('data-page'))),
+    )
+    .toEqual([target.split('?')[0]]);
+  if (target.split('?')[0] === '/vehicle') {
+    await expect(page.locator('[data-page="/vehicle"]')).toHaveAttribute('data-ready', 'true');
+  }
 }
 export async function control(page: Page, mode: string) {
   await navigate(page, '/vehicle');
