@@ -116,6 +116,14 @@ test('manual update check reports status and prepares an explicit update without
   await page.evaluate(async () => { await navigator.serviceWorker.ready; });
   await expect.poll(() => page.evaluate(() => Boolean(navigator.serviceWorker.controller))).toBe(true);
   await navigate(page,'/me');
+  // WebKit can expose a controller before its first registration has cleared
+  // the transient installing/waiting references. Begin the no-update assertion
+  // only after the initial installation has fully settled.
+  await expect.poll(() => page.evaluate(async () => {
+    const registration = await navigator.serviceWorker.getRegistration();
+    return { active: registration?.active?.state ?? null, installing: registration?.installing?.state ?? null,
+      waiting: registration?.waiting?.state ?? null, controller: navigator.serviceWorker.controller?.state ?? null };
+  })).toEqual({active:'activated',installing:null,waiting:null,controller:'activated'});
   await navigate(page,'/me/install');await expect(page.getByText('当前版本',{exact:true})).toBeVisible();
   await page.getByRole('button', { name: '检查更新', exact: true }).click();
   await expect(page.locator('.notice')).toHaveText('已是最新版本');
