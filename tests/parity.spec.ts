@@ -78,6 +78,16 @@ async function secondLogin(page: Page, car = '测试极核 B') {
   await page.getByRole('slider').focus();
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
+  // This second-account helper must also wait for the synthetic SMS send to end.
+  await expect(page.getByRole('textbox', { name: '输入验证码', exact: true })).toBeEnabled();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const app = (document.querySelector('#app') as any).__vue_app__;
+        return app.config.globalProperties.$pinia._s.get('session').state.busy;
+      }),
+    )
+    .toBe(false);
   await page.getByRole('textbox', { name: '输入验证码', exact: true }).fill('123456');
   await page.locator('ion-modal:not(.overlay-hidden)').getByRole('button', { name: car }).click();
   await expect(page.getByRole('heading', { name: car, exact: true })).toBeVisible();
