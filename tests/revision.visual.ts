@@ -14,6 +14,7 @@ test('revision comparison with synthetic data',async({page,mocks})=>{
   await navigate(page,'/me/appearance');await page.getByRole('button',{name:theme==='light'?'浅色':'深色',exact:true}).click();
   for(const [name,path]of routes){
    await navigate(page,path);await page.waitForTimeout(380);
+   if(name==='home'){await page.evaluate(()=>scrollTo(0,0));await page.waitForTimeout(350);}
    if(name==='folded'){await page.evaluate(()=>window.scrollTo(0,document.querySelector<HTMLElement>('.home-cards')!.offsetTop-100));await page.waitForTimeout(350);}
    await page.screenshot({path:`${out}/${name}-${theme}.png`,fullPage:!['home','folded'].includes(name)});
    checks.push({name,theme,overflow:await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)});

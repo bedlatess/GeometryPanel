@@ -183,6 +183,7 @@ export const ownerData:Record<OwnerRead,unknown>={
     }
   ],
   "home": {
+    "hmiRidableMile": 91,
     "otaVersion": "1.0.0",
     "activationDate": "2025-01-01",
     "firstBindDate": "2025-01-02",
