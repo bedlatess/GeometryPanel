@@ -1,0 +1,2 @@
+import type { Preferences } from '../../core/preferences';
+export function appearancePage(p:Preferences) { return `<div class="theme-previews">${(['light','dark','system'] as const).map((id,i)=>`<button class="theme-choice" data-action="theme" data-value="${id}" aria-pressed="${p.theme===id}"><span class="theme-preview" data-preview-theme="${id}"><i></i><b></b><span></span><span></span></span>${['浅色','深色','跟随系统'][i]}</button>`).join('')}</div>`; }

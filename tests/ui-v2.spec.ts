@@ -1,4 +1,4 @@
-import { test, expect, open, login } from './fixtures';
+import { navigate, control, report, developerLab, test, expect, open, login } from './fixtures';
 test('lever keeps short drags inert, accepts the threshold once and waits for vehicle confirmation', async ({ page, mocks }) => {
   await page.clock.install();
   mocks.home = { refreshTime: Date.now(), iotProperties: [{ identify: 'VehicleLock_S', value: 1 }] };
@@ -49,7 +49,7 @@ test('unknown lock supports both keyboard directions and target selection clears
   await expect(page.getByRole('dialog')).toContainText('关机锁车');
   expect(mocks.calls.filter(c => /network\/unlock|dbpoint\/send/.test(c.path))).toHaveLength(0);
   await page.keyboard.press('Escape'); await expect(lever).toBeFocused();
-  await page.getByRole('button', { name: '切换车辆', exact: true }).click();
+  await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
   await page.locator('dialog').getByRole('button', { name: /测试极核 B/ }).click();
   await expect(page.locator('.battery-number')).toHaveText('45%');
   await expect(page.getByRole('heading', { name: '测试极核 B', exact: true })).toBeVisible();

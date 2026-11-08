@@ -2,7 +2,7 @@ import { icon } from '../icons';
 import { html } from './index';
 export type LeverPhase = 'idle' | 'sending' | 'pending' | 'success' | 'error';
 export function Lever(locked: boolean | null, phase: LeverPhase = 'idle', disabled = false, reason = '', target: 'powerOn' | 'powerOff' = 'powerOn') {
-  const center = locked === null || phase === 'error', right = phase === 'sending' || phase === 'pending' || phase === 'success' ? target === 'powerOn' : locked === false;
+  const center = phase === 'idle' && locked === null || phase === 'error', right = phase === 'sending' || phase === 'pending' || phase === 'success' ? target === 'powerOn' : locked === false;
   const text = phase === 'sending' ? '正在发送' : phase === 'pending' ? '等待车辆响应' : phase === 'success' ? target === 'powerOn' ? '已开锁' : '已锁车' : center ? '锁车 ｜ 开锁' : locked ? '上电开锁' : '关机锁车';
   const glyph = phase === 'sending' ? 'refresh' : phase === 'pending' ? 'clock' : phase === 'success' ? 'check' : phase === 'error' ? 'info' : locked === false ? 'unlock' : 'lock';
   const arrows = (left = false) => `<span class="lever-arrows" aria-hidden="true">${[1,2,3].map(() => `<i>${left ? '‹' : '›'}</i>`).join('')}</span>`;

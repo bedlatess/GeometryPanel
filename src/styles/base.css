@@ -1,20 +1,20 @@
 * { box-sizing:border-box; }
-html { background:var(--bg); scroll-padding:24px 0 120px; }
+html { background:var(--bg); scroll-padding:var(--space-6) 0 var(--nav-room); }
 body { margin:0; background:var(--bg); color:var(--text); font-family:var(--font-body); font-size:var(--body); line-height:1.5; -webkit-tap-highlight-color:transparent; }
 button,input,select,textarea { font:inherit; }
 button,a,summary { touch-action:manipulation; }
 button { appearance:none; border:0; cursor:pointer; color:var(--text); min-width:var(--tap); }
 button:disabled { cursor:not-allowed; opacity:.48; }
-button,a,input,select,textarea,summary { scroll-margin-block:80px 120px; }
+button,a,input,select,textarea,summary { scroll-margin-block:var(--nav-height) var(--nav-room); }
 button:not(:disabled):active { filter:brightness(.9); }
 :focus-visible { outline:var(--focus-width) solid var(--focus); outline-offset:var(--focus-offset); }
 a { color:var(--text); text-underline-offset:4px; }
 .secondary-link { display:inline-flex; align-items:center; min-width:var(--tap); min-height:var(--tap); }
 h1,h2,h3,p { margin-top:0; }
-h1 { font-size:1.75rem; font-weight:650; line-height:1.35; letter-spacing:-.035em; margin:4px 0 0; overflow-wrap:anywhere; }
-h2 { font-size:1rem; line-height:1.5; font-weight:600; margin:0; }
-h3 { font-size:.9375rem; line-height:1.6; }
+h1 { font-size:var(--title-l); font-weight:650; line-height:1.35; letter-spacing:-.035em; margin:4px 0 0; overflow-wrap:anywhere; }
+h2 { font-size:var(--head); line-height:1.5; font-weight:600; margin:0; }
+h3 { font-size:var(--body); line-height:1.6; }
 p { overflow-wrap:anywhere; }
-.icon { width:1.375rem; height:1.375rem; flex:none; display:inline-block; vertical-align:middle; }
+.icon { width:var(--icon); height:var(--icon); flex:none; display:inline-block; vertical-align:middle; }
 .skip-link { position:fixed; left:16px; top:-120px; z-index:20; background:var(--accent); color:var(--accent-ink); padding:12px 20px; border-radius:8px; }
 .skip-link:focus-visible { top:12px; }

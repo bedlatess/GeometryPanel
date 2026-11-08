@@ -22,16 +22,19 @@ import { storagePrefix } from './core/scope';
 import { installUpdates } from './core/updates';
 import { managePageCache } from './core/cache';
 import { commandNames, commandSummary, type CommandMode, type CommandReport, type CommandStep } from './core/command-report';
-import { renderDaily } from './ui/daily';
+import { pageFor, pageTitles } from './ui/pages';
+import { createRouter } from './core/router';
+import { shortcutNames } from './ui/pages/home-custom';
+import type { PageActions } from './ui/pages/actions';
 import { defaultPreferences, readPreferences, writePreferences, exportPreferences, importPreferences } from './core/preferences';
 import { currentInstallContext } from './core/pwa';
 import { navigationLinks } from './core/navigation';
-import { renderUsagePreferences } from './ui/preferences';
-import { connectNative } from './core/native';
+
+import { connectNative, NativeClient } from './core/native';
 import { mountNative, widgetSnapshot } from './ui/native';
 import { mountExtensions } from './ui/extensions';
 import { componentsPage } from './ui/kit/components-page';
-import { PageHeader, Sheet, ListRow, ActionSheet } from './ui/kit';
+import { PageHeader, Sheet, ListRow, ActionSheet, PickerSheet, ConfirmSheet } from './ui/kit';
 import { mountLever, type LeverPhase } from './ui/kit/lever';
 import { mountVehicleArt, rememberVehicleArt } from './ui/vehicle-art';
 import { commandSheet, dataSheet, hornSheet, loginVehicleList, vehiclePicker } from './ui/pages/home-sheets';
@@ -53,7 +56,12 @@ let reading: Snapshot | null = null;
 let preview = false, busy = false, booting = true, committing = false, activeControl = false, expired = false, generation = 0;
 let updateReady = false, updating = false, lastReadAttempt = 0;
 let updates: ReturnType<typeof installUpdates> | undefined;
-let tab: 'vehicle' | 'daily' | 'appearance' | 'settings' = 'vehicle';
+let disposePage: (()=>void)|undefined, pageKey='';
+let sheetListener: ((button:HTMLElement)=>void)|undefined;
+let mapVisible=false, versionTaps=0, developer=false;
+const noNative=new NativeClient(null);
+const hadRoute=location.hash.startsWith('#/');
+const router=createRouter(()=>{ mapVisible=false; render(); },()=>{if(!modal.open)return false;close();return true;});
 let notice = '';
 let noticeTimer: ReturnType<typeof setTimeout> | undefined;
 let shownNotice = '';
@@ -73,7 +81,7 @@ class UserMessage extends Error { }
 let preferences = readPreferences(`${storagePrefix}preferences`);
 function applyPreferences(save = true) {
   document.documentElement.dataset.theme = preferences.theme;
-  document.documentElement.dataset.accent = preferences.accent;
+
   const dark = preferences.theme === 'dark' || preferences.theme === 'system' && matchMedia('(prefers-color-scheme: dark)').matches;
   document.querySelector('meta[name="theme-color"]')?.setAttribute('content', dark ? '#0B0D10' : '#FBFCFD');
   if (save && !preview && !writePreferences(preferences, `${storagePrefix}preferences`)) notice = '保存失败，请重试';
@@ -83,47 +91,48 @@ const vehicle = () => preview ? demoVehicle : session?.vehicle;
 const isHorn = (mode: CommandMode) => mode === 'normal' || mode === 'high';
 const reportButton = () => lastCommandReport ? `<button class="text-button" data-action="command-report">查看${isHorn(lastCommandReport.mode) ? '寻车' : '车控'}结果</button>` : '';
 
+const actions:PageActions={
+ sheet(title,body,clicked){show(title,body);sheetListener=clicked;},
+ closeSheet:()=>close(),navigate:path=>router.navigate(path),toast:text=>{notice=text;render();},
+};
+function mountPage(host:HTMLElement) {
+ const path=router.path,nativeClient=preview?noNative:native,book=preview?emptyAccounts():structuredClone(accountBook),bound=preview||expired?null:session;
+ const uncertain=()=>{notice='未收到车辆响应';};
+ const common={native:nativeClient,session:bound,demo:preview,snapshot:preview?demoSnapshot:reading,onExpired:panelExpired,onUncertain:uncertain,actions};
+ if(path==='/me/lab')return mountDesignLab(host);
+ if(path==='/me/accounts')return mountAccounts(host,{book,onSelect:activateSavedVehicle,onRemove:forgetSavedAccount,onChange:changeSavedAccounts,onAdd:showPhone,actions,demo:preview});
+ if(path==='/tools/tasks')return mountTasks(host,{...common,accounts:book,onNativeConsent:()=>preview?Promise.reject():authorizeNativeAccounts(native,accountBook).then(()=>{})});
+ if(path==='/tools/bluetooth'||path==='/tools/meter') {
+   const dispose=mountNative(host.querySelector<HTMLElement>('#native-panel')!,{...common,section:path.endsWith('meter')?'meter':'bluetooth'});
+   const extra=host.querySelector<HTMLElement>('#background-panel');
+   const disposeExtra=extra?mountBackground(extra,{...common,book,initial:'tools',toolGroup:'meter',onImported:importOfficialAccount}):undefined;
+   return ()=>{dispose();disposeExtra?.();};
+ }
+ const ext=path==='/vehicle/settings'?'settings':path==='/vehicle/messages'?'alerts':path==='/records/tires'?'tires':path.startsWith('/records/rides/')?'tracks':path==='/records/rides'?'ride':null;
+ if(ext)return mountExtensions(host,{...common,initial:ext,day:ext==='tracks'?path.split('/').at(-1):undefined});
+ const initial=path==='/records/battery'?'history':path==='/tools/monitor'?'monitor':path==='/tools/widgets'?'desktop':'tools';
+ return mountBackground(host,{...common,book,initial,toolGroup:path==='/tools/android'?'android':path==='/tools/scan'?'scan':'diagnostics',onImported:importOfficialAccount});
+}
 function render() {
-  if (location.hash === '#/me/components') { content.innerHTML = `<div class="shell">${PageHeader('组件一览')}${componentsPage()}</div>`; return; }
-  const focused = document.activeElement instanceof HTMLButtonElement && content.contains(document.activeElement) ? { action: document.activeElement.dataset.action, value: document.activeElement.dataset.value } : null;
-  const car = vehicle();
-  const data = preview ? demoSnapshot : reading;
-  const locked = busy || booting || updating;
-  const enabled = !preview && session && !locked && !expired && navigator.onLine;
-  let body = '';
-  if (tab === 'vehicle') body = renderHome({ car, data, preferences, enabled: Boolean(enabled), locked, busy, control: activeControl, expired, online: navigator.onLine, demo: preview, message: notice, phase: leverPhase === 'idle' ? undefined : leverPhase, target: leverTarget, multi: accountBook.accounts.reduce((n, a) => n + a.vehicles.length, 0) > 1 })
-    + (preview ? '<button class="text-button" data-action="preview">退出演示</button><button class="text-button" data-action="design-lab">状态模拟器</button>' : '');
-  if (tab === 'daily') body = renderDaily({ car, data, demo: preview, enabled: Boolean(enabled), locked, online: navigator.onLine })
-    + `<section class="settings-card"><h2>更多用车功能</h2><div class="module-links"><button class="control-button" data-action="extensions" ${locked ? 'disabled' : ''}>骑行记录、胎压与车辆设置</button><button class="control-button" data-action="native" ${locked ? 'disabled' : ''}>蓝牙、提醒与仪表工具</button><button class="control-button" data-action="background" ${locked ? 'disabled' : ''}>后台监控、充电记录与桌面控制</button><button class="control-button" data-action="tasks" ${locked ? 'disabled' : ''}>签到、积分与自动任务</button></div></section>`
-    + reportButton()
-    ;
-  if (tab === 'appearance') body = `
-    <div class="page-heading"><div><span class="eyebrow">按你的喜好</span><h1>我的风格</h1></div></div><p class="subheading">每一点改变，都保留在这台设备。</p>
-    <section class="settings-card"><h2>外观模式</h2><div class="segmented">${(['system', 'light', 'dark'] as const).map((mode, i) => `<button data-action="theme" data-value="${mode}" aria-pressed="${preferences.theme === mode}">${['跟随系统', '浅色', '深色'][i]}</button>`).join('')}</div></section>
-    <section class="settings-card"><h2>点缀颜色</h2><div class="color-options">${(['green', 'blue', 'orange'] as const).map((color, i) => `<button class="color-choice ${color}" data-action="accent" data-value="${color}" aria-pressed="${preferences.accent === color}">${['苔绿', '海蓝', '日落'][i]}</button>`).join('')}</div></section>
-    <section class="settings-card"><button class="setting-row" data-action="voltage" role="switch" aria-checked="${preferences.voltage}"><span>显示电池电压</span><span class="switch ${preferences.voltage ? 'checked' : ''}" aria-hidden="true"></span></button></section>`;
-  if (tab === 'settings') body = `
-    <div class="page-heading"><div><span class="eyebrow">连接与偏好</span><h1>设置</h1></div></div><p class="subheading">属于你的面板，也属于你的设备。</p>
-    <section class="settings-card"><h2>车辆连接</h2><p>${session ? `${escape(session.vehicle.name)} · 尾号 ${escape(session.vehicle.vin.slice(-6))}` : '尚未连接车辆'}</p>
-      <button class="primary" data-action="connect" ${locked || !navigator.onLine ? 'disabled' : ''}>${session ? '重新登录' : '登录并连接'}</button>
-      ${session ? `<button class="text-button" data-action="switch" ${enabled ? '' : 'disabled'}>切换车辆</button><button class="text-button danger" data-action="logout" ${locked ? 'disabled' : ''}>退出本机登录</button>` : ''}</section>
-    <section class="settings-card"><h2>多账号与后台</h2><p>已保存 ${accountBook.accounts.length} 个账号。账号和车辆分别绑定，切换不必重复登录。</p><button class="text-button" data-action="accounts" ${locked ? 'disabled' : ''}>管理本机账号</button><button class="text-button" data-action="background" ${locked ? 'disabled' : ''}>后台监控与本机记录</button><button class="text-button" data-action="tasks" ${locked ? 'disabled' : ''}>签到与自动任务</button></section>
-    <section class="settings-card"><h2>iPhone 与离线使用</h2><p>${currentInstallContext() === 'installed' ? '当前从主屏幕图标独立运行' : '当前在浏览器中运行'}</p><p>${cacheReady ? '离线页面已准备好；车辆数据和控制需要联网。' : '联网后准备离线页面；车辆数据和控制需要联网。'}</p><button class="setting-row" data-action="install"><span>${currentInstallContext() === 'installed' ? '查看主屏幕使用说明' : '添加到 iPhone 主屏幕'}</span><span aria-hidden="true">→</span></button><button class="text-button" data-action="check-update" ${locked || checkingUpdate || !navigator.onLine ? 'disabled' : ''}>${checkingUpdate ? '正在检查更新…' : '检查新版本'}</button><button class="text-button" data-action="cache-status" ${locked ? 'disabled' : ''}>查看离线缓存</button><button class="text-button" data-action="cache-clear" ${locked ? 'disabled' : ''}>清理旧页面缓存</button></section>
-    <section class="settings-card"><h2>设计预览</h2><p>独立模拟界面状态，保留真实车辆和本机偏好。</p><button class="text-button" data-action="design-lab">打开状态模拟器</button></section>
-    <section class="settings-card"><h2>车况分享</h2><p>只导出电量、续航、电压和状态读数。</p><button class="text-button" data-action="status-export" ${locked || !(preview || reading) ? 'disabled' : ''}>导出车况图片</button></section>
-    ${renderUsagePreferences(preferences)}
-    <section class="settings-card"><h2>几何面板</h2><p>${native.available ? '原生容器' : '网页版'} · ${escape(version)} 验收版</p><p class="muted">车况、骑行、车辆设置与原生工具，集中在“用车”页。</p><button class="text-button" data-action="native" ${locked ? 'disabled' : ''}>查看系统能力与安装包</button></section>
-    ${lastCommandReport ? '<section class="settings-card"><button class="setting-row" data-action="command-report"><span>查看操作结果与排查摘要</span><span aria-hidden="true">→</span></button></section>' : ''}
-    `;
-  content.innerHTML = `<div class="shell ${tab === 'vehicle' ? 'home-shell' : ''}"><header class="brand" ${tab === 'vehicle' ? 'hidden' : ''}><span class="brand-mark" aria-hidden="true">${icon('vehicle')}</span><span>几何面板<small>GEOMETRY / ZEEHO</small></span><span class="platform-label">${native.available ? 'APP' : currentInstallContext() === 'installed' ? 'PWA' : 'WEB'}</span></header>
-    ${expired ? '<div class="global-banner error" role="status">登录已过期<button class="text-button" data-action="connect">重新登录</button></div>' : !navigator.onLine ? '<div class="global-banner" role="status">网络不可用</div>' : nativeSyncPending ? '<div class="global-banner" role="status">后台提醒需重新保存<button class="text-button" data-action="background">去设置</button></div>' : ''}
-    ${updateReady ? `<div class="update-bar" role="status"><span>新版本已就绪</span><button class="text-button" data-action="update" ${locked || modal.open || !navigator.onLine ? 'disabled' : ''}>更新</button></div>` : ''}
-    ${notice ? `<div class="result-toast notice" role="status">${escape(notice)}</div>` : ''}
-    <main id="main-content" tabindex="-1">${body}</main>
-    <nav class="bottom-nav" aria-label="主导航">${(['vehicle', 'daily', 'appearance', 'settings'] as const).map((page, i) => `<button data-action="tab" data-value="${page}" ${tab === page ? 'aria-current="page"' : ''}>${icon((['vehicle','grid','palette','settings'] as Icon[])[i])}<span>${['车辆', '用车', '外观', '设置'][i]}</span></button>`).join('')}</nav></div>`;
-  mountVehicleArt(content);
-  if (notice && notice !== shownNotice) { shownNotice = notice; clearTimeout(noticeTimer); noticeTimer = setTimeout(() => { notice = ''; shownNotice = ''; content.querySelector('.result-toast')?.remove(); }, 4000); }
-  if (!modal.open && focused?.action) Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(button => button.dataset.action === focused.action && button.dataset.value === focused.value && !button.disabled)?.focus({ preventScroll: true });
+ const focused=document.activeElement instanceof HTMLButtonElement&&content.contains(document.activeElement)?{action:document.activeElement.dataset.action,value:document.activeElement.dataset.value}:null;
+ const car=vehicle(),data=preview?demoSnapshot:reading,locked=busy||booting||updating;
+ const enabled=Boolean(!preview&&session&&!locked&&!expired&&navigator.onLine);
+ const path=router.path;
+ const key=[path,preview,expired,session?.uid,session?.vehicle.vin].join('|');
+ const existing=key===pageKey?content.querySelector<HTMLElement>('[data-page-controller]'):null;
+ if(existing)existing.remove();
+ else {const dispose=disposePage;disposePage=undefined;pageKey=key;dispose?.();}
+ let body=path==='/vehicle'?renderHome({car,data,preferences,enabled,locked,busy,control:activeControl,expired,online:navigator.onLine,demo:preview,message:notice,phase:leverPhase==='idle'?undefined:leverPhase,target:leverTarget,multi:!preview&&accountBook.accounts.reduce((n,a)=>n+a.vehicles.length,0)>1})
+ :pageFor(path,{car,data,book:preview?emptyAccounts():accountBook,preferences,version,demo:preview,app:!preview&&native.available,android:!preview&&Boolean((window as any).GeometryNative),mapVisible,checking:checkingUpdate,developer,installed:currentInstallContext()==='installed'});
+ if(path==='/vehicle'&&preview)body+='<button class="text-button" data-action="preview">退出演示</button>';
+ const header=path==='/vehicle'?'':path.split('/').length===2?`<h1 class="root-title">${pageTitles[path]}</h1>`:PageHeader(pageTitles[path]??(path.startsWith('/records/rides/')?'骑行':'几何面板'),path==='/vehicle/status'?`<button class="icon-button" data-action="refresh" aria-label="刷新车况" ${!enabled?'disabled':''}>${icon('refresh')}</button>`:'');
+ content.innerHTML=`<div class="shell ${path==='/vehicle'?'home-shell':''}">${expired?'<div class="global-banner error" role="status">登录已过期<button class="text-button" data-action="connect">重新登录</button></div>':!navigator.onLine?'<div class="global-banner" role="status">网络不可用</div>':nativeSyncPending?'<div class="global-banner" role="status">后台提醒需重新保存<button class="text-button" data-action="route" data-value="/tools/monitor">去设置</button></div>':''}${updateReady?`<div class="update-bar" role="status"><span>新版本已就绪</span><button class="text-button" data-action="update" ${locked||modal.open||!navigator.onLine?'disabled':''}>更新</button></div>`:''}${notice?`<div class="result-toast notice" role="status">${escape(notice)}</div>`:''}<main id="main-content" tabindex="-1">${header}${body}</main><nav class="bottom-nav" aria-label="主导航">${(['vehicle','records','tools','me'] as const).map((root,i)=>`<button data-action="route" data-value="/${root}" ${router.root===root?'aria-current="page"':''}>${icon((['vehicle','chart','grid','user'] as Icon[])[i])}<span>${['车辆','记录','工具','我的'][i]}</span></button>`).join('')}</nav></div>`;
+ const host=content.querySelector<HTMLElement>('[data-page-controller]');
+ if(host&&existing)host.replaceWith(existing);
+ else if(host)disposePage=mountPage(host);
+ mountVehicleArt(content);
+ if(notice&&notice!==shownNotice){shownNotice=notice;clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{notice='';shownNotice='';content.querySelector('.result-toast')?.remove();},4000);}
+ if(!modal.open&&focused?.action)Array.from(content.querySelectorAll<HTMLButtonElement>('button[data-action]')).find(b=>b.dataset.action===focused.action&&b.dataset.value===focused.value&&!b.disabled)?.focus({preventScroll:true});
 }
 matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => applyPreferences(false));
 
@@ -132,7 +141,7 @@ function show(title: string, body: string) {
     const opener = document.activeElement instanceof HTMLElement ? document.activeElement.closest<HTMLButtonElement>('button[data-action]') : null;
     modalReturnFocus = opener?.dataset.action ? { action: opener.dataset.action, value: opener.dataset.value } : null;
   }
-  disposePanel?.(); disposePanel = undefined;
+  disposePanel?.(); disposePanel = undefined; sheetListener=undefined;
   commandTarget = null; commandIntent = null;
   modal.innerHTML = Sheet(title, body);
   mountVehicleArt(modal);
@@ -142,7 +151,7 @@ function show(title: string, body: string) {
 }
 function close() {
   if (committing) return;
-  disposePanel?.(); disposePanel = undefined;
+  disposePanel?.(); disposePanel = undefined; sheetListener=undefined;
   if (busy) {
     aborter?.abort(); generation++; busy = false;
     if (activeControl) { notice = '未收到车辆响应'; if (leverPhase === 'sending') leverPhase = 'error'; }
@@ -268,13 +277,13 @@ async function selectVehicle(index: number) {
     const closeButton = modal.querySelector<HTMLButtonElement>('[data-action="close"]');
     if (closeButton) closeButton.disabled = true;
     try { if (native.available) await native.call('forgetVehicle', {}, signal); await saveSession(candidate, cars); accountBook = await loadAccounts(); }
-    catch { throw new UserMessage('本机未能保存连接，本次切换未完成。请重试，或检查浏览器的存储设置。'); }
+    catch { throw new UserMessage('保存失败，请重试'); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; lastCommandReport = null; resetLever(); preview = expired = false; pending = null; tab = preferences.startPage;
+    session = candidate; reading = null; lastCommandReport = null; resetLever(); preview = expired = false; pending = null;
     await synchronizeAccounts();
     notice = '正在加载';
-    modal.close();
+    modal.close(); router.navigate('/'+preferences.startPage);
     render();
     lastReadAttempt = Date.now();
     const data = await api.read(candidate, signal);
@@ -283,7 +292,7 @@ async function selectVehicle(index: number) {
 }
 function syncWidget(bound: Session, data: Snapshot) {
   if (native.available && session === bound && !expired && !preview) void native.call('widget.update', { ...widgetSnapshot(bound, data), vehicleId: accountBook.selectedVehicleId }).catch(() => {});
-  if (session === bound && !expired && !preview && accountBook.selectedVehicleId) void recordLocalHistory(accountBook.selectedVehicleId, data).catch(() => { notice = '车况已读取，但本机历史未能保存。'; render(); });
+  if (session === bound && !expired && !preview && accountBook.selectedVehicleId) void recordLocalHistory(accountBook.selectedVehicleId, data).catch(() => { notice = '保存失败，请重试'; render(); });
 }
 async function synchronizeAccounts() {
   try { await syncNativeAccounts(native, accountBook); nativeSyncPending = false; }
@@ -297,15 +306,16 @@ async function activateSavedVehicle(vehicleId: string) {
       const latest = accountSession(book, vehicleId); if (!latest || latest.token !== candidate.token) throw new Error('storage_changed');
       book.selectedVehicleId = vehicleId; return book;
     }); }
+    catch { throw new UserMessage('保存失败，请重试'); }
     finally { committing = false; }
     if (!current()) return;
-    session = candidate; reading = null; lastCommandReport = null; resetLever(); preview = expired = false; pending = null; tab = preferences.startPage;
+    session = candidate; reading = null; lastCommandReport = null; resetLever(); preview = expired = false; pending = null;
     await synchronizeAccounts();
-    disposePanel?.(); disposePanel = undefined; modal.close(); render();
+    disposePanel?.(); disposePanel = undefined; modal.close(); router.navigate('/'+preferences.startPage); render();
     lastReadAttempt = Date.now(); const data = await api.read(candidate, signal);
     if (current() && session === candidate) { reading = data; notice = '已更新'; syncWidget(candidate, data); }
   }, { bound: candidate });
-  if (accountBook.selectedVehicleId !== vehicleId) throw new Error('storage');
+  if (accountBook.selectedVehicleId !== vehicleId) return;
 }
 async function forgetSavedAccount(accountId: string) {
   await run(async (_signal, current) => {
@@ -320,12 +330,12 @@ async function forgetSavedAccount(accountId: string) {
     } finally { committing = false; }
     if (!current()) return;
     session = accountSession(accountBook); reading = null; lastCommandReport = null; resetLever(); expired = preview = false;
-    await synchronizeAccounts(); notice = '已移除本机账号及其后台绑定。'; render();
+    await synchronizeAccounts(); notice = '已移除此账号'; render();
   });
   if (accountBook.accounts.some(item => item.id === accountId)) throw new Error('storage');
 }
 function panelExpired() {
-  expired = true; notice = '登录信息已失效，请重新登录。'; close();
+  expired = true; notice = '登录已过期'; if(modal.open)close();router.navigate('/vehicle');render();
   if (session) void disableExpiredAccount(session);
   if (native.available) void native.call('forgetVehicle').catch(() => {});
 }
@@ -352,7 +362,7 @@ async function changeSavedAccounts(next: AccountBook, before: AccountBook) {
 async function importOfficialAccount(value: unknown) {
   const data = value as { token?: unknown; uid?: unknown } | null;
   if (!data || typeof data.token !== 'string' || !data.token || data.token.length > 8192 || /\s/.test(data.token)
-    || typeof data.uid !== 'string' || !data.uid || data.uid.length > 128 || /[\u0000-\u001f\u007f]/.test(data.uid)) throw new UserMessage('原生账号交接资料不完整，请重新连接。');
+    || typeof data.uid !== 'string' || !data.uid || data.uid.length > 128 || /[\u0000-\u001f\u007f]/.test(data.uid)) throw new UserMessage('登录资料不完整');
   await run(async (signal, current) => {
     pending = { token: data.token as string, uid: data.uid as string, vehicles: [] };
     await retrieveCars(signal, current);
@@ -409,50 +419,21 @@ function handleAction(event: MouseEvent) {
   if (!button || button.disabled) return;
   const action = button.dataset.action;
   if (booting || updating) return;
-  if (action === 'tab') { tab = button.dataset.value as typeof tab; render(); window.scrollTo(0, 0); }
-  if (action === 'preview') { if (!preview) { realPreferences = preferences; preferences = structuredClone(defaultPreferences); preview = true; } else { preview = false; if (realPreferences) preferences = realPreferences; realPreferences = null; } notice = ''; resetLever(); applyPreferences(false); render(); }
+  if(action==='route'){router.navigate(button.dataset.value!);return;}
+  if(action==='back'){router.back();return;}
+  if (action === 'preview') { if (!preview) { realPreferences = preferences; preferences = structuredClone(defaultPreferences); preview = true; } else { preview = false; if (realPreferences) preferences = realPreferences; realPreferences = null; } notice = ''; resetLever(); applyPreferences(false); router.navigate('/vehicle'); render(); }
   if (action === 'top') window.scrollTo({ top: 0, behavior: 'smooth' });
   if (action === 'data-status') show('数据状态', dataSheet(preview ? demoSnapshot : reading));
   if (action === 'vehicle-picker' && !busy) { if (preview) show('切换车辆', '<div class="list-row">演示车辆</div>'); else show('切换车辆', vehiclePicker(accountBook)); }
   if (action === 'more') show('更多', ActionSheet([['分享车况图片', 'grid', 'status-export'], ['查看上次车控结果', 'info', 'command-report'], ['首页按键设置', 'settings', 'route', '/me/home']]));
   if (action === 'walk' && !preview) { const links = navigationLinks(reading?.daily.location ?? null); if (links?.walk) window.open(links.walk, '_blank', 'noopener,noreferrer'); }
-  if (action === 'design-lab' && !busy) {
-    show('界面与状态演示', '<div id="design-lab"></div>');
-    modal.classList.add('design-lab-modal');
-    const destroy = mountDesignLab(modal.querySelector<HTMLElement>('#design-lab')!);
-    disposePanel = () => { destroy(); modal.classList.remove('design-lab-modal'); };
-  }
-  if (action === 'vehicle-info') show('车辆信息', `<p>${escape(vehicle()?.name ?? '尚未连接车辆')}</p><p class="muted">${escape(vehicle()?.type ?? '')}</p>${session && !preview ? '<button class="primary block" data-action="open-accounts">管理账号与车辆</button>' : '<p class="fine-print">演示车辆，不对应真实车型。</p>'}`);
   if (action === 'connect' && !busy) showPhone();
   if (action === 'status-export' && !busy && (preview || reading)) {
     try {
       const image = panelImage(preview ? demoSnapshot : reading!, preview);
-      if (native.available) void run(async () => { await native.call('asset.export', { kind: 'panel', ...image }); notice = '已打开车况图片保存或分享流程。'; });
+      if (native.available) void run(async () => { await native.call('asset.export', { kind: 'panel', ...image }); notice = '已导出'; });
       else downloadPanelImage(image);
-    } catch { notice = '车况图片生成未完成，请重试。'; render(); }
-  }
-  if (action === 'accounts' && !busy) {
-    show('本机账号管理', '<div id="accounts-panel"></div>');
-    disposePanel = mountAccounts(modal.querySelector<HTMLElement>('#accounts-panel')!, { book: structuredClone(accountBook), onSelect: activateSavedVehicle, onRemove: forgetSavedAccount, onChange: changeSavedAccounts, onAdd: showPhone });
-  }
-  if (action === 'background' && !busy) {
-    show('后台监控与系统工具', '<div id="background-panel"></div>');
-    disposePanel = mountBackground(modal.querySelector<HTMLElement>('#background-panel')!, { native, book: structuredClone(accountBook), demo: preview, snapshot: reading, onImported: importOfficialAccount });
-  }
-  if (action === 'tasks' && !busy) {
-    show('签到、积分与自动任务', '<div id="tasks-panel"></div>');
-    disposePanel = mountTasks(modal.querySelector<HTMLElement>('#tasks-panel')!, { native, accounts: structuredClone(accountBook), session: expired ? null : session, demo: preview, onExpired: panelExpired,
-      onNativeConsent: () => authorizeNativeAccounts(native, accountBook).then(() => {}), onUncertain: () => { notice = '任务操作已中断，结果尚未确认。请先查看任务记录，避免重复执行。'; } });
-  }
-  if (action === 'extensions' && !busy) {
-    show('骑行与车辆设置', '<div id="extension-panel"></div>');
-    disposePanel = mountExtensions(modal.querySelector<HTMLElement>('#extension-panel')!, { session: expired ? null : session, demo: preview, onExpired: panelExpired,
-      onUncertain: () => { notice = '车辆设置操作已中断，结果尚未确认。请重新读取设置并检查车辆，再决定是否重试。'; } });
-  }
-  if (action === 'native' && !busy) {
-    show('系统能力与仪表工具', '<div id="native-panel"></div>');
-    disposePanel = mountNative(modal.querySelector<HTMLElement>('#native-panel')!, { native, session: expired ? null : session, demo: preview, snapshot: reading, onExpired: panelExpired,
-      onUncertain: () => { notice = '操作已中断，车辆执行结果尚未确认。请先查看车辆和登记状态，再决定是否重试。'; } });
+    } catch { notice = '导出失败'; render(); }
   }
   if (action === 'switch' && session && !busy && !expired) {
     const bound = session;
@@ -460,26 +441,23 @@ function handleAction(event: MouseEvent) {
     void run(retrieveCars, { bound });
   }
   if (action === 'theme' && ['system', 'light', 'dark'].includes(button.dataset.value ?? '')) { preferences.theme = button.dataset.value as typeof preferences.theme; applyPreferences(); render(); }
-  if (action === 'accent' && ['green', 'blue', 'orange'].includes(button.dataset.value ?? '')) { preferences.accent = button.dataset.value as typeof preferences.accent; applyPreferences(); render(); }
   if (action === 'voltage') { preferences.voltage = !preferences.voltage; applyPreferences(); render(); }
   if (action === 'range') { preferences.range = !preferences.range; applyPreferences(); render(); }
   if (action === 'foreground-refresh') { preferences.foregroundRefresh = !preferences.foregroundRefresh; applyPreferences(); render(); }
-  if (action === 'install') show('主屏幕使用说明', currentInstallContext() === 'installed'
-    ? '<p>你已经从主屏幕图标独立运行几何面板。重新打开会恢复此入口保存的登录与配置，联网后读取车况。</p><p>离线仍可打开页面和设置，车况不会更新，车控不可用。新版本准备好后点“更新并重新打开”。</p>'
-    : '<p>在 iPhone 的 Safari 中打开正式网址，点分享按钮 → 添加到主屏幕 → 添加。以后从桌面图标打开。</p><p>首次从桌面图标打开时，如果没有恢复浏览器里的登录，请在桌面版连接一次。iPhone 可能分别保存这两个入口的登录。</p><p>离线能打开页面，但读取车况和控制车辆需要联网。配置可在“备份我的配置”中复制带走。</p>');
-  if (action === 'map' && !preview && !busy && navigator.onLine) {
-    const links = navigationLinks(reading?.daily.location ?? null);
-    if (links) show('车辆地图', `<iframe class="vehicle-map" title="车辆停车位置地图" src="${escape(links.map)}" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" allow="geolocation 'none'"></iframe><p>地图标记是车辆最近上报的停车位置，可能有延迟。</p><a class="secondary-link" href="${escape(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">地图未显示？在高德中打开</a>${links.walk ? `<p><a class="secondary-link" href="${escape(links.walk)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">带我去找车</a>：规划从你所在位置步行到车辆的路线。</p>` : ''}`);
-  }
-  if (action === 'export-preferences') show('备份我的配置', `<p>复制下面的配置，之后可粘贴导入；不包含登录信息。</p><textarea id="preferences-backup" aria-label="配置备份" readonly>${escape(exportPreferences(preferences))}</textarea><button class="primary block" data-action="copy-preferences">复制配置</button>`);
-  if (action === 'import-preferences') show('导入配置', '<form id="preferences-form"><label>粘贴配置<textarea id="preferences-import" maxlength="4096" required></textarea></label><button class="primary block" type="submit">确认导入</button></form><p>只替换使用偏好，不改变本机登录和车辆。</p>');
-  if (action === 'reset-preferences') show('恢复默认配置', '<p>恢复使用偏好，不退出登录，不改变车辆。</p><button class="primary block" data-action="confirm-reset-preferences">确认恢复默认配置</button>');
-  if ((action === 'cache-status' || action === 'cache-clear') && !busy) void run(async () => { notice = await managePageCache(action === 'cache-clear'); });
+  if(action==='map'&&!preview&&!busy&&navigator.onLine){mapVisible=!mapVisible;render();}
+  if(action==='version'){if(++versionTaps>=5){developer=true;render();}}
+  if(action==='pick-start')show('打开后的首页',PickerSheet([['vehicle','车辆'],['records','记录'],['tools','工具'],['me','我的']],preferences.startPage,'start-value'));
+  if(action==='pick-shortcut')show('首页按键',PickerSheet(Object.entries(shortcutNames),preferences.shortcut[Number(button.dataset.value)],'shortcut-'+button.dataset.value));
+  if(action==='copy-preferences')copyPreferences();
+  if(action==='reset-preferences')show('恢复默认',ConfirmSheet('恢复默认','使用偏好','—','data-action="confirm-reset-preferences"'));
+  if(action==='command-report'&&lastCommandReport&&!busy){router.navigate('/tools/diagnostics');return;}
+  if(action==='export-command-report'&&lastCommandReport)downloadText(commandSummary(lastCommandReport,version),'geometry-command.txt');
+  if(action==='parity-export')void fetch(import.meta.env.BASE_URL+'verification/original-parity.json').then(r=>r.text()).then(t=>downloadText(t,'geometry-functions.json'));
+  if ((action === 'cache-status' || action === 'cache-clear') && !busy) void run(async () => { const result=await managePageCache(action==='cache-clear');notice=result.includes('未')?'加载失败':action==='cache-clear'?'已清理':'离线数据已就绪'; });
   if (action === 'check-update' && !busy && !modal.open && !checkingUpdate && navigator.onLine) {
     checkingUpdate = true; render();
     void (updates?.check() ?? Promise.resolve('unavailable')).then(result => {
-      notice = result === 'ready' || updateReady ? '新版本已准备好，请点击“更新并重新打开”。'
-        : result === 'current' ? '已检查，目前没有新版本。' : result === 'failed' ? '更新检查未完成，请联网后重试。' : '当前入口暂不支持离线更新，请在 Safari 中重新打开正式网址。';
+      notice=result==='ready'||updateReady?'新版本已就绪':result==='current'?'已是最新版本':'加载失败';
     }).finally(() => { checkingUpdate = false; render(); });
   }
   if (action === 'refresh') void refresh();
@@ -488,18 +466,17 @@ function handleAction(event: MouseEvent) {
     if (preview) { show('寻车', hornSheet(demoVehicle)); return; }
     if (session) { show('寻车', hornSheet(session.vehicle)); commandTarget = session; commandIntent = 'horn'; }
   }
+  if (action === 'horn-high' && !busy && navigator.onLine && !expired) {
+    if (preview) show('寻车', hornSheet(demoVehicle, 'high'));
+    else if (session) { show('寻车', hornSheet(session.vehicle, 'high')); commandTarget = session; commandIntent = 'horn'; }
+  }
+  if (action === 'storage') { notice = '此车型不支持'; render(); }
   if (action === 'vehicle-action' && !busy && navigator.onLine && !expired && ['powerOn','powerOff','seat'].includes(button.dataset.value ?? '')) presentControl(button.dataset.value as VehicleAction);
-  if (action === 'command-report' && lastCommandReport && !busy) show(isHorn(lastCommandReport.mode) ? '寻车结果' : '车控结果', `<pre class="diagnostic-summary" tabindex="0">${escape(commandSummary(lastCommandReport, version))}</pre><button class="primary block" data-action="copy-command-report">复制排查摘要</button>`);
-  if (action === 'logout' && !busy) show('退出本机登录', '<p>此设备保存的全部账号登录将被移除，原生后台任务及桌面控制绑定也会清除。不会解绑官方账号中的车辆。</p><button class="primary block" data-action="confirm-logout">确认退出</button>');
+  if(action==='logout'&&!busy&&!preview)show('退出全部账号',ConfirmSheet('退出全部账号','本机全部账号','—','data-action="confirm-logout"','移除本机登录和后台绑定'));
 }
 content.addEventListener('click', handleAction);
-content.addEventListener('change', event => {
-  const select = event.target as HTMLSelectElement;
-  if (select.dataset.preference === 'startPage' && ['vehicle', 'daily'].includes(select.value)) preferences.startPage = select.value as typeof preferences.startPage;
-  else if (select.dataset.preference === 'shortcut' && ['horn', 'seat', 'daily'].includes(select.value)) preferences.shortcut = select.value as typeof preferences.shortcut;
-  else return;
-  applyPreferences(); render();
-});
+function downloadText(text:string,name:string){const url=URL.createObjectURL(new Blob([text],{type:'text/plain;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download=name;link.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
+function copyPreferences(){const value=exportPreferences(preferences);void(navigator.clipboard?.writeText(value)??Promise.reject()).then(()=>{notice='已复制';render();}).catch(()=>{content.querySelector<HTMLTextAreaElement>('#preferences-backup')?.select();notice='复制配置';render();});}
 modal.addEventListener('keydown', event => {
   if (event.key !== 'Tab' || !modal.open) return;
   const items = Array.from(modal.querySelectorAll<HTMLElement>('button,a[href],input,select,textarea,[tabindex]'))
@@ -525,29 +502,23 @@ modal.addEventListener('pointerup', event => {
 });
 modal.addEventListener('pointercancel', () => { sheetPointer = null; modal.style.removeProperty('transform'); });
 modal.addEventListener('click', event => {
+  const selected=(event.target as Element).closest<HTMLElement>('button');
+  if(selected&&!selected.hasAttribute('disabled')&&selected.dataset.action!=='close'&&sheetListener){sheetListener(selected);return;}
   if (event.target === modal) { const rect = modal.getBoundingClientRect(); if (event.clientX < rect.left || event.clientX > rect.right || event.clientY < rect.top || event.clientY > rect.bottom) { close(); return; } }
   const mode = (event.target as Element).closest<HTMLButtonElement>('button[data-horn-mode]');
   if (mode) { const bound = commandTarget; show('寻车', hornSheet(preview ? demoVehicle : bound!.vehicle, mode.dataset.hornMode)); commandTarget = bound; commandIntent = 'horn'; return; }
   const button = (event.target as Element).closest<HTMLButtonElement>('button[data-action]');
   if (!button || button.disabled) return;
   if (button.dataset.action === 'close') close();
-  if (['status-export','command-report'].includes(button.dataset.action ?? '')) handleAction(event);
+  if (['status-export','command-report','route'].includes(button.dataset.action ?? '')){handleAction(event);return;}
   if (button.dataset.action === 'saved-vehicle') void activateSavedVehicle(button.dataset.value!);
   if (button.dataset.action === 'send-horn-choice') { if (preview) { notice = '已发送鸣笛寻车'; close(); } else beginCommand(button.dataset.value === 'high' ? 'high' : 'normal'); }
   if (button.dataset.action === 'demo-control') { close(); leverPhase = 'sending'; render(); clearTimeout(leverTimer); leverTimer = setTimeout(() => { leverPhase = 'pending'; render(); leverTimer = setTimeout(() => { leverPhase = 'error'; render(); }, 15000); }, 700); }
 
-  if (button.dataset.action === 'open-accounts' && !busy) {
-    show('本机账号管理', '<div id="accounts-panel"></div>');
-    disposePanel = mountAccounts(modal.querySelector<HTMLElement>('#accounts-panel')!, { book: structuredClone(accountBook), onSelect: activateSavedVehicle, onRemove: forgetSavedAccount, onChange: changeSavedAccounts, onAdd: showPhone });
-  }
   if (busy) return;
-  if (button.dataset.action === 'confirm-reset-preferences') { preferences = { ...defaultPreferences }; notice = '已恢复默认配置，车辆连接保持。'; applyPreferences(); close(); }
-  if (button.dataset.action === 'copy-preferences') {
-    const text = exportPreferences(preferences);
-    void (navigator.clipboard?.writeText(text) ?? Promise.reject()).then(() => {
-      const message = modal.querySelector('#modal-message'); if (message) message.textContent = '配置已复制。';
-    }).catch(() => { (modal.querySelector('#preferences-backup') as HTMLTextAreaElement)?.select(); const message = modal.querySelector('#modal-message'); if (message) message.textContent = '请长按已选中的配置并复制。'; });
-  }
+  if(button.dataset.action==='start-value'){preferences.startPage=button.dataset.value as typeof preferences.startPage;applyPreferences();close();}
+  if(button.dataset.action?.startsWith('shortcut-')){preferences.shortcut=[...preferences.shortcut];preferences.shortcut[Number(button.dataset.action.slice(9))]=button.dataset.value as typeof preferences.shortcut[number];applyPreferences();close();}
+  if (button.dataset.action === 'confirm-reset-preferences') { preferences = structuredClone(defaultPreferences); notice = '已恢复默认'; applyPreferences(); close(); }
   if (button.dataset.action === 'new-captcha') void fetchCaptcha();
   if (button.dataset.action === 'resend' && !secondsRemaining()) void fetchCaptcha();
   if (button.dataset.action === 'code') showCode(false);
@@ -558,35 +529,24 @@ modal.addEventListener('click', event => {
   if (button.dataset.action === 'send-horn-high') beginCommand('high');
   if (button.dataset.action === 'send-control' && ['powerOn', 'powerOff', 'seat'].includes(button.dataset.value ?? '')) beginCommand(button.dataset.value as VehicleAction);
   if (button.dataset.action === 'native-shortcut-continue') void continueNativeShortcut();
-  if (button.dataset.action === 'copy-command-report' && lastCommandReport) {
-    const summary = commandSummary(lastCommandReport, version);
-    const copy = navigator.clipboard ? navigator.clipboard.writeText(summary) : Promise.reject(new Error('Clipboard unavailable'));
-    void copy.then(() => {
-      const message = modal.querySelector('#modal-message');
-      if (message) message.textContent = '已复制，可直接用于排查。';
-    }).catch(() => {
-      const message = modal.querySelector('#modal-message');
-      if (message) message.textContent = '浏览器未允许复制，可长按上方摘要复制。';
-    });
-  }
   if (button.dataset.action === 'confirm-logout') void run(async (_signal, current) => {
     committing = true;
     const closeButton = modal.querySelector<HTMLButtonElement>('[data-action="close"]');
     if (closeButton) closeButton.disabled = true;
     try { await revokeNativeAccounts(native); if (native.available) await native.call('forgetVehicle'); for (const account of accountBook.accounts) await clearTaskConfig(account.id); await flushLocalHistory(); await forgetSession(); accountBook = emptyAccounts(); nativeSyncPending = false; }
-    catch { throw new UserMessage('本机登录信息未能清除，请重试。'); }
+    catch { throw new UserMessage('保存失败，请重试'); }
     finally { committing = false; }
     if (!current()) return;
-    session = null; reading = null; pending = null; lastCommandReport = null; resetLever(); expired = preview = false; notice = '已退出本机登录。'; modal.close();
+    session = null; reading = null; pending = null; lastCommandReport = null; resetLever(); expired = preview = false; notice = '已退出全部账号'; modal.close(); router.navigate('/vehicle');
   });
 });
-modal.addEventListener('submit', event => {
+function handleSubmit(event:SubmitEvent) {
   event.preventDefault();
   const form = event.target as HTMLFormElement;
   if (!form.reportValidity()) return;
   if (form.id === 'preferences-form') {
-    try { preferences = importPreferences(modal.querySelector<HTMLTextAreaElement>('#preferences-import')!.value); notice = '配置已导入，登录与车辆保持。'; applyPreferences(); close(); }
-    catch { const message = modal.querySelector('#modal-message'); if (message) message.textContent = '配置格式不正确或版本不支持，请粘贴本应用导出的完整配置。'; }
+    try { preferences = importPreferences(content.querySelector<HTMLTextAreaElement>('#preferences-import')!.value); notice = '已导入'; applyPreferences();render(); }
+    catch { notice='配置格式不正确';render(); }
     return;
   }
   if (form.id === 'phone-form') { phone = modal.querySelector<HTMLInputElement>('#phone')!.value.trim(); void fetchCaptcha(); }
@@ -599,7 +559,8 @@ modal.addEventListener('submit', event => {
       await retrieveCars(signal, current);
     });
   }
-});
+}
+modal.addEventListener('submit',handleSubmit);content.addEventListener('submit',handleSubmit);
 
 applyPreferences(false); render();
 const updateTextSize = () => { document.documentElement.dataset.largeText = String(parseFloat(getComputedStyle(document.documentElement).fontSize) >= 24); };
@@ -608,9 +569,9 @@ window.addEventListener('resize', updateTextSize); updateTextSize();
 void loadAccounts().then(async book => {
   accountBook = book; const saved = accountSession(book); session = saved;
   await synchronizeAccounts();
-  if (saved) tab = preferences.startPage;
-  if (saved) notice = navigator.onLine ? '已恢复本机连接，正在读取车况…' : '已恢复本机连接，联网后可读取车况。';
-}).catch(() => { notice = '本机连接未能恢复，请重新登录。'; }).finally(() => {
+  if (saved&&!hadRoute) router.navigate('/'+preferences.startPage,true);
+  if (saved) notice = navigator.onLine ? '正在加载' : '网络不可用';
+}).catch(() => { notice = '登录已过期'; }).finally(() => {
   booting = false; render();
   if (pendingNativeShortcut) presentNativeShortcut();
   else if (session && navigator.onLine) void refresh();
@@ -637,24 +598,24 @@ window.addEventListener('geometry:native-shortcut', ((event: CustomEvent<unknown
 function presentNativeShortcut() {
   const target = pendingNativeShortcut; if (!target) return;
   const candidate = accountSession(accountBook, target.vehicleId);
-  if (!candidate) { pendingNativeShortcut = null; notice = '系统快捷入口的账号或车辆已失效，请重新配置。'; render(); return; }
-  const name = { refresh: '刷新车况', unlock: '开锁上电', lock: '关锁关机', horn: '鸣笛寻车', seat: '打开座桶' }[target.action];
-  show('系统快捷指令', `<p>操作：${name}</p><p>目标：${escape(candidate.vehicle.name)} · 尾号 ${escape(candidate.vehicle.vin.slice(-6))}</p><p>继续后核对当前车辆；车控还需在下一步确认。</p><button class="primary block" data-action="native-shortcut-continue" ${navigator.onLine ? '' : 'disabled'}>继续${target.action === 'refresh' ? '读取车况' : '核对车辆'}</button>`);
+  if (!candidate) { pendingNativeShortcut = null; notice = '车辆不可用'; render(); return; }
+  const name = { refresh: '刷新车况', unlock: '上电开锁', lock: '关机锁车', horn: '鸣笛寻车', seat: '打开座桶' }[target.action];
+  show('系统快捷指令',ConfirmSheet('继续',candidate.vehicle.name,candidate.vehicle.vin.slice(-6),'data-action="native-shortcut-continue"',name));
 }
 async function continueNativeShortcut() {
   const target = pendingNativeShortcut; pendingNativeShortcut = null;
   if (!target || busy || !navigator.onLine) return;
   try { await activateSavedVehicle(target.vehicleId); }
-  catch { notice = '快捷入口的车辆切换未完成，请重新打开面板核对账号。'; render(); return; }
+  catch { notice = '保存失败，请重试'; render(); return; }
   if (busy || expired || !session || accountBook.selectedVehicleId !== target.vehicleId) return;
   if (target.action === 'refresh') return;
   const mode = target.action === 'unlock' ? 'powerOn' : target.action === 'lock' ? 'powerOff' : target.action;
-  if (mode === 'horn') { show('鸣笛寻车', '<p>确认向已核对的当前车辆发送寻车请求。</p><button class="primary block" data-action="send-horn">发送</button>'); commandTarget = session; commandIntent = 'horn'; }
-  else { show(commandNames[mode], `<p>目标：${escape(session.vehicle.name)} · 尾号 ${escape(session.vehicle.vin.slice(-6))}</p><button class="primary block" data-action="send-control" data-value="${mode}">确认${commandNames[mode]}</button>`); commandTarget = session; commandIntent = mode; }
+  if (mode === 'horn') { show('寻车',hornSheet(session.vehicle)); commandTarget = session; commandIntent = 'horn'; }
+  else { show(commandNames[mode], ConfirmSheet(commandNames[mode],session.vehicle.name,session.vehicle.vin.slice(-6),`data-action="send-control" data-value="${mode}"`)); commandTarget = session; commandIntent = mode; }
 }
 if (import.meta.env.PROD && 'serviceWorker' in navigator && window.isSecureContext) {
   updates = installUpdates(() => { updateReady = true; render(); }, () => {
-    updating = false; notice = '本次更新未完成，请联网后重新打开页面。'; render();
+    updating = false; notice = '加载失败'; render();
   });
   void navigator.serviceWorker.ready.then(() => { cacheReady = true; render(); });
 }

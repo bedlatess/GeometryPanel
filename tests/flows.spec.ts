@@ -1,4 +1,4 @@
-import { test, expect, open, login, loginToList, VIN_B } from './fixtures';
+import { navigate, control, report, developerLab, test, expect, open, login, loginToList, VIN_B } from './fixtures';
 
 test('demo is labelled, does not call upstream, and fits small screens', async ({ page, mocks }) => {
   await open(page);
@@ -9,12 +9,12 @@ test('demo is labelled, does not call upstream, and fits small screens', async (
     await page.setViewportSize({ width, height: 844 });
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
   }
-  await page.getByRole('button', { name: '外观', exact: true }).click();
+  await navigate(page,'/me/appearance');
   await page.getByRole('button', { name: '深色', exact: true }).click();
 
   await page.reload();
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
-  await expect(page.locator('html')).toHaveAttribute('data-accent', 'green');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
+  expect(await page.locator('html').getAttribute('data-accent')).toBeNull();
   expect(mocks.calls).toHaveLength(0);
 });
 
@@ -37,8 +37,8 @@ test('login, encrypted restore, vehicle switch, confirmed horn, and logout', asy
   expect(vault.plaintext).toBe(false); expect(vault.local).not.toContain('synthetic-token');
   await page.reload();
   await expect(page.locator('.battery-number')).toHaveText('82%');
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  await page.getByRole('button', { name: '切换车辆', exact: true }).click();
+  await navigate(page,'/me');
+  await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
   await page.getByRole('button', { name: '测试极核 B' }).click();
   await expect(page.locator('.battery-number')).toHaveText('45%');
   await page.getByRole('button', { name: '寻车' }).click();
@@ -49,10 +49,10 @@ test('login, encrypted restore, vehicle switch, confirmed horn, and logout', asy
   expect(horn).toHaveLength(1); expect(JSON.parse(horn[0].body.param).vinNo).toBe(VIN_B);
   expect(mocks.calls.filter(call => call.path.endsWith(`/vehicleInfo/control/${VIN_B}`))).toHaveLength(1);
   expect(mocks.calls.filter(call => call.path.endsWith('/loginByPhone'))).toHaveLength(1);
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  await page.getByRole('button', { name: '退出本机登录', exact: true }).click();
-  await page.getByRole('button', { name: '确认退出', exact: true }).click();
-  await expect(page.getByText('尚未连接车辆')).toBeVisible();
+  await navigate(page,'/me');
+  await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click();
+  await page.getByRole('dialog').getByRole('button', { name: '退出全部账号', exact: true }).click();
+  await expect(page.getByRole('button',{name:'登录极核账号',exact:true})).toBeVisible();
   await page.reload();
   await expect(page.getByRole('button', { name: '登录极核账号', exact: true })).toBeVisible();
 });
@@ -101,8 +101,8 @@ test('empty vehicle lists provide retry and account change', async ({ page, mock
 
 test('initial read failure retains selected account and allows refresh', async ({ page, mocks }) => {
   mocks.readFailure = true;
-  await open(page); await login(page);
-  await expect(page.locator('.notice')).toContainText('加载失败');
+  await open(page);
+  await Promise.all([expect(page.locator('.notice')).toContainText('加载失败'), login(page)]);
   mocks.readFailure = false;
   await page.getByRole('button', { name: '刷新车况' }).click();
   await expect(page.locator('.battery-number')).toHaveText('82%');
@@ -189,10 +189,10 @@ test('a failed local save keeps the previous vehicle and persisted account', asy
   });
   await open(page); await login(page);
   await page.evaluate(() => { (window as any).__failSave = true; });
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  await page.getByRole('button', { name: '切换车辆', exact: true }).click();
+  await navigate(page,'/me');
+  await navigate(page,'/vehicle'); await page.getByRole('button',{name:'切换车辆',exact:true}).click();
   await page.getByRole('button', { name: '测试极核 B' }).click();
-  await expect(page.locator('#modal-message')).toContainText('本次切换未完成');
+  await expect(page.locator('#modal-message')).toContainText('保存失败，请重试');
   await page.getByRole('button', { name: '关闭', exact: true }).click();
   await page.reload();
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();

@@ -1,4 +1,4 @@
-import { test, expect, open, login } from './fixtures';
+import { navigate, control, report, developerLab, test, expect, open, login } from './fixtures';
 import { mkdir } from 'node:fs/promises';
 
 test('design lab is isolated from saved accounts, preferences, upstream and native actions', async ({ page, mocks }) => {
@@ -11,15 +11,15 @@ test('design lab is isolated from saved accounts, preferences, upstream and nati
     const box = el.getBoundingClientRect(); return box.width < 44 || box.height < 44;
   }).map(el => el.getAttribute('aria-label') ?? el.textContent));
   expect(smallTargets).toEqual([]);
-  await page.getByRole('button', { name: '设置', exact: true }).click();
+  await navigate(page,'/me');
   const calls = mocks.calls.length;
   const before = await page.evaluate(() => JSON.stringify(localStorage));
-  await page.getByRole('button', { name: '打开状态模拟器', exact: true }).click();
+  await developerLab(page);
   const lab = page.locator('#design-lab');
   await expect(lab).toContainText('演示数据 · 只在本页模拟');
   await lab.locator('[name="lab-platform"]').selectOption('ios');
   await lab.locator('[name="lab-theme"]').selectOption('light');
-  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'system');
   await lab.getByRole('button', { name: '上电开锁', exact: true }).click();
   await expect(lab.getByRole('region', { name: '演示操作确认' })).toBeVisible();
   await lab.getByRole('button', { name: '确认演示', exact: true }).click();
@@ -40,7 +40,7 @@ test('design lab is isolated from saved accounts, preferences, upstream and nati
   }
   await lab.getByRole('button', { name: '恢复初始演示', exact: true }).click();
   await expect(lab.locator('[name="lab-platform"]')).toHaveValue('pwa');
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
+  await page.getByRole('button',{name:'返回',exact:true}).click();
   expect(mocks.calls.length).toBe(calls);
   expect(await page.evaluate(() => JSON.stringify(localStorage))).toBe(before);
   await page.getByRole('button', { name: '车辆', exact: true }).click();
@@ -48,7 +48,7 @@ test('design lab is isolated from saved accounts, preferences, upstream and nati
   await expect(page.locator('.home-status')).toContainText('已锁车');
   await page.clock.install();
   await page.clock.setSystemTime(new Date(Date.now() + 31 * 60_000));
-  await page.getByRole('button', { name: '外观', exact: true }).click();
+  await navigate(page,'/me/appearance');
   await page.getByRole('button', { name: '车辆', exact: true }).click();
   await expect(page.locator('.home-status')).toContainText('在线');
   await expect(page.locator('.home-status')).toContainText('状态未知');
@@ -87,7 +87,7 @@ test('responsive themes and all preview scenes fit phones, landscape and wide sc
     }
   }
   await page.setViewportSize({ width:390,height:844 });
-  await page.getByRole('button', { name: '外观', exact: true }).click();
+  await navigate(page,'/me/appearance');
   await page.getByRole('button', { name: '浅色', exact: true }).click();
   await page.getByRole('button', { name: '车辆', exact: true }).click();
   if (info.project.name === 'chromium-mobile') {
@@ -96,7 +96,7 @@ test('responsive themes and all preview scenes fit phones, landscape and wide sc
     await page.screenshot({ path: '.tools/ui/home-light-viewport.png' });
   }
 
-  await page.getByRole('button', { name: '状态模拟器', exact: true }).click();
+  await developerLab(page);
   const lab = page.locator('#design-lab');
   for (const scene of ['normal','unlocked','loading','sending','pending','error','offline','stale','low','missing','unsupported','long']) {
     await lab.locator('[name="lab-scene"]').selectOption(scene);
@@ -109,7 +109,7 @@ test('responsive themes and all preview scenes fit phones, landscape and wide sc
   await expect(lab.locator('.design-frame')).toHaveCSS('animation-name','none');
   await page.evaluate(() => { document.documentElement.style.fontSize = '200%'; });
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
-  await expect(page.getByRole('button', { name: '用车', exact:true })).toBeVisible();
+  await page.getByRole('button',{name:'返回',exact:true}).click();
+  await expect(page.getByRole('button',{name:'记录',exact:true})).toBeVisible();
   expect(mocks.calls).toHaveLength(0);
 });

@@ -1,3 +1,5 @@
+import { ListGroup,ListRow,Stat,Empty,Segmented,Tag,age,html,PickerSheet,ConfirmSheet } from './kit';
+import type { PageActions } from './pages/actions';
 import { ApiError, messageFor } from '../api/client';
 import { ExtensionsApi } from '../api/extensions';
 import { NativeMaterialsApi } from '../api/native-materials';
@@ -8,19 +10,18 @@ import { DAILY_STALE_AFTER_MS, DAILY_FUTURE_TOLERANCE_MS } from '../core/daily-m
 import { chinaDay, rideMonth, rideTracks, tireReadings, vehicleAlerts, vehicleSettings, trackPath, settingDefinitions,
   type RideMonth, type RideTrack, type TireReading, type VehicleAlert, type VehicleSetting } from '../core/extensions-model';
 
-type Tab = 'ride' | 'tracks' | 'tires' | 'alerts' | 'settings';
+export type Tab = 'ride' | 'tracks' | 'tires' | 'alerts' | 'settings';
 const tabs: readonly [Tab, string][] = [['ride', '骑行记录'], ['tracks', '历史轨迹'], ['tires', '胎压'], ['alerts', '车辆告警'], ['settings', '车辆设置']];
 const escape = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
-const number = (value: number | null, unit = '') => value === null ? '未知' : `${value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
-const stamp = (value: number | null) => value === null ? '上报时间未知' : `${new Date(value).toLocaleString('zh-CN', { hour12: false })}${Date.now() - value > DAILY_STALE_AFTER_MS ? ' · 数据较早' : value - Date.now() > DAILY_FUTURE_TOLERANCE_MS ? ' · 时间异常' : ''}`;
+const number = (value: number | null, unit = '') => value === null ? '—' : `${value.toLocaleString('zh-CN', { maximumFractionDigits: 2 })}${unit ? ` ${unit}` : ''}`;
 const row = (name: string, value: string) => `<div><dt>${escape(name)}</dt><dd>${escape(value)}</dd></div>`;
 
 /** Mount inside the parent's dialog. Cleanup aborts work and erases account data. */
-export function mountExtensions(host: HTMLElement, options: { session: Session | null; demo: boolean; onExpired: () => void; onUncertain?: () => void }): () => void {
+export function mountExtensions(host: HTMLElement, options: { session: Session | null; demo: boolean; onExpired: () => void; onUncertain?: () => void; initial?: Tab; day?: string; actions: PageActions }): () => void {
   const session = options.session ? { ...options.session, vehicle: { ...options.session.vehicle } } : null;
   const api = new ExtensionsApi(), materials = new NativeMaterialsApi();
-  let alive = true, expired = false, writing = false, tab: Tab = 'ride', busy = false, error = '', note = '';
-  let month = chinaDay().slice(0, 7), day = chinaDay(), trackPage = 1, alertPage = 1, generation = 0;
+  let alive = true, expired = false, writing = false, tab: Tab = options.initial ?? 'ride', busy = false, error = '', note = '';
+  let month = chinaDay().slice(0, 7), day = options.day ?? chinaDay(), trackPage = 1, alertPage = 1, generation = 0;
   let request: AbortController | null = null;
   let monthly: RideMonth | null = null;
   let tracks: { tracks: RideTrack[]; receivedCount: number } | null = null;
@@ -36,7 +37,7 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     if (expired) return;
     expired = true; busy = false; generation++; request?.abort(); confirmation = null;
     monthly = null; tracks = null; tires = null; alerts = null; settings = null;
-    error = '登录信息已失效，请重新登录。'; render(); options.onExpired();
+    error = '登录已过期'; render(); options.onExpired();
   }
 
   function pointMap(point: RideTrack['points'][number] | undefined, label: string): string {
@@ -45,42 +46,58 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     return links ? `<a class="secondary-link" href="${escape(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">${escape(label)}</a>` : '';
   }
   function trackDrawing(item: RideTrack, index: number): string {
-    const drawing = trackPath(item.points);
-    if (!drawing) return '<p class="fine-print">本次行程没有返回有效轨迹点。</p>';
-    const map = roadMaps.has(index) && !options.demo ? roadTrack(item.points) : null;
-    const start = map ? [map.start.x, map.start.y] : drawing.start.split(','), end = map ? [map.end.x, map.end.y] : drawing.end.split(',');
-    return `<svg viewBox="0 0 ${map ? '640 360' : '320 200'}" width="100%" role="img" aria-label="${map ? '历史轨迹与高德道路底图' : '本次行程轨迹示意，不含道路底图'}">${map ? map.tiles.map(tile => `<image data-road-tile href="${tile.url}" x="${tile.x}" y="${tile.y}" width="256" height="256"/>`).join('') : ''}<path d="${map?.path ?? drawing.path}" fill="none" stroke="${map ? '#126fdf' : 'currentColor'}" stroke-width="${map ? '4' : '2'}"/><circle cx="${start[0]}" cy="${start[1]}" r="${map ? '7' : '4'}" fill="${map ? '#168242' : 'currentColor'}"/><circle cx="${end[0]}" cy="${end[1]}" r="${map ? '8' : '5'}" fill="none" stroke="${map ? '#d13838' : 'currentColor'}" stroke-width="${map ? '4' : '2'}"/></svg><p class="fine-print" data-road-status>${map ? '© 高德地图 · 道路底图需联网加载，缺失路段不补画。' : `实心圆为起点，空心圆为终点。${item.points.length} 个有效位置点；当前为点列示意，缺失路段不补画。`}</p>${!map && !options.demo ? `<button class="text-button" data-ext="track-map" data-track-index="${index}">加载道路底图</button>` : ''}<div class="map-actions">${pointMap(item.points[0], '在地图查看起点')}${pointMap(item.points[item.points.length - 1], '在地图查看终点')}</div>`;
+    const drawing=trackPath(item.points); if(!drawing)return Empty('轨迹不可用','chart');
+    const map=roadMaps.has(index)&&!options.demo?roadTrack(item.points):null;
+    const start=map?[map.start.x,map.start.y]:drawing.start.split(','),end=map?[map.end.x,map.end.y]:drawing.end.split(',');
+    return `<svg class="track-drawing" viewBox="0 0 ${map?'640 360':'320 200'}" role="img" aria-label="${map?'历史轨迹与高德道路底图':'行程轨迹'}">${map?map.tiles.map(tile=>`<image data-road-tile href="${tile.url}" x="${tile.x}" y="${tile.y}" width="256" height="256"/>`).join(''):''}<path d="${map?.path??drawing.path}"/><circle cx="${start[0]}" cy="${start[1]}" r="4"/><circle class="track-end" cx="${end[0]}" cy="${end[1]}" r="5"/></svg>${!map&&!options.demo?`<button class="text-button" data-ext="track-map" data-track-index="${index}">加载道路底图</button>`:''}<p class="muted" data-road-status>${map?'© 高德地图':''}</p><div class="map-actions">${pointMap(item.points[0],'查看起点')}${pointMap(item.points.at(-1),'查看终点')}</div>`;
   }
-  function content(): string {
-    if (expired) return '';
-    if (!session && !options.demo) return '<p>连接车辆后可查看骑行记录、轨迹、胎压、告警与车辆设置。</p>';
-    if (tab === 'ride' && monthly) return `<p>账号返回的累计骑行里程：${escape(number(monthly.totalMileageKm, 'km'))}</p>${monthly.days.length ? monthly.days.map(item => `<section class="settings-card"><h3>${escape(item.date || '日期未知')}</h3><dl class="details-list">${row('里程', number(item.mileageKm, 'km'))}${row('时长', number(item.minutes, '分钟'))}${row('最高速度', number(item.maxSpeedKmh, 'km/h'))}</dl>${item.day ? `<button class="text-button" data-ext="day-tracks" data-day="${escape(item.day)}" ${disabled()}>查看当天轨迹</button>` : ''}</section>`).join('') : '<p>这个月没有返回骑行记录。</p>'}`;
-    if (tab === 'tracks' && tracks) return `${tracks.tracks.length ? tracks.tracks.map((item, index) => {
-      return `<details class="settings-card" ${roadMaps.has(index) ? 'open' : ''}><summary>${escape(item.start || item.day || '时间未知')} · ${escape(number(item.mileageKm, 'km'))}</summary><p>${escape(item.from || '起点地址未知')} → ${escape(item.to || '终点地址未知')}</p><dl class="details-list">${row('开始', item.start || '未知')}${row('结束', item.end || '未知')}${row('时长', number(item.minutes, '分钟'))}${row('最高速度', number(item.maxSpeedKmh, 'km/h'))}</dl>${trackDrawing(item, index)}</details>`;
-    }).join('') : '<p>当天没有返回行程。可选择其他日期。</p>'}<div class="map-actions"><button class="text-button" data-ext="tracks-prev" ${busy || trackPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${trackPage} 页</span><button class="text-button" data-ext="tracks-next" ${busy || tracks.receivedCount < 20 || trackPage >= 500 ? 'disabled' : ''}>下一页</button></div><p class="fine-print">按旧版约定读取 GCJ-02 轨迹；地图入口由你点击后打开。</p>`;
-    if (tab === 'tires' && tires) return `<p class="fine-print">汇总上报：${escape(stamp(tires.updatedAt))}。当前页面读取不代表传感器刚刚上报。</p>${tires.wheels.length ? tires.wheels.map(item => `<section class="settings-card"><h3>${item.position}</h3><dl class="details-list">${row('胎压', number(item.pressureBar, 'bar'))}${row('胎温', number(item.temperatureC, '℃'))}${row('设备告警', item.warningCode === null ? '未知' : item.warningCode > 0 ? `设备报告异常（代码 ${item.warningCode}），请检查轮胎` : '未上报告警')}</dl><p class="fine-print">${escape(stamp(item.reportedAt))}</p></section>`).join('') : '<p>没有返回胎压传感器读数；可能未安装、未绑定或尚未上报。</p>'}<p class="fine-print">这里显示传感器上报，不自行设定安全胎压；请按车辆手册和现场检查判断。</p>`;
-    if (tab === 'alerts' && alerts) return `<p>账号未读车辆消息：${escape(number(alerts.accountUnread))}</p><p class="fine-print">仅显示本车及未注明车辆的账号消息；其他车辆的消息不会列在这里。此页为历史消息读取，不能代替即时防盗通知。</p>${alerts.alerts.length ? alerts.alerts.map(item => `<section class="settings-card"><h3>${escape(item.title)}${item.unread === true ? ' · 未读' : ''}</h3><p class="fine-print">${escape(item.time || '时间未知')}${!item.vin ? ' · 未注明车辆的账号消息' : ''}</p>${item.detail ? `<p>${escape(item.detail)}</p>` : ''}${item.address ? `<p>位置：${escape(item.address)}</p>` : ''}</section>`).join('') : '<p>这一页没有本车或未注明车辆的消息。</p>'}<div class="map-actions"><button class="text-button" data-ext="alerts-prev" ${busy || alertPage <= 1 ? 'disabled' : ''}>上一页</button><span>第 ${alertPage} 页</span><button class="text-button" data-ext="alerts-next" ${busy || alerts.receivedCount < 20 || alertPage >= 500 ? 'disabled' : ''}>下一页</button></div>`;
-    if (tab === 'settings' && settings) return `<p class="fine-print">只在停车并确认安全后修改。服务器受理与车辆实际生效可能有延迟；网页当前读数仍采用原始接口单位。</p>${settings.length ? settings.map(item => `<form class="settings-card" data-ext-setting="${escape(item.key)}"><h3>${escape(item.title)}</h3><p>当前上报：${escape(item.display)}</p>${item.choices ? `<label>目标设置<select name="value" aria-label="${escape(item.title)}目标设置" ${busy || options.demo || !item.writable ? 'disabled' : ''}><option value="" ${item.value === null ? 'selected' : ''} disabled>请选择</option>${item.choices.map(([value, label]) => `<option value="${escape(value)}" ${value === item.value ? 'selected' : ''}>${escape(label)}</option>`).join('')}</select></label><button class="text-button" type="submit" ${busy || options.demo || !item.writable ? 'disabled' : ''}>修改${escape(item.title)}</button>` : ''}${item.reason ? `<p class="fine-print">${escape(item.reason)}</p>` : ''}</form>`).join('') : '<p>车辆没有返回可识别的设置项。</p>'}`;
-    return '';
+  let messageTab='vehicle';
+  const settingName=(key:string,title:string)=>key==='cloudInductiveEnabled'?'车辆感应钥匙':title.replace('eTCS 牵引力控制','牵引力控制').replace('自定义按键 · 单击','按键单击').replace('电子座垫感应 2.0','座垫感应 2.0');
+  function settingRow(item:VehicleSetting) {
+    const label=settingName(item.key,item.title),binary=item.value!==null&&item.choices?.length===2&&item.choices.every(([v])=>v==='0'||v==='1');
+    return `<button class="list-row" data-ext="setting" data-key="${escape(item.key)}" ${busy||options.demo||!item.writable||item.value===null?'disabled':''} ${busy&&writing?'aria-busy="true"':''} ${binary?'role="switch" aria-checked="'+(item.value==='1')+'"':''}><span>${escape(label)}</span>${binary?`<span class="switch ${item.value==='1'?'checked':''}" aria-hidden="true"></span>`:`<span class="row-value">${escape(item.value===null?'—':item.display)}</span>`}</button>`;
   }
-  function render() {
-    if (!alive) return;
-    host.innerHTML = `<div class="extensions"><p class="fine-print">${options.demo ? '演示模式 · 以下全部为合成数据，不能修改车辆设置。' : session ? `当前车辆：${escape(session.vehicle.name)}。数据仅在当前面板中展示。` : '尚未连接车辆。'}</p><nav class="control-grid" aria-label="扩展功能">${tabs.map(([id, name]) => `<button class="control-button" type="button" data-ext-tab="${id}" aria-pressed="${id === tab}" ${disabled()}>${name}</button>`).join('')}</nav>${tab === 'ride' || tab === 'tracks' ? `<form data-ext-filter><label>${tab === 'ride' ? '选择月份' : '选择日期'}<input name="period" type="${tab === 'ride' ? 'month' : 'date'}" required value="${tab === 'ride' ? month : day}" max="${tab === 'ride' ? chinaDay().slice(0, 7) : chinaDay()}" ${disabled()}></label><button class="text-button" ${disabled()}>读取${tab === 'ride' ? '本月记录' : '当天轨迹'}</button></form>` : ''}<button class="text-button" type="button" data-ext="refresh" ${busy || !session && !options.demo ? 'disabled' : ''}>${busy ? '正在读取…' : '刷新当前分类'}</button><div role="status" aria-live="polite">${busy ? '<p>正在处理，请稍候…</p>' : note ? `<p>${escape(note)}</p>` : ''}</div>${error ? `<p role="alert">${escape(error)}</p>` : ''}${confirmation ? `<section class="settings-card" aria-label="确认修改车辆设置"><h3>确认修改</h3><p>车辆：${escape(session?.vehicle.name)}</p><p>将“${escape(confirmation.setting.title)}”从“${escape(confirmation.setting.display)}”改为“${escape(confirmation.label)}”。</p><p>请确认车辆已停稳，修改不会影响当前骑行。保护、制动和钥匙相关设置请谨慎选择。</p><div class="map-actions"><button class="text-button" data-ext="cancel-setting">取消</button><button class="primary" data-ext="confirm-setting">确认发送修改</button></div></section>` : ''}<div aria-busy="${busy}">${content()}</div></div>`;
-    if (tab === 'alerts' && alerts) {
-      const toolbar = document.createElement('section'); toolbar.className = 'settings-card';
-      toolbar.innerHTML = `<h3>账号车辆消息管理</h3><p class="fine-print">以下操作会影响此账号全部车辆的消息，包含本页未显示的其他车辆消息。只查看页面不会改变已读状态。</p>${messageConfirmation ? `<p>${messageConfirmation === 'delete' ? '确定清除账号全部车辆消息？云端清除后不能从面板恢复。' : '确定把账号全部车辆消息标为已读？'}</p><button class="text-button" data-ext="cancel-message" ${disabled()}>取消</button><button class="primary" data-ext="confirm-message" ${disabled()}>${messageConfirmation === 'delete' ? '确认清除全部车辆消息' : '确认全部标为已读'}</button>` : `<button class="text-button" data-ext="read-messages" ${options.demo ? 'disabled' : disabled()}>全部标为已读</button><button class="text-button" data-ext="delete-messages" ${options.demo ? 'disabled' : disabled()}>清除全部车辆消息</button>`}`;
-      host.querySelector('[aria-busy]')?.prepend(toolbar);
+  function content():string {
+    if(expired)return '';
+    if(!session&&!options.demo)return Empty('登录已过期','key');
+    if(tab==='ride'&&monthly) {
+      const days=monthly.days;
+      const mileage=days.some(i=>i.mileageKm!=null)?days.reduce((n,i)=>n+(i.mileageKm??0),0):null;
+      const minutes=days.some(i=>i.minutes!=null)?days.reduce((n,i)=>n+(i.minutes??0),0):null;
+      const speeds=days.flatMap(i=>i.maxSpeedKmh==null?[]:[i.maxSpeedKmh]);
+      const ordered=[...days].reverse(),max=Math.max(1,...ordered.map(i=>i.mileageKm??0));
+      const bars=ordered.length?`<svg class="ride-bars" viewBox="0 0 320 160" role="img" aria-label="每日里程">${ordered.map((i,n)=>i.mileageKm==null?'':`<rect x="${10+n*300/ordered.length}" y="${125-i.mileageKm/max*110}" width="${Math.max(2,280/ordered.length-4)}" height="${i.mileageKm/max*110}" rx="2"/>`).join('')}<text x="10" y="154">${html(ordered[0].date)}</text><text x="310" y="154" text-anchor="end">${html(ordered.at(-1)?.date)}</text></svg>`:'';
+      return `<div class="stats-grid">${Stat(mileage,'km','本月里程')}${Stat(minutes,'分','本月时长')}${Stat(mileage!=null&&minutes!=null&&minutes>0?mileage/minutes*60:null,'km/h','均速')}${Stat(speeds.length?Math.max(...speeds):null,'km/h','最高速')}</div>${bars}${ListGroup('每日骑行',days.map(item=>`<button class="list-row" data-ext="day-tracks" data-day="${escape(item.day??'')}" ${!item.day||busy?'disabled':''}><span>${escape(item.date||'时间未知')}</span><span class="row-value num">${escape(number(item.mileageKm,'km'))}</span></button>`).join('')||Empty('本月暂无骑行','chart'))}${ListGroup('',ListRow('累计里程',number(monthly.totalMileageKm,'km'),'',undefined,true))}`;
     }
-    for (const tile of host.querySelectorAll('[data-road-tile]')) tile.addEventListener('error', () => {
-      const status = tile.closest('details')?.querySelector('[data-road-status]');
-      if (status) status.textContent = '© 高德地图 · 部分道路底图加载失败，轨迹仍显示。可稍后重试或在地图查看起终点。';
-    }, { once: true });
+    if(tab==='tracks'&&tracks)return `${tracks.tracks.map((item,index)=>`<section class="track-item"><h2>${escape(item.start||item.day||'时间未知')}</h2><p>${escape(item.from||'起点')} → ${escape(item.to||'终点')}</p><div class="stats-grid">${Stat(item.mileageKm,'km','里程')}${Stat(item.minutes,'分','时长')}${Stat(item.maxSpeedKmh,'km/h','最高速')}</div>${trackDrawing(item,index)}</section>`).join('')||Empty('本月暂无骑行','chart')}<div class="pager"><button class="text-button" data-ext="tracks-prev" ${busy||trackPage<=1?'disabled':''}>上一页</button><span class="num">${trackPage}</span><button class="text-button" data-ext="tracks-next" ${busy||tracks.receivedCount<20||trackPage>=500?'disabled':''}>下一页</button></div>`;
+    if(tab==='tires'&&tires)return `${tires.wheels.map(item=>`<section class="tire-reading ${item.warningCode&&item.warningCode>0?'danger':''}"><h2>${item.position}</h2><div class="stats-grid">${Stat(item.pressureBar,'bar','胎压')}${Stat(item.temperatureC,'°C','温度')}</div><p>${age(item.reportedAt)}</p>${item.warningCode&&item.warningCode>0?'<p>胎压异常</p>':''}</section>`).join('')||Empty('暂无胎压数据','tire')}`;
+    if(tab==='alerts'&&alerts) { const visible=alerts.alerts.filter(item=>messageTab==='vehicle'?Boolean(item.vin):!item.vin);
+      return `${Segmented([['vehicle','车辆消息'],['account','账号消息']],messageTab,'data-message-tab')}<div class="map-actions"><button class="text-button" data-ext="read-messages" ${options.demo?'disabled':disabled()}>全部标为已读</button><button class="text-button danger" data-ext="delete-messages" ${options.demo?'disabled':disabled()}>删除全部</button></div>${visible.map(item=>`<details class="message-item"><summary><span>${escape(item.title)}</span>${item.unread===true?'<i class="badge"></i>':''}<time>${escape(item.time||'时间未知')}</time></summary>${item.detail?`<p>${escape(item.detail)}</p>`:''}${item.address?`<p>${escape(item.address)}</p>`:''}</details>`).join('')||Empty('暂无消息','bell')}<div class="pager"><button class="text-button" data-ext="alerts-prev" ${busy||alertPage<=1?'disabled':''}>上一页</button><span class="num">${alertPage}</span><button class="text-button" data-ext="alerts-next" ${busy||alerts.receivedCount<20||alertPage>=500?'disabled':''}>下一页</button></div>`;
+    }
+    if(tab==='settings'&&settings) {
+      const unsupported=settings.filter(item=>!item.writable&&item.reason==='当前车型不支持'||item.display==='不支持');
+      const active=settings.filter(item=>!unsupported.includes(item));
+      const group=(item:VehicleSetting)=>/Unit|Format|sound|motoPlay|Button|Speed/.test(item.key)?'仪表':/inductive|Nfc|password|cloudInductive/.test(item.key)?'钥匙':/Endurance|Range|lowPower|Recovery/.test(item.key)?'电量与充电':/radar|cruise|barke|Traction|Brake/.test(item.key)?'驾驶辅助':/Vibration|Shutdown|Parking/.test(item.key)?'安全':'便捷骑行';
+      return `<p class="vehicle-settings-name">${escape(session?.vehicle.name||'演示车辆')}</p><p class="muted">更新于 ${age(settingsAt)}</p>${['便捷骑行','安全','电量与充电','钥匙','驾驶辅助','仪表'].map(name=>{const items=active.filter(item=>group(item)===name);return items.length?ListGroup(name,items.map(settingRow).join('')):'';}).join('')}${unsupported.length?`<details><summary>不支持的功能（${unsupported.length}）</summary>${ListGroup('',unsupported.map(item=>ListRow(settingName(item.key,item.title),'此车型不支持','',undefined,true)).join(''))}</details>`:''}`;
+    }
+    return busy?'<span class="skeleton" aria-label="正在加载"></span>':'';
+  }
+  let settingsAt:number|null=null;
+  function render() {
+    if(!alive)return;
+    host.innerHTML=`<div class="extensions">${tab==='ride'||tab==='tracks'?`<form data-ext-filter><label>${tab==='ride'?'选择月份':'选择日期'}<input name="period" type="${tab==='ride'?'month':'date'}" required value="${tab==='ride'?month:day}" max="${tab==='ride'?chinaDay().slice(0,7):chinaDay()}" ${disabled()}></label><button class="text-button" ${disabled()}>读取</button></form>`:''}<button class="text-button" data-ext="refresh" ${busy||!session&&!options.demo?'disabled':''}>${busy?'正在加载':'刷新'}</button><p class="form-message" role="status" aria-live="polite">${escape(note)}</p>${error?`<p role="alert">${escape(error)}</p>`:''}<div aria-busy="${busy}">${content()}</div></div>`;
+    for(const tile of host.querySelectorAll('[data-road-tile]'))tile.addEventListener('error',()=>{const status=tile.closest('.track-item')?.querySelector('[data-road-status]');if(status)status.textContent='底图加载失败';},{once:true});
+  }
+  function confirmSetting(setting:VehicleSetting,value:string,label:string) {
+    if(options.demo||!session||!setting.writable||value===setting.value)return;
+    confirmation={setting,value,label};
+    options.actions.sheet(settingName(setting.key,setting.title),ConfirmSheet('确认修改',session.vehicle.name,session.vehicle.vin.slice(-6),'data-ext="confirm-setting"',`从 ${setting.display} 改为 ${label}`),button=>{if(button.dataset.ext==='confirm-setting'){options.actions.closeSheet();void write();}});
   }
   function simulated() {
     if (tab === 'ride') monthly = rideMonth({ rideMileageTotal: 1256, rideRecordList: [{ date: `${month.replace('-', '.')}.06`, rideMileage: 12.4, ridingTimeDayUnitMinute: 28, maxSpeed: 39 }] });
-    if (tab === 'tracks') tracks = rideTracks([{ historyList: [{ rideId: 'demo-trip', dayTime: day, startTime: `${day} 08:10`, endTime: `${day} 08:38`, rideMileage: 12.4, ridingTimeUnitMinute: 28, maxSpeed: 39, startAddr: JSON.stringify({ name: '合成起点' }), endAddr: JSON.stringify({ name: '合成终点' }), trajectory: '120,30&120.002,30.003&120.006,30.003&120.009,30.008' }] }]);
+    if (tab === 'tracks') tracks = rideTracks([{ historyList: [{ rideId: 'demo-trip', dayTime: day, startTime: `${day} 08:10`, endTime: `${day} 08:38`, rideMileage: 12.4, ridingTimeUnitMinute: 28, maxSpeed: 39, startAddr: JSON.stringify({ name: '起点' }), endAddr: JSON.stringify({ name: '终点' }), trajectory: '120,30&120.002,30.003&120.006,30.003&120.009,30.008' }] }]);
     if (tab === 'tires') tires = tireReadings({ updateTime: Date.now(), realTimeData: [{ sensorPosition: 1, tirePressure: 2.2, tireTemp: 24, warningType: 0, reportTime: Date.now() }, { sensorPosition: 2, tirePressure: 2.3, tireTemp: 25, warningType: 0, reportTime: Date.now() }] });
-    if (tab === 'alerts') alerts = vehicleAlerts({ noRead: 1, messageVOList: [{ messageId: 'demo-alert', content: '合成车辆提醒示例', messageTime: `${day} 09:00`, unread: '0', extra: JSON.stringify({ detail: '这是一条演示消息，不代表真实车辆告警。' }) }] }, '');
+    if (tab === 'alerts') alerts = vehicleAlerts({ noRead: 1, messageVOList: [{ messageId: 'demo-alert', content: '车辆消息', messageTime: `${day} 09:00`, unread: '0', extra: JSON.stringify({ detail: '演示' }) }] }, '');
     if (tab === 'settings') settings = vehicleSettings([{ functionCode: 'PRECISION_ENDURANCE', isSupport: true }], { precisionEndurance: 1, mileageUnit: 1, temperatureUnit: 1, timeFormat: 2, soundEffectSetting: { soundSize: 60 } });
   }
   async function load() {
@@ -91,11 +108,11 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     const signal = request.signal, current = ++generation, activeTab = tab;
     if (!session && !options.demo) { render(); return; }
     if (options.demo) { simulated(); render(); return; }
-    if (tab === 'ride') monthly = null;
-    if (tab === 'tracks') tracks = null;
-    if (tab === 'tires') tires = null;
-    if (tab === 'alerts') alerts = null;
-    if (tab === 'settings') settings = null;
+
+
+
+
+
     busy = true; render();
     try {
       const currentRequest = () => alive && !signal.aborted && current === generation;
@@ -103,13 +120,13 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
       else if (activeTab === 'tracks') { const result = await api.tracks(session!, day, trackPage, signal); if (currentRequest()) tracks = result; }
       else if (activeTab === 'tires') { const result = await api.tires(session!, signal); if (currentRequest()) tires = result; }
       else if (activeTab === 'alerts') {
-        if (!session!.uid) { error = '当前账号没有返回消息读取标识，暂时无法读取告警。'; return; }
+        if (!session!.uid) { error = '消息不可用'; return; }
         const result = await api.alerts(session!, alertPage, signal); if (currentRequest()) alerts = result;
-      } else { const result = await api.settings(session!, signal); if (currentRequest()) settings = result; }
+      } else { const result = await api.settings(session!, signal); if (currentRequest()) { settings = result; settingsAt = Date.now(); } }
     } catch (failure) {
       if (!alive || signal.aborted || current !== generation) return;
       if (failure instanceof ApiError && failure.kind === 'expired') expire();
-      else error = messageFor(failure);
+      else error = '加载失败';
     } finally { if (alive && current === generation && !signal.aborted) { busy = false; render(); } }
   }
   async function updateMessages() {
@@ -122,11 +139,11 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
       if (!alive || signal.aborted) return;
       alertPage = 1; alerts = await api.alerts(session, 1, signal);
       if (!alive || signal.aborted) return;
-      note = action === 'read' ? '服务已受理全部已读，并重新读取账号消息。' : '服务已受理清除，并重新读取账号消息。';
+      note = '已更新';
     } catch (failure) {
       if (!alive || signal.aborted) return;
       if (failure instanceof ApiError && failure.kind === 'expired') expire();
-      else error = `${accepted ? '服务已受理，但刷新失败。' : '消息操作结果未确认，未自动重发。'}${messageFor(failure)}`;
+      else error = '未收到车辆响应';
     } finally { writing = false; if (alive && !signal.aborted) { busy = false; render(); } }
   }
   async function write() {
@@ -142,29 +159,36 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
       accepted = true;
       // Read back instead of pretending an ACK is the new physical setting.
       settings = await api.settings(session, signal);
-      note = inductiveResult ? inductiveResult.confirmed && settings.find(item => item.key === 'cloudInductiveEnabled')?.value === pending.value
-        ? '云端感应钥匙开关已读后核实。手机感应仍需在原生容器中完成配对与权限设置。'
-        : '服务已受理，但云端开关上报尚未确认；未自动重发，可稍后刷新。'
-        : '服务已受理修改，并重新读取设置。请以车辆实际状态为准。';
+      settingsAt = Date.now();
+      note = settings.find(item => item.key === pending.setting.key)?.value === pending.value && (!inductiveResult || inductiveResult.confirmed) ? '已更新' : '修改未生效';
     } catch (failure) {
       if (!alive || signal.aborted) return;
       if (failure instanceof ApiError && failure.kind === 'expired') expire();
-      else error = accepted ? `服务已受理修改，但重新读取失败。${messageFor(failure)} 可刷新设置核对。` : `${messageFor(failure)} 结果可能未确认，未自动重发；可刷新设置核对。`;
+      else error = '未收到车辆响应';
     } finally { writing = false; if (alive && !signal.aborted) { busy = false; render(); } }
   }
   function clicked(event: Event) {
     const target = event.target instanceof Element ? event.target.closest<HTMLElement>('button') : null;
     if (!target || !host.contains(target) || target.hasAttribute('disabled') || busy || expired) return;
-    const next = target.dataset.extTab;
-    if (next && tabs.some(([id]) => id === next)) { tab = next as Tab; void load(); return; }
-    const action = target.dataset.ext;
+    if(target.dataset.messageTab){messageTab=target.dataset.messageTab;render();return;}
+    const action=target.dataset.ext;
+    if(action==='setting') {
+      const item=settings?.find(i=>i.key===target.dataset.key);if(!item?.writable||!item.choices||item.value===null||options.demo)return;
+      const binary=item.choices.length===2&&item.choices.every(([v])=>v==='0'||v==='1');
+      if(binary){const choice=item.choices.find(([v])=>v!==item.value)!;confirmSetting(item,choice[0],choice[1]);}
+      else options.actions.sheet(settingName(item.key,item.title),PickerSheet(item.choices.map(([v,l])=>[v,l]),item.value,'setting-value'),button=>{const choice=item.choices?.find(([v])=>v===button.dataset.value);if(button.dataset.action==='setting-value'&&choice)confirmSetting(item,choice[0],choice[1]);});
+      return;
+    }
     if (action === 'track-map') { const index = Number(target.dataset.trackIndex); if (!options.demo && Number.isInteger(index) && tracks?.tracks[index]) { roadMaps.add(index); render(); } return; }
-    if (action === 'read-messages' || action === 'delete-messages') { if (!options.demo) { messageConfirmation = action === 'read-messages' ? 'read' : 'delete'; render(); } return; }
+    if (action === 'read-messages' || action === 'delete-messages') { if (!options.demo && session) {
+      const deleting=action==='delete-messages',label=deleting?'删除全部':'全部标为已读';messageConfirmation=deleting?'delete':'read';
+      options.actions.sheet(label,ConfirmSheet(label,session.vehicle.name,session.vehicle.vin.slice(-6),'data-ext="confirm-message"','此账号全部车辆'),button=>{if(button.dataset.ext==='confirm-message'){options.actions.closeSheet();void updateMessages();}});
+    } return; }
     if (action === 'cancel-message') { messageConfirmation = null; render(); return; }
     if (action === 'confirm-message') { void updateMessages(); return; }
     if (action === 'cancel-setting') { confirmation = null; render(); return; }
     if (action === 'confirm-setting') { void write(); return; }
-    if (action === 'day-tracks') { day = target.dataset.day!; tab = 'tracks'; trackPage = 1; }
+    if (action === 'day-tracks') { options.actions.navigate('/records/rides/'+target.dataset.day!); return; }
     else if (action === 'tracks-prev') trackPage--;
     else if (action === 'tracks-next') trackPage++;
     else if (action === 'alerts-prev') alertPage--;
@@ -187,7 +211,7 @@ export function mountExtensions(host: HTMLElement, options: { session: Session |
     const setting = settings?.find(item => item.key === form.dataset.extSetting), value = String(values.get('value') ?? '');
     const label = setting?.choices?.find(([id]) => id === value)?.[1];
     if (!setting?.writable || !label || setting.key !== 'cloudInductiveEnabled' && !settingDefinitions.some(item => item.key === setting.key)) return;
-    if (value === setting.value) { note = '目标与当前上报相同，无需修改。'; render(); return; }
+    if (value === setting.value) { note = '已更新'; render(); return; }
     confirmation = { setting, value, label }; error = ''; note = ''; render();
     host.querySelector<HTMLElement>('[data-ext="confirm-setting"]')?.focus();
   }

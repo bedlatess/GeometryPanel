@@ -209,3 +209,27 @@ export async function login(page: Page) {
   await expect(page.getByRole('heading', { name: '测试极核 A' })).toBeVisible();
   await expect(page.getByRole('button', { name: '刷新车况' })).toBeEnabled();
 }
+
+export async function navigate(page: Page,path:string) {
+ await page.evaluate(path=>{location.hash=path;},path);
+ await expect(page).toHaveURL(new RegExp('#'+path.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'$'));
+ await expect(page.locator('main')).toBeVisible();
+}
+export async function control(page:Page,mode:string) {
+ await navigate(page,'/vehicle');
+ if(mode==='seat'){await page.getByRole('button',{name:'座桶',exact:true}).click();return;}
+ const lever=page.locator('main .lever');await expect(lever).toBeEnabled();await lever.focus();
+ await page.keyboard.press(mode==='powerOff'?'ArrowLeft':'ArrowRight');await page.keyboard.press('Enter');
+}
+export async function report(page:Page) {
+ if(!page.url().endsWith('#/tools/diagnostics'))await navigate(page,'/tools/diagnostics');
+ const pending=page.waitForEvent('download');await page.getByRole('button',{name:'导出车控结果',exact:true}).click();
+ const download=await pending,stream=await download.createReadStream();const chunks:Buffer[]=[];
+ for await(const chunk of stream!)chunks.push(Buffer.from(chunk));return Buffer.concat(chunks).toString('utf8');
+}
+export async function developerLab(page:Page) {
+ await navigate(page,'/me/about');
+ for(let i=0;i<5;i++)await page.getByRole('button',{name:/版本/}).click();
+ await page.getByRole('button',{name:'状态模拟器',exact:true}).click();
+ await expect(page.locator('#design-lab')).toBeVisible();
+}

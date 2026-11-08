@@ -1,4 +1,4 @@
-import { test, expect } from './fixtures';
+import { navigate, control, report, developerLab, test, expect } from './fixtures';
 test('a finished storage transaction still rejects cleanly when its timeout arrives', async ({ page, mocks }) => {
   await page.clock.install();
   await page.addInitScript(() => {

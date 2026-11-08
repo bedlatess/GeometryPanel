@@ -1,4 +1,4 @@
-import { test, expect, open, login } from './fixtures';
+import { navigate, control, report, developerLab, test, expect, open, login } from './fixtures';
 import type { Page } from '@playwright/test';
 
 async function syntheticNative(page: Page) {
@@ -18,21 +18,21 @@ async function syntheticNative(page: Page) {
 }
 test('Safari explains installation without pretending native functions are available', async ({ page, mocks }) => {
   await open(page);
-  await page.getByRole('button', { name: '用车', exact: true }).click();
-  await page.getByRole('button', { name: '蓝牙、提醒与仪表工具' }).click();
-  await expect(page.getByText('IPA 需要使用者自行签名', { exact: false })).toBeVisible();
+  await navigate(page,'/vehicle/status');
+  await navigate(page,'/tools/bluetooth');
+  await expect(page.getByText('以下功能需在 App 中使用')).toBeVisible();
   expect(mocks.calls).toHaveLength(0);
-  await page.getByRole('button', { name: '关闭', exact: true }).click();
+  await page.getByRole('button',{name:'返回',exact:true}).click();
   await expect(page.getByRole('dialog')).not.toBeVisible();
 });
 test('native demo remains read-only and never prepares cloud keys', async ({ page, mocks }) => {
   await syntheticNative(page); await open(page);
   await page.getByRole('button', { name: '体验演示' }).click();
-  await page.getByRole('button', { name: '用车', exact: true }).click();
-  await page.getByRole('button', { name: '蓝牙、提醒与仪表工具' }).click();
-  await expect(page.getByRole('button', { name: '准备 / 刷新蓝牙资料' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '登记本手机钥匙' })).toBeDisabled();
-  await expect(page.getByRole('button', { name: '设置仪表壁纸' })).toBeDisabled();
+  await navigate(page,'/vehicle/status');
+  await navigate(page,'/tools/bluetooth');
+  await expect(page.getByRole('button', { name: '准备资料' })).toBeDisabled();
+  await expect(page.getByRole('button', { name: '登记手机钥匙' })).toBeDisabled();
+  await navigate(page,'/tools/meter');await expect(page.getByRole('button',{name:'设置仪表壁纸'})).toBeDisabled();expect(await page.evaluate(()=>(window as any).__nativeCalls)).toEqual([]);
   expect(mocks.calls).toHaveLength(0);
 });
 test('native snapshot contains only display data and logout clears native vehicle scope', async ({ page }) => {
@@ -43,10 +43,10 @@ test('native snapshot contains only display data and logout clears native vehicl
   expect(snapshots[0].vehicleId).toMatch(/^[A-Za-z0-9_-]{1,80}$/);
   expect(JSON.stringify(snapshots)).not.toContain('synthetic-token');
   expect(JSON.stringify(snapshots)).not.toContain('LAAAAAAAAAAAAAAA1');
-  await page.getByRole('button', { name: '设置', exact: true }).click();
-  await page.getByRole('button', { name: '退出本机登录' }).click();
+  await navigate(page,'/me');
+  await navigate(page,'/me/accounts'); await page.getByRole('button',{name:'退出全部账号',exact:true}).click();
   const previous = await page.evaluate(() => (window as any).__nativeCalls.filter((call: any) => call.method === 'forgetVehicle').length);
-  await page.getByRole('button', { name: '确认退出' }).click();
-  await expect(page.getByText('已退出本机登录。', { exact: true })).toBeVisible();
+  await page.getByRole('dialog').getByRole('button', { name: '退出全部账号' }).click();
+  await expect(page.getByText('已退出全部账号', { exact: true })).toBeVisible();
   expect(await page.evaluate(() => (window as any).__nativeCalls.filter((call: any) => call.method === 'forgetVehicle').length)).toBe(previous + 1);
 });

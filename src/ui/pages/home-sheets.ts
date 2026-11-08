@@ -13,7 +13,7 @@ export function dataSheet(data: Snapshot | null) {
   return ListGroup('', [['网络', navigator.onLine ? '已连接' : '不可用'], ['车辆状态', clock(data?.daily.reportedAt)], ['电池', clock(data?.daily.batteryReportedAt)], ['位置', clock(data?.daily.location?.reportedAt)], ['刷新于', clock(data?.receivedAt)]].map(([key, value]) => ListRow(key, value, '', undefined, true)).join(''));
 }
 export function vehiclePicker(book: AccountBook) {
-  return book.accounts.map(account => ListGroup(account.label, account.vehicles.map(car => `<button class="list-row vehicle-choice" data-action="saved-vehicle" data-value="${html(car.id)}">${vehicleArt({ ...car, name: car.label }, true)}<span><strong>${html(car.label)}</strong><small>尾号 ${html(car.vin.slice(-6))}</small></span>${book.selectedVehicleId === car.id ? icon('check') : ''}</button>`).join(''))).join('') + ListRow('管理账号', '', 'data-action="open-accounts"');
+  return book.accounts.map(account => ListGroup(account.label, account.vehicles.map(car => `<button class="list-row vehicle-choice" data-action="saved-vehicle" data-value="${html(car.id)}">${vehicleArt({ ...car, name: car.label }, true)}<span><strong>${html(car.label)}</strong><small>尾号 ${html(car.vin.slice(-6))}</small></span>${book.selectedVehicleId === car.id ? icon('check') : ''}</button>`).join(''))).join('') + ListRow('管理账号', '', 'data-action="route" data-value="/me/accounts"');
 }
 export function loginVehicleList(result: VehicleList | null, vin?: string) {
   const cars = result?.vehicles ?? [];

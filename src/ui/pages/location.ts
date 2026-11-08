@@ -1,0 +1,7 @@
+import type { Snapshot } from '../../core/model';
+import { navigationLinks } from '../../core/navigation';
+import { html, MapCard, age, ListGroup, ListRow } from '../kit';
+export function locationPage(data: Snapshot | null, enabled: boolean, map: boolean) {
+ const p = data?.daily.location, links = enabled ? navigationLinks(p ?? null) : null;
+ return `${MapCard(p?.address || '查看位置',age(p?.reportedAt),'top')}${ListGroup('',ListRow('定位时间',age(p?.reportedAt),'',undefined,true))}${p ? `<details class="coordinates"><summary>坐标信息</summary>${ListGroup('',ListRow('纬度',p.latitude.toFixed(6),'',undefined,true)+ListRow('经度',p.longitude.toFixed(6),'',undefined,true)+ListRow('坐标类型',p.coordinateSystem === 'wgs84' ? 'GPS（WGS84）' : p.coordinateSystem === 'gcj02' ? '高德（GCJ-02）' : '不支持','',undefined,true))}</details>` : ''}${links ? `<button class="primary" data-action="map">${map ? '关闭地图' : '查看地图'}</button>${map ? `<iframe class="vehicle-map" title="车辆停车位置地图" src="${html(links.map)}" referrerpolicy="no-referrer" sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox" allow="geolocation 'none'"></iframe>` : ''}<div class="map-actions"><a href="${html(links.map)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">在地图中打开</a>${links.walk ? `<a href="${html(links.walk)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">步行找车</a>` : ''}</div>` : '<p class="muted">'+(enabled ? '位置不可用' : '演示中不可用')+'</p>'}`;
+}

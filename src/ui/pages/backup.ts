@@ -1,0 +1,2 @@
+import { html,ListGroup,ListRow } from '../kit';
+export function backupPage(backup:string) { return `${ListGroup('',ListRow('导出配置','','data-action="copy-preferences"')+ListRow('恢复默认','','data-action="reset-preferences"'))}<label>配置备份<textarea id="preferences-backup" readonly>${html(backup)}</textarea></label><form id="preferences-form"><label>导入配置<textarea id="preferences-import" maxlength="4096" required></textarea></label><button class="primary" type="submit">导入配置</button></form>`; }

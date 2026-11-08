@@ -37,4 +37,9 @@
   }
 }
 
-:root {--legacy-color-0:#172020;--legacy-color-1:#394a45;--legacy-color-2:#30413b;--legacy-color-3:#82998d;--legacy-color-4:#b5e7d5;--legacy-color-5:#163c2e;--legacy-color-6:#a3d5f0;--legacy-color-7:#15384b;--legacy-color-8:#f0c29d;--legacy-color-9:#4b2d16;}
+
+:root { --textarea-height:160px; --stat-min:100px; --map-detail-height:280px; --brand-lockup:340px; --theme-height:164px; --sheet-wide:420px; --lab-width:430px; --safe-indicator:100px; --switch-inset-y:7px; --switch-inset:3px; --switch-travel:20px; --switch-stroke:1.5px; --preview-bg:#F4F5F7; --preview-ink:#0F1215; --preview-fill:#E4E8ED; }
+[data-preview-theme=dark] { --preview-bg:#0B0D10; --preview-ink:#F2F4F6; --preview-fill:#1B1E23; }
+[data-preview-theme=system] { --preview-bg:linear-gradient(90deg,#F4F5F7 50%,#0B0D10 50%); --preview-ink:#9AA2AA; --preview-fill:#59616A; }
+
+:root { --record-height:128px; --ride-chart-height:160px; }
