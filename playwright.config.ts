@@ -2,15 +2,16 @@ import { defineConfig, devices } from '@playwright/test';
 
 export default defineConfig({
   testDir: './tests',
-  snapshotPathTemplate: '../docs/audit/0.9.0/候审视觉基准/{projectName}/{testFilePath}/{arg}{ext}',
+  snapshotPathTemplate: 'tests/visual-baselines/{platform}/{projectName}/{testFilePath}/{arg}{ext}',
   timeout: 60000,
   expect: { timeout: 7000 },
   fullyParallel: true,
-  workers: 2,
+  workers: Number(process.env.PLAYWRIGHT_WORKERS ?? 2),
   forbidOnly: Boolean(process.env.CI),
   retries: 0,
   reporter: [['list'], ['json', { outputFile: 'test-results/results.json' }]],
   use: {
+    timezoneId: 'Asia/Shanghai',
     baseURL: 'http://127.0.0.1:4174/panel/',
     serviceWorkers: 'block',
     trace: 'retain-on-failure',

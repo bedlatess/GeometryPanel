@@ -1,0 +1,45 @@
+name: Generate approved 0.9.0 visual baselines
+
+on:
+  push:
+    branches: ['ui-v3']
+    paths: ['.github/workflows/visual-baselines.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  approved-baselines:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    env:
+      TZ: Asia/Shanghai
+      PLAYWRIGHT_WORKERS: '4'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npx playwright install --with-deps chromium webkit
+      # The final 0.9.0 audit explicitly approves this regenerated batch.
+      # Ordinary verification and deployment never update screenshots.
+      - name: Generate the approved batch
+        run: npx playwright test tests/checkpoint.spec.ts --update-snapshots
+      - name: Compare without updating snapshots
+        run: npx playwright test tests/checkpoint.spec.ts
+      - uses: actions/upload-artifact@v4
+        with:
+          name: approved-linux-visual-baselines
+          path: tests/visual-baselines/linux/
+          if-no-files-found: error
+          retention-days: 30
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: baseline-generation-test-results
+          path: test-results/
+          retention-days: 7

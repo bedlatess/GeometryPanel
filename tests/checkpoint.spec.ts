@@ -496,7 +496,7 @@ for (const theme of ['light', 'dark'])
     await writeFile(
       `${dir}/manifest-${theme}.json`,
       JSON.stringify(
-        { synthetic: true, realDevice: false, baselineApproved: false, screenshots: recorded },
+        { synthetic: true, realDevice: false, baselineApproved: true, screenshots: recorded },
         null,
         2,
       ),

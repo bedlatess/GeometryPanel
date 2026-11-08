@@ -633,6 +633,15 @@ export async function loginToList(page: Page) {
   await page.keyboard.press('ArrowRight');
   await page.keyboard.press('Enter');
   await expect(page.getByRole('textbox', { name: '输入验证码', exact: true })).toBeEnabled();
+  // The code field appears before the synthetic send-code operation finishes.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const app = (document.querySelector('#app') as any).__vue_app__;
+        return app.config.globalProperties.$pinia._s.get('session').state.busy;
+      }),
+    )
+    .toBe(false);
   await page.getByRole('textbox', { name: '输入验证码', exact: true }).fill('123456');
 }
 export async function login(page: Page, car = '测试极核 A') {
