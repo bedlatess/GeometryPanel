@@ -2,6 +2,7 @@
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { resolve, extname, sep } from 'node:path';
+import { createHash } from 'node:crypto';
 
 const root = resolve('dist');
 const types = { '.svg':'image/svg+xml', '.woff2':'font/woff2', '.html': 'text/html', '.js': 'application/javascript', '.css': 'text/css', '.png': 'image/png', '.webmanifest': 'application/manifest+json' };
@@ -29,6 +30,16 @@ const server = createServer(async (request, response) => {
       const worker = data.toString();
       if (!worker.includes('const CACHE = PREFIX + ')) throw new Error('Unexpected test worker');
       data = Buffer.from(worker.replace('const CACHE = PREFIX + ', `const CACHE = PREFIX + "test-${revisions.get(base) ?? 0}:" + `));
+      // Model a static host's stable revision validator. WebKit can reinstall an
+      // identical no-store script; a conditional response represents unchanged
+      // bytes unambiguously without changing the production update logic.
+      const etag = '"' + createHash('sha256').update(data).digest('hex') + '"';
+      const headers = { 'Content-Type': 'application/javascript', 'Cache-Control': 'no-cache', ETag: etag, 'Content-Security-Policy': "connect-src 'self'" };
+      if (request.headers['if-none-match'] === etag) {
+        response.writeHead(304, headers).end(); return;
+      }
+      response.writeHead(200, { ...headers, 'Content-Length': data.length });
+      response.end(data); return;
     }
     // Even if browser routing regresses, the test document/worker cannot connect to upstream.
     response.writeHead(200, { 'Content-Type': types[extname(file)] || 'application/octet-stream', 'Cache-Control': 'no-store', 'Content-Security-Policy': "connect-src 'self'" });

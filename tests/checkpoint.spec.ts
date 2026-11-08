@@ -387,8 +387,9 @@ for (const theme of ['light', 'dark'])
     await page.context().setOffline(false);
     await state(page, original);
     await state(page, { preview: true });
-    // Date stays deterministic for this scene; Ionic's elapsed timers keep ticking.
-    await page.clock.setSystemTime(new Date(1794110400000));
+    // Only this static scene fixes Date; timers and animation frames keep ticking.
+    const resumeTime = await page.evaluate(() => Date.now());
+    await page.clock.setFixedTime(new Date(1794110400000));
     await page.evaluate(async () => {
       const pinia = (document.querySelector('#app') as any).__vue_app__.config.globalProperties
         .$pinia;
@@ -406,6 +407,7 @@ for (const theme of ['light', 'dark'])
     await expect(page.locator('.home-heading')).toContainText('3 分钟前更新');
     await shot('01-首页-演示');
     await lever.screenshot({ path: `${dir}/18-滑动条-演示-${theme}.png` });
+    await page.clock.setSystemTime(resumeTime);
     await state(page, { ...original, preview: false });
     for (const [name, path, storeName, empty] of [
       ['09-记录-骑行', '/records?tab=ride', 'extensions', { monthly: null, tracks: null }],

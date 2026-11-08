@@ -662,6 +662,23 @@ export async function navigate(page: Page, path: string) {
     '/records/battery/official': '/records?tab=battery&source=official',
   };
   const target = aliases[path] || path.replace('/records/rides/', '/records/ride/');
+  // A preceding link click resolves before Ionic finishes entering its page.
+  // Serialize against that route as well as against our own push below.
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const app = (document.querySelector('#app') as any).__vue_app__;
+        const path = app.config.globalProperties.$router.currentRoute.value.path;
+        const active = Array.from(
+          document.querySelectorAll(
+            '[data-page].ion-page:not(.ion-page-hidden):not(.ion-page-invisible)',
+          ),
+          (element) => element.getAttribute('data-page'),
+        );
+        return active.length === 1 && active[0] === path;
+      }),
+    )
+    .toBe(true);
   await page.evaluate(async (value) => {
     const app = (document.querySelector('#app') as any).__vue_app__;
     await app.config.globalProperties.$router.push(value);

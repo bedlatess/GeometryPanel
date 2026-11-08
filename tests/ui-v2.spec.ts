@@ -89,7 +89,11 @@ test('login sheets close from the backdrop and from a downward handle gesture wi
     y = handle.y + handle.height / 2;
   await page.mouse.move(x, y);
   await page.mouse.down();
-  await page.mouse.move(x, y + 110, { steps: 8 });
+  // Give the gesture recognizer real frame intervals and a decisive travel distance.
+  for (let distance = 10; distance <= 220; distance += 10) {
+    await page.mouse.move(x, y + distance);
+    await page.waitForTimeout(16);
+  }
   await page.mouse.up();
   await expect(page.locator('ion-modal:not(.overlay-hidden)')).not.toBeVisible();
   expect(mocks.calls).toEqual([]);
