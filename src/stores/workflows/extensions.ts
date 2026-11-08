@@ -86,7 +86,7 @@ export function mountExtensions(
     ctx.request?.abort();
     ctx.host.removeEventListener('click', ctx.clicked);
     ctx.host.removeEventListener('submit', ctx.submitted);
-    ctx.host.replaceChildren();
+    // The Vue page owns these nodes; clearing them would blank a re-entered cached page.
     if (uncertain) ctx.options.onUncertain?.();
   };
 }

@@ -154,8 +154,10 @@ test('record entry summaries use existing readings and clear before a different 
     ],
   };
   await navigate(page, '/records?tab=tire');
-  await expect(pressure.nth(0)).toContainText('—bar');
-  await expect(pressure.nth(1)).toContainText('—bar');
+  await expect(pressure.nth(0)).toContainText('—');
+  await expect(pressure.nth(0)).not.toContainText('bar');
+  await expect(pressure.nth(1)).toContainText('—');
+  await expect(pressure.nth(1)).not.toContainText('bar');
   await expect(page.locator('main:visible')).not.toContainText('2.4bar');
   release();
   await expect(pressure.nth(0)).toContainText('2.8bar');

@@ -38,7 +38,7 @@ function changed(event: CustomEvent) {
     class="list-row"
     :button="!readonly && Boolean(to || action || toggle)"
     v-bind="to ? { routerLink: to } : {}"
-    :detail="Boolean(to)"
+    :detail="Boolean(to || (action && value && !readonly && !danger))"
     :disabled="disabled"
     :class="{ danger, tall: detail, 'with-icon': icon, readonly }"
     :aria-disabled="readonly || disabled"

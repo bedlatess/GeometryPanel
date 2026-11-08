@@ -317,6 +317,6 @@ export function mountNative(
       void native.call('ble.disconnect').catch(() => {});
     }
     host.removeEventListener('click', click);
-    host.replaceChildren();
+    // The Vue page owns these nodes; clearing them would blank a re-entered cached page.
   };
 }

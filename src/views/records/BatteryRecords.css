@@ -30,3 +30,11 @@
   font: 500 12px var(--num);
   margin-top: 8px;
 }
+.chart-empty {
+  height: 130px;
+  display: grid;
+  place-items: center;
+  margin-top: 12px;
+  font-size: 15px;
+  color: var(--t2);
+}

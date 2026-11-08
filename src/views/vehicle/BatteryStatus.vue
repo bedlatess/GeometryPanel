@@ -12,6 +12,13 @@ const metrics = computed(() => [
   { label: '健康度', value: vehicle.daily?.healthPercent, unit: '%' },
   { label: '温度', value: vehicle.daily?.temperatureC, unit: '°C' },
 ]);
+const title = computed(() =>
+  vehicle.charging
+    ? '正在充电'
+    : vehicle.reading?.soc != null && vehicle.reading.soc <= 20
+      ? '电量低，记得充电'
+      : '未在充电',
+);
 const expiry = computed(() =>
   txt(
     owner.get('expiry').rechargeEndDate ??
@@ -21,14 +28,18 @@ const expiry = computed(() =>
 );
 </script>
 <template>
-  <StatusCard :title="vehicle.charging ? '正在充电' : '电池'" icon="batt" :metrics="metrics" />
+  <StatusCard :title="title" icon="batt" :metrics="metrics" />
   <GroupList>
     <ListRow label="电压" :value="format(vehicle.reading?.voltage, 'V')" numeric />
     <ListRow label="电流" :value="format(vehicle.daily?.currentA, 'A')" numeric />
     <ListRow label="功率" :value="format(vehicle.daily?.powerW, 'W')" numeric />
     <ListRow label="累计充电" :value="format(vehicle.daily?.chargeCount, '次')" numeric />
-    <ListRow label="充电已用时长" :value="vehicle.daily?.chargeElapsedText || '—'" />
-    <ListRow label="预计充满" :value="vehicle.daily?.expectedFullText || '—'" />
+    <template
+      v-if="vehicle.charging || vehicle.daily?.chargeElapsedText || vehicle.daily?.expectedFullText"
+    >
+      <ListRow label="充电已用时长" :value="vehicle.daily?.chargeElapsedText || '—'" />
+      <ListRow label="预计充满" :value="vehicle.daily?.expectedFullText || '—'" />
+    </template>
   </GroupList>
   <GroupList
     ><ListRow

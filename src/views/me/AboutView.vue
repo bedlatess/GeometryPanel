@@ -81,9 +81,12 @@ const legal = computed(() => licenses[kind]?.[1] || '');
   text-align: center;
   padding: 32px 0 20px;
 }
-.about-brand :deep(img) {
-  width: 76px;
-  height: 76px;
+.about-brand :deep(svg) {
+  display: block;
+  width: 64px;
+  height: auto;
+  margin: 0 auto 16px;
+  color: var(--t1);
 }
 .about-brand h2 {
   font-size: 24px;
@@ -98,6 +101,12 @@ const legal = computed(() => licenses[kind]?.[1] || '');
 }
 a {
   text-decoration: none;
+}
+.foot {
+  margin-top: 22px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--t2);
 }
 .legal-copy {
   padding: 4px 16px;

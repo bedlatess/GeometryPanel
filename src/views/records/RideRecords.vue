@@ -2,8 +2,9 @@
 import { computed, onMounted, ref } from 'vue';
 import { IonButton, IonDatetime } from '@ionic/vue';
 import { useExtensionsStore } from '../../stores/extensions';
+import { chinaDay } from '../../core/extensions-model';
 import { useOwnerStore, num } from '../../stores/owner';
-import { useVehiclePresentation, format } from '../../stores/presentation';
+import { useVehiclePresentation, format, duration } from '../../stores/presentation';
 import MetricValue from '../../components/MetricValue.vue';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
@@ -25,16 +26,25 @@ const bars = computed(() => {
     return value?.mileageKm ?? null;
   });
 });
+// The current month uses the vehicle's own monthly totals so this page and the
+// home card always agree; earlier months sum the daily rows.
+const thisMonth = computed(() => ext.month === chinaDay().slice(0, 7));
 const total = computed(() =>
-  days.value.some((day) => day.mileageKm != null)
-    ? days.value.reduce((sum, day) => sum + (day.mileageKm ?? 0), 0)
-    : null,
+  thisMonth.value && vehicle.daily?.monthMileageKm != null
+    ? vehicle.daily.monthMileageKm
+    : days.value.some((day) => day.mileageKm != null)
+      ? days.value.reduce((sum, day) => sum + (day.mileageKm ?? 0), 0)
+      : null,
 );
 const minutes = computed(() =>
-  days.value.some((day) => day.minutes != null)
-    ? days.value.reduce((sum, day) => sum + (day.minutes ?? 0), 0)
-    : null,
+  thisMonth.value && vehicle.daily?.monthRideMinutes != null
+    ? vehicle.daily.monthRideMinutes
+    : days.value.some((day) => day.minutes != null)
+      ? days.value.reduce((sum, day) => sum + (day.minutes ?? 0), 0)
+      : null,
 );
+const hasHabits = computed(() => habits.some(([key]) => num(owner.get('analysis')[key]) != null));
+const atCurrentMonth = computed(() => ext.month >= chinaDay().slice(0, 7));
 const max = computed(() => Math.max(1, ...bars.value.map((value) => value ?? 0)));
 const habits = [
   ['accelerationTimes', '急加速'],
@@ -72,13 +82,15 @@ onMounted(load);
     <button aria-label="上个月" @click="step(-1)">
       <AppIcon name="chev-l" /></button
     ><button @click="picking = true">{{ monthName }}</button>
-    <button aria-label="下个月" @click="step(1)"><AppIcon name="chev-r" /></button>
+    <button aria-label="下个月" :disabled="atCurrentMonth" @click="step(1)">
+      <AppIcon name="chev-r" />
+    </button>
   </div>
   <div class="record-metric">
     <MetricValue :value="format(total)" unit="km" />
     <p>
-      骑行 {{ minutes == null ? '—' : `${Math.floor(minutes / 60)} 小时 ${minutes % 60} 分` }}，
-      平均 {{ total != null && minutes ? format((total / minutes) * 60) : '—' }} km/h
+      骑行 {{ duration(minutes) }}， 平均
+      {{ total != null && minutes ? format((total / minutes) * 60) : '—' }} km/h
     </p>
     <div class="bars" role="img" aria-label="每日骑行里程">
       <i
@@ -93,12 +105,14 @@ onMounted(load);
       <span>1 日</span><span>15 日</span><span>{{ bars.length }} 日</span>
     </div>
   </div>
-  <h2 class="group-title">骑行习惯</h2>
-  <div class="habit-grid">
-    <div v-for="[key, label] in habits" :key="key" class="habit">
-      <span>{{ label }}</span> <MetricValue :value="num(owner.get('analysis')[key])" unit="次" />
+  <template v-if="hasHabits">
+    <h2 class="group-title">骑行习惯</h2>
+    <div class="habit-grid">
+      <div v-for="[key, label] in habits" :key="key" class="habit">
+        <span>{{ label }}</span> <MetricValue :value="num(owner.get('analysis')[key])" unit="次" />
+      </div>
     </div>
-  </div>
+  </template>
   <EmptyState
     v-if="!ext.busy && !days.length"
     :text="ext.error || '本月还没有骑行'"
@@ -111,7 +125,7 @@ onMounted(load);
       v-for="track in ext.tracks?.tracks.filter((item) => item.day === day.day)"
       :key="track.id"
       :label="`${track.start.slice(-5)} — ${track.end.slice(-5)}`"
-      :detail="`${format(track.minutes)} 分钟　最高 ${format(track.maxSpeedKmh, 'km/h')}`"
+      :detail="`${duration(track.minutes)}　最高 ${format(track.maxSpeedKmh, 'km/h')}`"
       :value="format(track.mileageKm, 'km')"
       numeric
       :to="`/records/ride/${track.day}`"
@@ -119,7 +133,7 @@ onMounted(load);
     <ListRow
       v-if="!ext.tracks?.tracks.some((item) => item.day === day.day)"
       label="骑行"
-      :detail="`${format(day.minutes)} 分钟　最高 ${format(day.maxSpeedKmh, 'km/h')}`"
+      :detail="`${duration(day.minutes)}　最高 ${format(day.maxSpeedKmh, 'km/h')}`"
       :value="format(day.mileageKm, 'km')"
       numeric
       :to="`/records/ride/${day.day}`"

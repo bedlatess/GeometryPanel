@@ -181,14 +181,20 @@ test('browser history distinguishes battery from charge records and clearing one
   await open(page);
   await login(page);
   await navigate(page, '/records/battery');
-  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count', '1');
+  await expect(page.locator('main:visible [data-sample-count]')).toHaveAttribute(
+    'data-sample-count',
+    '1',
+  );
   await navigate(page, '/vehicle');
   mocks.battery = { chargeState: 0 };
   await page.getByRole('button', { name: '刷新车况', exact: true }).click();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
   await background(page);
   await navigate(page, '/records/battery');
-  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count', '2');
+  await expect(page.locator('main:visible [data-sample-count]')).toHaveAttribute(
+    'data-sample-count',
+    '2',
+  );
   await page.getByRole('button', { name: '更多电池操作', exact: true }).click();
   await page
     .locator('ion-action-sheet:not(.overlay-hidden)')
@@ -202,7 +208,10 @@ test('browser history distinguishes battery from charge records and clearing one
     .locator('ion-modal:not(.overlay-hidden)')
     .getByRole('button', { name: '清除本机记录', exact: true })
     .click();
-  await expect(page.locator('.line-chart:visible')).toHaveAttribute('data-sample-count', '0');
+  await expect(page.locator('main:visible [data-sample-count]')).toHaveAttribute(
+    'data-sample-count',
+    '0',
+  );
   await expect(page.locator('main:visible ion-item').filter({ hasText: '82% → 82%' })).toHaveCount(
     1,
   );

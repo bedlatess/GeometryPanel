@@ -22,8 +22,12 @@ const color = (position: string) => {
     ? 'var(--alert)'
     : wheel?.pressureBar != null && wheel.pressureBar < 2.2
       ? 'var(--attn)'
-      : 'var(--t1)';
+      : wheel?.pressureBar == null
+        ? 'var(--t3)'
+        : 'var(--t1)';
 };
+const pressure = (position: string) =>
+  wheels.value.find((wheel) => wheel.position === position)?.pressureBar ?? null;
 onMounted(() => {
   void ext.load('tires');
   void owner.load(['tireHistory']);
@@ -65,8 +69,7 @@ watch(period, (value) => {
       :title="age(wheels.find((wheel) => wheel.position === position)?.reportedAt)"
     >
       <b class="num" :style="{ color: color(position) }"
-        >{{ format(wheels.find((wheel) => wheel.position === position)?.pressureBar)
-        }}<small>bar</small></b
+        >{{ format(pressure(position)) }}<small v-if="pressure(position) != null">bar</small></b
       >
       <span
         >{{ position }}　{{

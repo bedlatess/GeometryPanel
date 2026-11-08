@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { calendarDay } from '../../stores/presentation';
 import { computed } from 'vue';
 import { rows, obj, txt, num } from '../../stores/owner';
 import GroupList from '../../components/GroupList.vue';
@@ -46,20 +47,24 @@ const deductions = computed(() =>
     <GroupList v-if="Object.keys(get('otaDetail')).length" title="版本信息">
       <ListRow label="当前版本" :value="txt(get('otaDetail').nowVersion) || '—'" />
       <ListRow label="新版本" :value="txt(get('otaDetail').lastlyVersion) || '—'" />
-      <ListRow label="更新日期" :value="txt(get('otaDetail').updateDate) || '—'" />
+      <ListRow label="更新日期" :value="calendarDay(txt(get('otaDetail').updateDate))" />
     </GroupList>
     <p v-if="get('otaDetail').versionDesc">{{ get('otaDetail').versionDesc }}</p>
     <GroupList v-if="list('otaRecords').length" title="升级记录">
       <ListRow
         v-for="(row, index) in list('otaRecords')"
         :key="index"
-        :label="txt(row.updateDate) || '—'"
+        :label="calendarDay(txt(row.updateDate))"
         :value="txt(row.otaVersion) || '—'"
       />
     </GroupList>
+    <p class="owner-foot">升级请在极核 App 中进行</p>
   </template>
   <template v-if="path.endsWith('/score') && get('score').score !== undefined">
-    <MetricValue :value="num(get('score').score)" />
+    <div class="score-hero">
+      <MetricValue :value="num(get('score').score)" unit="分" />
+      <p>本月电池评分</p>
+    </div>
     <GroupList title="扣分项"
       ><ListRow
         v-for="(row, index) in deductions"
@@ -71,3 +76,27 @@ const deductions = computed(() =>
 </template>
 
 <style scoped src="../../theme/workflows.css"></style>
+<style scoped>
+.score-hero {
+  padding: 22px 20px 6px;
+}
+.score-hero :deep(.metric-value) {
+  font-size: 56px;
+  line-height: 1;
+  font-weight: 600;
+}
+.score-hero :deep(small) {
+  font-size: 20px;
+}
+.score-hero p,
+.owner-foot {
+  font-size: 15px;
+  color: var(--t2);
+  margin-top: 6px;
+}
+.owner-foot {
+  text-align: center;
+  font-size: 13px;
+  margin-top: 22px;
+}
+</style>

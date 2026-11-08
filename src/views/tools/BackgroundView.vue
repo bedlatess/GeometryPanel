@@ -221,9 +221,10 @@ const selected = computed(() =>
       <template v-else>
         <GroupList>
           <button
+            v-if="has('diagnostics')"
             class="workflow-row"
             data-background="diagnostics"
-            :disabled="disabled || !has('diagnostics')"
+            :disabled="disabled"
           >
             导出诊断信息
           </button>
@@ -231,9 +232,10 @@ const selected = computed(() =>
             导出上次车控结果
           </button>
           <button
+            v-if="has('updates')"
             class="workflow-row"
             data-background="update-check"
-            :disabled="disabled || !has('updates')"
+            :disabled="disabled"
           >
             检查 App 更新　 {{ version }}
           </button>

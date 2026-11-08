@@ -313,7 +313,7 @@ test('demo extensions stay synthetic and cannot write even after a forged form s
   await open(page);
   await page.getByRole('button', { name: '先看看演示', exact: true }).click();
   await show(page);
-  await expect(panel(page).locator('.record-metric .metric-value')).toHaveText('12.4km');
+  await expect(panel(page).locator('.record-metric .metric-value')).toHaveText('186km');
   for (const path of [
     '/records/rides/2026-10-06',
     '/records/tires',

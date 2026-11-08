@@ -1,12 +1,18 @@
 <script setup lang="ts">
+import { calendarDay } from '../../stores/presentation';
 import { computed, ref } from 'vue';
 import { rows, txt, num } from '../../stores/owner';
 import { useSessionStore } from '../../stores/session';
 import GroupList from '../../components/GroupList.vue';
 import ListRow from '../../components/ListRow.vue';
+import SegmentControl from '../../components/SegmentControl.vue';
 const props = defineProps<{ view: any; path: string }>();
 const session = useSessionStore();
 const action = ref<HTMLButtonElement>();
+const shareTabs = ref<HTMLElement>();
+function pickShare(key: string) {
+  shareTabs.value?.querySelector<HTMLElement>(`[data-share-tab="${key}"]`)?.click();
+}
 function toggle(name: string, index: number) {
   if (!action.value || disabled.value) return;
   action.value.dataset.owner = name;
@@ -40,7 +46,7 @@ const mask = (value: unknown) => txt(value).replace(/^(\d{3})\d{4}(\d{4})$/, '$1
       :key="index"
       :title="txt(row.phoneName) || '手机钥匙'"
     >
-      <ListRow label="更新时间" :value="txt(row.modifyTime) || '—'" />
+      <ListRow label="更新时间" :value="calendarDay(txt(row.modifyTime), true)" />
       <ListRow
         v-if="row.uniqueIdentify && view.ownIdentity === row.uniqueIdentify"
         label="当前设备"
@@ -158,20 +164,18 @@ const mask = (value: unknown) => txt(value).replace(/^(\d{3})\d{4}(\d{4})$/, '$1
     >
   </template>
   <template v-if="path.endsWith('/sharing')">
-    <GroupList
-      ><button
-        v-for="[key, label] in [
-          ['long', '长期'],
-          ['temp', '临时'],
-        ]"
-        :key="key"
-        class="workflow-row"
-        :data-share-tab="key"
-        :aria-pressed="view.shareTab === key"
-      >
-        {{ label }}
-      </button></GroupList
-    >
+    <div ref="shareTabs" hidden>
+      <button v-for="key in ['long', 'temp']" :key="key" :data-share-tab="key" />
+    </div>
+    <SegmentControl
+      class="share-tabs"
+      :model-value="view.shareTab || 'long'"
+      :options="[
+        ['long', '长期'],
+        ['temp', '临时'],
+      ]"
+      @update:model-value="pickShare"
+    />
     <GroupList
       v-for="(row, index) in shares"
       :key="index"

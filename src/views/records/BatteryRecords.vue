@@ -97,8 +97,9 @@ onMounted(() => {
     <MetricValue :value="vehicle.reading?.soc" unit="%" />
   </div>
   <p class="record-sub">
-    健康度 {{ format(vehicle.daily?.healthPercent) }}%　本月评分
-    {{ txt(owner.get('score').score) || '—' }}
+    健康度 {{ format(vehicle.daily?.healthPercent) }}%<template v-if="txt(owner.get('score').score)"
+      >　本月评分 {{ txt(owner.get('score').score) }}</template
+    >
   </p>
   <template v-if="!official">
     <section class="chart-card">
@@ -110,17 +111,21 @@ onMounted(() => {
           ['30d', '30 天'],
         ]"
       />
+      <p v-if="points.length < 2" class="chart-empty" :data-sample-count="points.length">
+        数据不足
+      </p>
       <LineChart
+        v-else
         :points="points"
         energy
         label="本机电量变化曲线"
         :data-sample-count="points.length"
       />
-      <div class="axis">
-        <span>{{ points.length ? time(points[0].t) : '—' }}</span> <span>现在</span>
+      <div v-if="points.length >= 2" class="axis">
+        <span>{{ time(points[0].t) }}</span> <span>现在</span>
       </div>
     </section>
-    <GroupList title="充电记录">
+    <GroupList v-if="history.visibleCharges.length" title="充电记录">
       <ListRow
         v-for="charge in history.visibleCharges"
         :key="charge.id"

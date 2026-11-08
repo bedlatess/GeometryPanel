@@ -88,7 +88,7 @@ export function mountTasks(host: HTMLElement, options: Options) {
     ctx.host.removeEventListener('submit', ctx.submitted);
     ctx.host.removeEventListener('click', ctx.clicked);
     ctx.host.removeEventListener('change', ctx.changed);
-    ctx.host.replaceChildren();
+    // The Vue page owns these nodes; clearing them would blank a re-entered cached page.
     if (uncertain) ctx.options.onUncertain?.();
   };
 }

@@ -7,6 +7,33 @@ export const format = (v: number | null | undefined, unit = '') =>
   v == null
     ? '—'
     : v.toLocaleString('zh-CN', { maximumFractionDigits: 1 }) + (unit ? ` ${unit}` : '');
+/** "2026-11-01" / "2026.11.01 08:10" / timestamp -> "11 月 1 日" (other years keep the year). */
+export function calendarDay(value: unknown, withTime = false): string {
+  if (value == null || value === '') return '—';
+  let date: Date | null = null;
+  if (typeof value === 'number') date = new Date(value);
+  else {
+    const m = String(value).match(
+      /^(\d{4})[-./年](\d{1,2})[-./月](\d{1,2})日?(?:[ T](\d{1,2}):(\d{2}))?/,
+    );
+    if (m) date = new Date(+m[1], +m[2] - 1, +m[3], m[4] ? +m[4] : 0, m[5] ? +m[5] : 0);
+  }
+  if (!date || Number.isNaN(date.getTime())) return String(value);
+  const head =
+    (date.getFullYear() === new Date().getFullYear() ? '' : `${date.getFullYear()} 年 `) +
+    `${date.getMonth() + 1} 月 ${date.getDate()} 日`;
+  if (!withTime) return head;
+  const hh = String(date.getHours()).padStart(2, '0');
+  const mm = String(date.getMinutes()).padStart(2, '0');
+  return `${head} ${hh}:${mm}`;
+}
+/** Minutes -> "28 分钟" / "7 小时 12 分". */
+export function duration(minutes: number | null | undefined): string {
+  if (minutes == null) return '—';
+  const m = Math.round(minutes);
+  if (m < 60) return `${m} 分钟`;
+  return m % 60 ? `${Math.floor(m / 60)} 小时 ${m % 60} 分` : `${m / 60} 小时`;
+}
 export function age(time: number | null | undefined, suffix = '更新') {
   if (time == null || time - Date.now() > DAILY_FUTURE_TOLERANCE_MS) return '更新时间未知';
   const minutes = Math.max(0, Math.floor((Date.now() - time) / 60000));

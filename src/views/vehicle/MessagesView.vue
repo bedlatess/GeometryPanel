@@ -25,6 +25,9 @@ const visible = computed(() =>
     v.value.messageTab === 'vehicle' ? Boolean(item.vin) : !item.vin,
   ),
 );
+const hasUnread = computed(() =>
+  (v.value.alerts?.alerts || []).some((item: any) => item.unread !== false),
+);
 const selected = computed(
   () => v.value.alerts?.alerts.find((item: any) => item.id === id) || cached,
 );
@@ -42,7 +45,12 @@ function tab(value: string) {
 <template>
   <PageFrame title="消息">
     <template #toolbar
-      ><button v-if="!id" class="toolbar-text" :disabled="v.busy" @click="click('read-messages')">
+      ><button
+        v-if="!id && hasUnread"
+        class="toolbar-text"
+        :disabled="v.busy"
+        @click="click('read-messages')"
+      >
         全部已读
       </button></template
     >
