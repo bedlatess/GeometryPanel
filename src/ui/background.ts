@@ -69,7 +69,7 @@ export function mountBackground(host: HTMLElement, options: { native: NativeClie
     if(section==='tools'){
       const group=options.toolGroup;
       const tool=(action:string,label:string,featureName:keyof NativeCapabilities['features'])=>button(action,label,!working&&!demo&&feature(featureName));
-      body=`${unavailable?PlatformNote():''}${group==='meter'?tool('tool-wallpaperZip','本地 ZIP 壁纸','wallpaperZip')+tool('tool-ota','仪表升级','ota'):group==='scan'?tool('tool-scanner','开始扫码','scanner'):group==='android'?tool('official-start','连接极核 App','officialLogin')+tool('official-stop','停止连接','officialLogin')+tool('official-result','读取连接结果','officialLogin')+tool('keepalive','导出常驻模块','keepalive'):tool('diagnostics','导出本机诊断','diagnostics')+tool('update-check','检查 App 更新','updates')+tool('update-install','安装新版','updates')+'<button class="text-button" data-action="export-command-report">导出车控结果</button>'}`;
+      body=`${unavailable&&group!=='meter'?PlatformNote():''}${group==='meter'?tool('tool-wallpaperZip','本地 ZIP 壁纸','wallpaperZip')+tool('tool-ota','仪表升级','ota'):group==='scan'?tool('tool-scanner','开始扫码','scanner'):group==='android'?tool('official-start','连接极核 App','officialLogin')+tool('official-stop','停止连接','officialLogin')+tool('official-result','读取连接结果','officialLogin')+tool('keepalive','导出常驻模块','keepalive'):tool('diagnostics','导出本机诊断','diagnostics')+tool('update-check','检查 App 更新','updates')+tool('update-install','安装新版','updates')+'<button class="text-button" data-action="export-command-report">导出车控结果</button>'}`;
     }
     host.innerHTML=`${section!=='tools'?`<label>目标车辆<select data-background-vehicle ${working||demo?'disabled':''}>${vehicles.map(car=>`<option value="${escape(car.id)}" ${selected===car.id?'selected':''}>${escape(car.accountLabel)} · ${escape(car.label)}</option>`).join('')}</select></label>`:''}${body}<p class="form-message" role="status">${escape(message)}</p>`;
   }
@@ -151,5 +151,10 @@ function batteryChart(items: any[]) {
   if (ordered.length < 2) return Empty('无数据','bolt');
   const start = ordered[0].at, end = ordered.at(-1).at;
   const path = ordered.map((item, index) => `${index === 0 || item.at - ordered[index - 1].at > 300000 ? 'M' : 'L'}${(20 + (item.at - start) / Math.max(1, end - start) * 280).toFixed(2)},${(110 - item.soc).toFixed(2)}`).join(' ');
-  return `<svg class="history-chart" viewBox="0 0 320 140" role="img" aria-label="本机电量变化曲线，间隔过长处断开"><path d="M20,10V110H300" fill="none" stroke="currentColor" opacity=".25"/><path d="${path}" fill="none" stroke="currentColor" stroke-width="2"/><text x="0" y="12" font-size="13">100%</text><text x="4" y="110" font-size="13">0%</text></svg>`;
+  const gaps = ordered.slice(1).flatMap((item, index) => {
+    const previous=ordered[index]; if(item.at-previous.at<=300000)return [];
+    const left=20+(previous.at-start)/Math.max(1,end-start)*280,right=20+(item.at-start)/Math.max(1,end-start)*280;
+    return [`<path d="M${left.toFixed(2)},${110-previous.soc}L${right.toFixed(2)},${110-item.soc}" fill="none" stroke="currentColor" stroke-dasharray="4 4" opacity=".5"/>${right-left>40?`<text x="${((left+right)/2).toFixed(2)}" y="130" text-anchor="middle">无数据</text>`:''}`];
+  }).join('');
+  return `<svg class="history-chart" viewBox="0 0 320 140" role="img" aria-label="本机电量变化曲线"><path d="M20,10V110H300" fill="none" stroke="currentColor" opacity=".25"/>${gaps}<path d="${path}" fill="none" stroke="currentColor" stroke-width="2"/><text x="0" y="12">100%</text><text x="4" y="110">0%</text></svg>`;
 }

@@ -72,6 +72,9 @@ test('native account consent precedes credential handoff; pause persists and log
 
 test('browser history distinguishes battery from charge records and clearing one category retains the other', async ({ page, mocks }) => {
   mocks.battery = { chargeState: 1 }; await open(page); await login(page);
+  await navigate(page,'/records/battery');
+  await expect(page.locator('tbody tr')).toHaveCount(1);
+  await navigate(page,'/vehicle');
   mocks.battery = { chargeState: 0 }; await page.getByRole('button', { name: '刷新车况', exact: true }).click();
   await expect(page.getByRole('button', { name: '刷新车况', exact: true })).toBeEnabled();
   await background(page); await navigate(page,'/records/battery');

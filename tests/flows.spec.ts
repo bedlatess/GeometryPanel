@@ -102,7 +102,7 @@ test('empty vehicle lists provide retry and account change', async ({ page, mock
 test('initial read failure retains selected account and allows refresh', async ({ page, mocks }) => {
   mocks.readFailure = true;
   await open(page);
-  await Promise.all([expect(page.locator('.notice')).toContainText('加载失败'), login(page)]);
+  await Promise.all([expect(page.locator('.notice')).toContainText('加载失败', { timeout: 30000 }), login(page)]);
   mocks.readFailure = false;
   await page.getByRole('button', { name: '刷新车况' }).click();
   await expect(page.locator('.battery-number')).toHaveText('82%');

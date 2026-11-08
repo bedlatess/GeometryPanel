@@ -43,3 +43,7 @@
 [data-preview-theme=system] { --preview-bg:linear-gradient(90deg,#F4F5F7 50%,#0B0D10 50%); --preview-ink:#9AA2AA; --preview-fill:#59616A; }
 
 :root { --record-height:128px; --ride-chart-height:160px; }
+
+:root { --skip-offset:120px; --tracking-title:-.035em; --motion-spin:1s; --empty-icon:48px; --map-card-height:196px; --map-height:180px; --highlight-stroke:1px; --full-turn:360deg; }
+
+:root { --tracking-number:-.04em; }

@@ -10,7 +10,7 @@
 .home-header-actions { display:flex; flex:none; margin-left:auto; }
 .home-header-actions .badge { position:absolute; right:var(--space-2); top:var(--space-2); }
 .home-readings { display:flex; align-items:center; gap:var(--space-4); margin-top:var(--space-6); }
-.home-readings .battery-number { font-size:var(--hero); line-height:.92; letter-spacing:-.04em; white-space:nowrap; }
+.home-readings .battery-number { font-size:var(--hero); line-height:.92; letter-spacing:var(--tracking-number); white-space:nowrap; }
 .battery-number small { font-size:var(--title); margin-left:var(--space-1); }
 .home-readings .metric { border-left:var(--stroke) solid var(--t2); padding-left:var(--space-4); }
 .home-readings .metric>span { font-size:var(--sub); color:var(--t2); }

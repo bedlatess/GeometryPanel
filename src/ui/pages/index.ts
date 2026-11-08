@@ -26,9 +26,9 @@ interface PageOptions { car?:Vehicle;data:Snapshot|null;book:AccountBook;prefere
 export function pageFor(path:string,o:PageOptions):string {
  switch(path){
  case '/vehicle/status':return statusPage(o.data,o.car?.name);
- case '/vehicle/location':return locationPage(o.data,!o.demo&&navigator.onLine,o.mapVisible);
+ case '/vehicle/location':return locationPage(o.data,!o.demo&&navigator.onLine,o.mapVisible,o.demo);
  case '/vehicle/info':return infoPage(o.car,o.demo);
- case '/records':return recordsPage(o.data);
+ case '/records':return `<div data-page-controller id="records-panel">${recordsPage(o.data)}</div>`;
  case '/tools':return toolsPage(o.app,o.android);
  case '/me':return mePage(o.car,o.book,o.preferences,o.version,o.demo);
  case '/me/appearance':return appearancePage(o.preferences);

@@ -1,4 +1,4 @@
-import { navigate, control, report, developerLab, test, expect, open, login } from './fixtures';
+import { navigate, control, report, developerLab, test, expect, open, login, auditData, VIN_B } from './fixtures';
 test('lever keeps short drags inert, accepts the threshold once and waits for vehicle confirmation', async ({ page, mocks }) => {
   await page.clock.install();
   mocks.home = { refreshTime: Date.now(), iotProperties: [{ identify: 'VehicleLock_S', value: 1 }] };
@@ -53,4 +53,23 @@ test('unknown lock supports both keyboard directions and target selection clears
   await page.locator('dialog').getByRole('button', { name: /测试极核 B/ }).click();
   await expect(page.locator('.battery-number')).toHaveText('45%');
   await expect(page.getByRole('heading', { name: '测试极核 B', exact: true })).toBeVisible();
+});
+test('record entry summaries use existing readings and clear before a different vehicle responds', async ({ page, mocks }) => {
+  mocks.extensions=auditData().extensions;
+  await open(page); await login(page); await navigate(page,'/records');
+  await expect(page.locator('#records-panel')).toContainText('2.4 / 2.6 bar');
+  await expect(page.locator('#records-panel')).toContainText('—% → —%');
+  await expect(page.locator('#records-panel')).toContainText('暂无充电记录');
+  await navigate(page,'/vehicle');await page.getByRole('button',{name:'切换车辆',exact:true}).click();
+  await page.locator('dialog').getByRole('button',{name:/测试极核 B/}).click();
+  await expect(page.getByRole('heading',{name:'测试极核 B',exact:true})).toBeVisible();
+  let release!:()=>void;
+  mocks.extensions.hold={kind:'tires',wait:new Promise<void>(resolve=>{release=resolve;})};
+  mocks.extensions.tires={realTimeData:[{sensorPosition:1,tirePressure:2.8},{sensorPosition:2,tirePressure:3}]};
+  await navigate(page,'/records');
+  await expect(page.locator('#records-panel')).toContainText('— / — bar');
+  await expect(page.locator('#records-panel')).not.toContainText('2.4 / 2.6');
+  release();
+  await expect(page.locator('#records-panel')).toContainText('2.8 / 3 bar');
+  expect(mocks.calls.filter(c=>c.path.endsWith('/tire/monitoring')).at(-1)?.query?.vinNo).toBe(VIN_B);
 });

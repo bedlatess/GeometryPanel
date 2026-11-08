@@ -25,6 +25,7 @@ import { commandNames, commandSummary, type CommandMode, type CommandReport, typ
 import { pageFor, pageTitles } from './ui/pages';
 import { createRouter } from './core/router';
 import { shortcutNames } from './ui/pages/home-custom';
+import { mountRecordsSummary } from './ui/pages/records-summary';
 import type { PageActions } from './ui/pages/actions';
 import { defaultPreferences, readPreferences, writePreferences, exportPreferences, importPreferences } from './core/preferences';
 import { currentInstallContext } from './core/pwa';
@@ -99,6 +100,7 @@ function mountPage(host:HTMLElement) {
  const path=router.path,nativeClient=preview?noNative:native,book=preview?emptyAccounts():structuredClone(accountBook),bound=preview||expired?null:session;
  const uncertain=()=>{notice='未收到车辆响应';};
  const common={native:nativeClient,session:bound,demo:preview,snapshot:preview?demoSnapshot:reading,onExpired:panelExpired,onUncertain:uncertain,actions};
+ if(path==='/records')return mountRecordsSummary(host,{...common,vehicleId:book.selectedVehicleId??''});
  if(path==='/me/lab')return mountDesignLab(host);
  if(path==='/me/accounts')return mountAccounts(host,{book,onSelect:activateSavedVehicle,onRemove:forgetSavedAccount,onChange:changeSavedAccounts,onAdd:showPhone,actions,demo:preview});
  if(path==='/tools/tasks')return mountTasks(host,{...common,accounts:book,onNativeConsent:()=>preview?Promise.reject():authorizeNativeAccounts(native,accountBook).then(()=>{})});
@@ -118,7 +120,7 @@ function render() {
  const car=vehicle(),data=preview?demoSnapshot:reading,locked=busy||booting||updating;
  const enabled=Boolean(!preview&&session&&!locked&&!expired&&navigator.onLine);
  const path=router.path;
- const key=[path,preview,expired,session?.uid,session?.vehicle.vin].join('|');
+ const key=[path,preview,expired,session?.uid,session?.vehicle.vin,path==='/records'?reading?.receivedAt:''].join('|');
  const existing=key===pageKey?content.querySelector<HTMLElement>('[data-page-controller]'):null;
  if(existing)existing.remove();
  else {const dispose=disposePage;disposePage=undefined;pageKey=key;dispose?.();}

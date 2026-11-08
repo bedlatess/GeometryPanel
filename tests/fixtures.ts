@@ -7,6 +7,31 @@ export const cars = [
   { vinNo: VIN_A, vehicleName: '测试极核 A', vehicleType: 'AE8', licensePlate: '' },
   { vinNo: VIN_B, vehicleName: '测试极核 B', vehicleType: 'AE6', licensePlate: '' },
 ];
+/** Shared synthetic input for delivery screenshots; no device or account data. */
+export function auditData() {
+  return {
+    home: { refreshTime: Date.now(), onlineStatus: 'ONLINE', totalRideMile: 8818.9,
+      rideMileageMonth: 186, ridingTimeMonthUnitMinute: 432, avgVelocityMonth: 26,
+      headLockState: 1, seatLockState: 1, rideState: '已停放', address: '测试停车点',
+      location: { longitude: 116.397, latitude: 39.908, locationTime: Date.now() },
+      iotProperties: [{ identify: 'VehicleLock_S', value: 1 }, { identify: 'Hmi_TotalOdometer', value: 8818.9 }] },
+    battery: { bmssoc: 82, bmsVoltage: 76.4, batteryTemp: 24, soh: 97, chargeCount: 42, current: 0, power: 0, refreshTime: Date.now() },
+    extensions: {
+      month: { rideMileageTotal: 8818.9, rideRecordList: [{ date: '2026.11.06', rideMileage: 12.4, ridingTimeDayUnitMinute: 28, maxSpeed: 39 }] },
+      tracks: [{ historyList: [{ rideId: 'synthetic-trip', dayTime: '2026-11-06', startTime: '2026-11-06 08:10', endTime: '2026-11-06 08:38', rideMileage: 12.4, ridingTimeUnitMinute: 28, maxSpeed: 39, trajectory: '120,30&120.002,30.003&120.006,30.008' }] }],
+      tires: { updateTime: Date.now(), realTimeData: [{ sensorPosition: 1, tirePressure: 2.4, tireTemp: 24, reportTime: Date.now() }, { sensorPosition: 2, tirePressure: 2.6, tireTemp: 25, reportTime: Date.now() }] },
+      alerts: { noRead: 0, messageVOList: [] },
+      capabilities: [
+        { functionCode: 'PRECISION_ENDURANCE', isSupport: true }, { functionCode: 'KINETIC_ENERGY_RECOVERY', isSupport: true },
+        { functionCode: 'AUTO_SHUTDOWN_TIME_GO', isSupport: true }, { functionCode: 'E_TCS_TRACTION_CONTROL', isSupport: true },
+        { functionCode: 'AUTOMATIC_PARKING_GO', isSupport: false },
+      ],
+      settings: { precisionEndurance: 1, kineticEnergyRecovery: 1, automaticShutdown: 0, etcsTractionControl: 1,
+        mileageUnit: 1, temperatureUnit: 1, timeFormat: 2, soundEffectSetting: { soundSize: 60 } },
+    } satisfies ExtensionMocks,
+    tasks: { summary: { integralTotal: 120, ps0003_01_002_VOList: [] }, sign: { signStatus: 0, count: 3 } } satisfies TaskMocks,
+  };
+}
 export interface Call { path: string; method: string; body: any; authorization: string; query?: Record<string, string>; origin?: string }
 export interface ExtensionMocks {
   month: unknown; tracks: unknown; tires: unknown; alerts: unknown; capabilities: unknown; settings: Record<string, unknown>;
