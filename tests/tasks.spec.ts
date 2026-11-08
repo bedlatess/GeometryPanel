@@ -12,6 +12,28 @@ import {
 } from './fixtures';
 import type { Page } from '@playwright/test';
 
+// A visible confirmation can still be inside Ionic's entry animation, where
+// its tap handler suppresses clicks. Observe the real presentation lifecycle.
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    for (const type of ['ionModalWillPresent', 'ionModalDidPresent', 'ionModalWillDismiss']) {
+      document.addEventListener(type, (event) => {
+        if (event.target instanceof HTMLElement) {
+          event.target.dataset.testPresented = String(type === 'ionModalDidPresent');
+        }
+      });
+    }
+  });
+});
+async function confirmTask(page: Page, name = '执行所选任务') {
+  const modal = page
+    .locator('ion-modal:not(.overlay-hidden)')
+    .filter({ has: page.getByRole('button', { name, exact: true }) })
+    .last();
+  await expect(modal).toHaveAttribute('data-test-presented', 'true', { timeout: 20000 });
+  await modal.getByRole('button', { name, exact: true }).click();
+}
+
 const sample = (): TaskMocks => ({
   summary: {
     integralTotal: 1280,
@@ -89,7 +111,7 @@ test('signin is confirmed separately, uses the fixed H5 origin and rereads actua
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
   expect(mutations(mocks.calls)).toEqual([]);
   await expect(page.locator('ion-modal:not(.overlay-hidden)')).toContainText('每日签到');
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect(panel(page)).toContainText('每日签到已核实');
   const signin = mocks.calls.find((call) => call.path.endsWith('/H5/signin'))!;
   expect(signin.origin).toBe('https://h5.zeehoev.com');
@@ -128,7 +150,7 @@ test('post and cleanup require exact user text and delete only the unique new ar
   await expect(page.locator('ion-modal:not(.overlay-hidden)')).toContainText(
     '只用于合成浏览器测试的动态',
   );
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect(panel(page)).toContainText('清理本次发布的动态已核实');
   const writes = mutations(mocks.calls);
   expect(writes).toHaveLength(2);
@@ -169,11 +191,11 @@ test('unsafe publishing evidence and persisted daily gate prevent guessing a del
     .click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect(panel(page)).toContainText('未确认新动态，停止清理');
   await expect(panel(page).getByRole('button', { name: '立即执行', exact: true })).toBeEnabled();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect(panel(page)).toContainText('今日已尝试');
   expect(mutations(mocks.calls).map((call) => call.path.split('/').at(-1))).toEqual([
     'commonArticle',
@@ -200,7 +222,7 @@ test('legacy like behavior needs its own saved opt-in before any request', async
     .click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect(panel(page)).toContainText('状态未知');
   expect(mutations(mocks.calls)).toEqual([]);
   await panel(page).getByRole('switch', { name: '允许取消已有的点赞', exact: false }).click();
@@ -209,7 +231,7 @@ test('legacy like behavior needs its own saved opt-in before any request', async
   ).toBeChecked();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect(panel(page)).toContainText('点赞广场动态已核实');
   expect(mutations(mocks.calls)[0].body).toEqual({ postId: 'square-synthetic', kindFlag: '0' });
 });
@@ -246,7 +268,7 @@ test('closing during a post stops later evidence and cleanup while retaining the
     .click();
   await panel(page).getByRole('button', { name: '保存', exact: true }).click();
   await panel(page).getByRole('button', { name: '立即执行', exact: true }).click();
-  await page.getByRole('button', { name: '执行所选任务', exact: true }).click();
+  await confirmTask(page);
   await expect
     .poll(() => mocks.calls.some((call) => call.path.endsWith('/commonArticle')))
     .toBe(true);
@@ -312,7 +334,7 @@ test('native task activation syncs credentials only after explicit consent and s
           .length,
     ),
   ).toBe(0);
-  await page.getByRole('button', { name: '启用并保存', exact: true }).click();
+  await confirmTask(page, '启用并保存');
   await expect(panel(page)).toContainText('定时执行已保存');
   const calls = await page.evaluate(() =>
     (window as any).__taskNativeCalls.map((call: any) => call.method),
