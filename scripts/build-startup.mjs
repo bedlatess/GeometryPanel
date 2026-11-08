@@ -20,7 +20,7 @@ try {
     const page = await browser.newPage({viewport:{width:144,height:144},deviceScaleFactor:2});
     await page.setContent(`<style>html,body{margin:0;width:144px;height:144px;background:transparent;color:${theme==='dark'?'#F2F4F6':'#0F1215'}}body{display:grid;place-items:center}svg{width:96px;height:96px}</style>${theme==='dark'?markDark:markLight}`);
     await page.screenshot({path:`${folder}/startup_mark.png`,omitBackground:true}); await page.close();
-    await writeFile(`${folder}/launch_background.xml`,`<?xml version="1.0" encoding="utf-8"?><layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item android:drawable="${theme==='dark'?'#0B0D10':'#F4F5F7'}"/><item android:width="144dp" android:height="144dp" android:gravity="center" android:drawable="@drawable/startup_mark"/></layer-list>`);
+    await writeFile(`${folder}/launch_background.xml`,`<?xml version="1.0" encoding="utf-8"?><layer-list xmlns:android="http://schemas.android.com/apk/res/android"><item><shape android:shape="rectangle"><solid android:color="${theme==='dark'?'#0B0D10':'#F4F5F7'}"/></shape></item><item android:width="144dp" android:height="144dp" android:gravity="center" android:drawable="@drawable/startup_mark"/></layer-list>`);
   }
   const file = await readFile('index.html','utf8');
   await writeFile('index.html',file.replace(/\s*<!-- startup:start -->[\s\S]*?<!-- startup:end -->/,'').replace('</head>',`<!-- startup:start -->\n${links.join('\n')}\n<!-- startup:end -->\n  </head>`));
